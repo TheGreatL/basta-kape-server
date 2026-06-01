@@ -1,4 +1,26 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { vi, describe, it, expect, beforeAll, afterAll } from 'vitest';
+import type { Request, Response, NextFunction } from 'express';
+
+vi.mock('@/middleware/rbac.middleware', () => ({
+    requireAccess: vi.fn(() => (req: Request, res: Response, next: NextFunction) => {
+        req.user = {
+            sub: 'test-user-id',
+            email: 'test@example.com',
+            username: 'testuser',
+            roles: ['Administrator']
+        };
+        req.rbacScope = 'All';
+        next();
+    })
+}));
+
+vi.mock('@/feature/activity-log/activity-log.service', () => {
+    return {
+        ActivityLogService: class {
+            logActivity = vi.fn().mockResolvedValue(true);
+        }
+    };
+});
 import request from 'supertest';
 import express from 'express';
 import { PrismaClient, AccessScope } from '@prisma/client';

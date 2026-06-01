@@ -2,6 +2,8 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { registry } from '@/docs/swagger';
 import { ModuleService } from './module.service';
 import { GetModuleListQuerySchema, PaginatedModuleResponseSchema } from './module.types';
+import { requireAccess } from '@/middleware/rbac.middleware';
+import { appModules, appPermissions } from '@/constant';
 
 const router = Router();
 const moduleService = new ModuleService();
@@ -27,7 +29,7 @@ registry.registerPath({
     }
 });
 
-router.get('/list', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/list', requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
     try {
         const queryParams = GetModuleListQuerySchema.parse(req.query);
         const data = await moduleService.getList(queryParams);

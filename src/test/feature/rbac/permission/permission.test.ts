@@ -1,4 +1,19 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { vi, describe, it, expect, beforeAll, afterAll } from 'vitest';
+import type { Request, Response, NextFunction } from 'express';
+
+vi.mock('@/middleware/rbac.middleware', () => ({
+    requireAccess: vi.fn(() => (req: Request, res: Response, next: NextFunction) => {
+        req.user = {
+            sub: 'test-user-id',
+            email: 'test@example.com',
+            username: 'testuser',
+            roles: ['Administrator']
+        };
+        // @ts-expect-error - rbacScope is custom property
+        req.rbacScope = 'All';
+        next();
+    })
+}));
 import request from 'supertest';
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
@@ -19,7 +34,8 @@ describe('Permission Feature (RBAC) - GET /', () => {
         // Mock error handler to catch Zod validation errors cleanly
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         app.use((err: HttpException, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-            res.status(400).json({ error: err.message });
+            const status = err.statusCode || 400;
+            res.status(status).json({ error: err.message });
         });
     });
 

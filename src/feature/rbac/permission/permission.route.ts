@@ -2,6 +2,8 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { registry } from '@/docs/swagger';
 import { PermissionService } from './permission.service';
 import { GetPermissionListQuerySchema, PaginatedPermissionResponseSchema } from './permission.types';
+import { requireAccess } from '@/middleware/rbac.middleware';
+import { appModules, appPermissions } from '@/constant';
 
 const router = Router();
 const permissionService = new PermissionService();
@@ -27,7 +29,7 @@ registry.registerPath({
     }
 });
 
-router.get('/list', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/list', requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
     try {
         const queryParams = GetPermissionListQuerySchema.parse(req.query);
         const data = await permissionService.getList(queryParams);

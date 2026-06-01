@@ -12,6 +12,8 @@ import {
 } from './role.types';
 import { z } from 'zod';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
+import { requireAccess } from '@/middleware/rbac.middleware';
+import { appModules, appPermissions } from '@/constant';
 
 const router = Router();
 const roleService = new RoleService();
@@ -34,14 +36,18 @@ registry.registerPath({
     }
 });
 
-router.get('/modules-permissions', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const data = await roleService.getSelectionTree();
-        res.json(data);
-    } catch (error) {
-        next(error);
+router.get(
+    '/modules-permissions',
+    requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.CREATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const data = await roleService.getSelectionTree();
+            res.json(data);
+        } catch (error) {
+            next(error);
+        }
     }
-});
+);
 
 // ==========================================
 // 2. GET Role List
@@ -60,7 +66,7 @@ registry.registerPath({
     }
 });
 
-router.get('/list', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/list', requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
     try {
         const queryParams = GetRoleListQuerySchema.parse(req.query);
         const data = await roleService.getList(queryParams);
@@ -90,15 +96,19 @@ registry.registerPath({
     }
 });
 
-router.get('/:name', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const name = z.string().parse(req.params.name);
-        const data = await roleService.getRoleByName(name);
-        res.json(data);
-    } catch (error) {
-        next(error);
+router.get(
+    '/:name',
+    requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const name = z.string().parse(req.params.name);
+            const data = await roleService.getRoleByName(name);
+            res.json(data);
+        } catch (error) {
+            next(error);
+        }
     }
-});
+);
 
 // ==========================================
 // 4. POST Create Role
@@ -121,7 +131,7 @@ registry.registerPath({
     }
 });
 
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.CREATE), async (req: Request, res: Response, next: NextFunction) => {
     try {
         const body = CreateRoleSchema.parse(req.body);
         const data = await roleService.createRole(body);
@@ -163,23 +173,27 @@ registry.registerPath({
     }
 });
 
-router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const id = z.string().parse(req.params.id);
-        const body = UpdateRoleSchema.parse(req.body);
-        const data = await roleService.updateRole(id, body);
+router.put(
+    '/:id',
+    requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.UPDATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = z.string().parse(req.params.id);
+            const body = UpdateRoleSchema.parse(req.body);
+            const data = await roleService.updateRole(id, body);
 
-        await activityLogService.logActivity({
-            actorId: req.user?.sub,
-            title: 'Update Role',
-            details: `Updated role: ${data.name}`
-        });
+            await activityLogService.logActivity({
+                actorId: req.user?.sub,
+                title: 'Update Role',
+                details: `Updated role: ${data.name}`
+            });
 
-        res.json(data);
-    } catch (error) {
-        next(error);
+            res.json(data);
+        } catch (error) {
+            next(error);
+        }
     }
-});
+);
 
 // ==========================================
 // 6. DELETE Role
@@ -203,21 +217,25 @@ registry.registerPath({
     }
 });
 
-router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const id = z.string().parse(req.params.id);
-        const data = await roleService.deleteRole(id);
+router.delete(
+    '/:id',
+    requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = z.string().parse(req.params.id);
+            const data = await roleService.deleteRole(id);
 
-        await activityLogService.logActivity({
-            actorId: req.user?.sub,
-            title: 'Delete Role',
-            details: `Deleted role: ${data.name}`
-        });
+            await activityLogService.logActivity({
+                actorId: req.user?.sub,
+                title: 'Delete Role',
+                details: `Deleted role: ${data.name}`
+            });
 
-        res.json(data);
-    } catch (error) {
-        next(error);
+            res.json(data);
+        } catch (error) {
+            next(error);
+        }
     }
-});
+);
 
 export default router;

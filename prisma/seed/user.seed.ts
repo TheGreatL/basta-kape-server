@@ -112,6 +112,11 @@ export async function seedUsers(prisma: PrismaClient) {
         update: {},
         create: { name: appModules.MENU }
     });
+    const activityLogMod = await prisma.module.upsert({
+        where: { name: appModules.ACTIVITY_LOGS },
+        update: {},
+        create: { name: appModules.ACTIVITY_LOGS }
+    });
 
     // ==========================================
     // 3. CREATE MODULE PERMISSIONS (Helper)
@@ -148,7 +153,8 @@ export async function seedUsers(prisma: PrismaClient) {
         purchaseOrdersMod,
         transactionHistoryMod,
         orderQueueMod,
-        menuMod
+        menuMod,
+        activityLogMod
     ];
 
     //@eslint
