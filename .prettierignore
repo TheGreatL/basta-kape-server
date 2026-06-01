@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Coverage
+coverage/
+
+# Environment files
+.env
+.env.*
+
+# Package lock files (sometimes formatted differently by npm)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+*.log
+
+# Markdown files (if you prefer them not to be formatted by Prettier)
+README.md
