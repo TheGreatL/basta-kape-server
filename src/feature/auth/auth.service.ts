@@ -5,6 +5,7 @@ import type { IJwtPayload } from './auth.types';
 import type { z } from 'zod';
 import type { RegisterSchema } from './auth.types';
 import { UnauthorizedException, ConflictException } from '@/exceptions';
+import { randomUUID } from 'crypto';
 
 import { env } from '@/env';
 
@@ -12,7 +13,7 @@ function signTokens(payload: IJwtPayload) {
     // @ts-expect-error jsonwebtoken types expect specific string formats like "15m" instead of generic string
     const accessToken = jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: env.JWT_ACCESS_EXPIRY });
     // @ts-expect-error jsonwebtoken types expect specific string formats like "15m" instead of generic string
-    const refreshToken = jwt.sign({ sub: payload.sub }, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRY });
+    const refreshToken = jwt.sign({ sub: payload.sub, jti: randomUUID() }, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRY });
     return { accessToken, refreshToken };
 }
 
