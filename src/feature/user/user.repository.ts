@@ -2,6 +2,11 @@ import { prisma } from '@/lib/prisma';
 import type { RegisterSchema } from '@/feature/auth/auth.types';
 import type { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { BaseRepository } from '@/repository/base.repository';
+
+import type { IPaginatedResult } from '@/types/base.types';
+import { Prisma } from '@prisma/client';
+import { TGetUserListQuery, TUpdateUser } from './user.types';
 
 const SALT_ROUNDS = 12;
 
@@ -37,7 +42,7 @@ const userAuthSelect = {
     }
 } as const;
 
-export class UserRepository {
+export class UserRepository extends BaseRepository {
     /**
      * Finds a user by email OR username (for flexible login).
      */
@@ -85,6 +90,185 @@ export class UserRepository {
                 username: true,
                 firstName: true,
                 lastName: true
+            }
+        });
+    }
+
+    /**
+     * Retrieves a paginated list of users.
+     */
+    async getList(params: TGetUserListQuery): Promise<IPaginatedResult<unknown>> {
+        const { skip, take, page } = this.normalizePagination(params);
+
+        const where: Prisma.UserWhereInput = {
+            deletedAt: null
+        };
+
+        if (params.search) {
+            const searchLower = params.search.toLowerCase();
+            where.OR = [
+                { email: { contains: searchLower } },
+                { username: { contains: searchLower } },
+                { firstName: { contains: searchLower } },
+                { lastName: { contains: searchLower } }
+            ];
+        }
+
+        const [data, totalRows] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                skip,
+                take,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    email: true,
+                    username: true,
+                    firstName: true,
+                    middleName: true,
+                    lastName: true,
+                    phoneNumber: true,
+                    profilePhoto: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    deletedAt: true,
+                    userRoles: {
+                        where: { deletedAt: null },
+                        select: {
+                            role: {
+                                select: {
+                                    id: true,
+                                    name: true
+                                }
+                            }
+                        }
+                    }
+                }
+            }),
+            prisma.user.count({ where })
+        ]);
+
+        return this.formatPaginatedResult(data, totalRows, page, take);
+    }
+
+    /**
+     * Finds a user by ID with nested roles.
+     */
+    async findById(id: string) {
+        return prisma.user.findFirst({
+            where: { id, deletedAt: null },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                phoneNumber: true,
+                profilePhoto: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                userRoles: {
+                    where: { deletedAt: null },
+                    select: {
+                        role: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Updates an existing user and optionally syncs roles.
+     */
+    async updateUser(id: string, data: TUpdateUser) {
+        const { roleIds, ...rest } = data;
+
+        return prisma.$transaction(async (tx) => {
+            await tx.user.update({
+                where: { id },
+                data: rest,
+                select: {
+                    id: true
+                }
+            });
+
+            if (roleIds !== undefined) {
+                // Delete existing role relations
+                await tx.userRole.deleteMany({
+                    where: { userId: id }
+                });
+
+                // Create new role relations
+                if (roleIds.length > 0) {
+                    await tx.userRole.createMany({
+                        data: roleIds.map((roleId: string) => ({
+                            userId: id,
+                            roleId
+                        }))
+                    });
+                }
+            }
+
+            // Fetch the user with roles to return
+            const finalUser = await tx.user.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    email: true,
+                    username: true,
+                    firstName: true,
+                    middleName: true,
+                    lastName: true,
+                    phoneNumber: true,
+                    profilePhoto: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    deletedAt: true,
+                    userRoles: {
+                        where: { deletedAt: null },
+                        select: {
+                            role: {
+                                select: {
+                                    id: true,
+                                    name: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return finalUser;
+        });
+    }
+
+    /**
+     * Soft deletes a user.
+     */
+    async softDeleteUser(id: string) {
+        return prisma.user.update({
+            where: { id },
+            data: { deletedAt: new Date() }
+        });
+    }
+
+    /**
+     * Updates the user's profile photo.
+     */
+    async updateProfilePhoto(id: string, url: string) {
+        return prisma.user.update({
+            where: { id },
+            data: { profilePhoto: url },
+            select: {
+                id: true,
+                profilePhoto: true
             }
         });
     }
