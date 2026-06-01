@@ -24,6 +24,8 @@ router.get('/health', (req: Request, res: Response) => {
     res.send('Server is healthy');
 });
 
+// router.use('/rbac');
+
 registry.registerPath({
     method: 'get',
     path: '/',

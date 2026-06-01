@@ -11,10 +11,10 @@ This project follows a strict **Feature MVC** architecture structure. Whenever y
 
 Each feature (and sub-feature) should reside in its own folder inside `src/feature/` and MUST contain a minimum of 4 distinct files to clearly separate concerns:
 
-1. **Repository** (`[feature-name].repository.ts`): Handles all direct database access and Prisma queries. No business logic belongs here.
-2. **Service** (`[feature-name].service.ts`): Contains the core business logic. Calls the repository layer for data.
-3. **Route / Controller** (`[feature-name].route.ts`): Defines the Express routes, handles HTTP requests/responses, performs input validation, and calls the service layer.
-4. **Types** (`[feature-name].types.ts`): Contains all feature-specific TypeScript interfaces, types, Zod schemas, and DTOs.
+1. **Repository** (`[feature-name].repository.ts`): Handles all database access. MUST extend `BaseRepository` and MUST import the `prisma` client directly from `@/lib/prisma` (do not pass prisma through the constructor).
+2. **Service** (`[feature-name].service.ts`): Contains core business logic. MUST use an optional constructor parameter type (e.g., `type FeatureServiceConstructor = { featureRepository?: FeatureRepository }`) and default to instantiating a new repository if one is not provided.
+3. **Route / Controller** (`[feature-name].route.ts`): Defines Express routes, Swagger documentation (`registry.registerPath`), and Zod validation. MUST instantiate the service locally (`const service = new FeatureService();`) and MUST export the router as a default export (`export default router;`). Do not use factory functions.
+4. **Types** (`[feature-name].types.ts`): Contains all feature-specific TypeScript interfaces, types, and Zod schemas used for validation and Swagger docs.
 
 Features can have nested sub-features to maintain organization. For example:
 - `src/feature/rbac/`
