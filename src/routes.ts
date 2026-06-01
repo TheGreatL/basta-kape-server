@@ -1,6 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { registry } from './docs/swagger';
+import swaggerUi from 'swagger-ui-express';
+import { generateOpenAPI, registry } from './docs/swagger';
 import { z } from 'zod';
+
+import moduleRouter from './feature/rbac/module/module.route';
+import permissionRouter from './feature/rbac/permission/permission.route';
 
 const router = Router();
 
@@ -24,7 +28,8 @@ router.get('/health', (req: Request, res: Response) => {
     res.send('Server is healthy');
 });
 
-// router.use('/rbac');
+router.use('/rbac/modules', moduleRouter);
+router.use('/rbac/permissions', permissionRouter);
 
 registry.registerPath({
     method: 'get',
@@ -45,5 +50,10 @@ registry.registerPath({
 router.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server is running');
 });
+
+// API Documentation (Swagger)
+// MUST be generated AFTER all routes are imported and registered above!
+const swaggerDocument = generateOpenAPI();
+router.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 export default router;
