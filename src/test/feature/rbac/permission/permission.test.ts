@@ -9,7 +9,6 @@ vi.mock('@/middleware/rbac.middleware', () => ({
             username: 'testuser',
             roles: ['Administrator']
         };
-        // @ts-expect-error - rbacScope is custom property
         req.rbacScope = 'All';
         next();
     })
