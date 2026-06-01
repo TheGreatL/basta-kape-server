@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import moduleRouter from './feature/rbac/module/module.route';
 import permissionRouter from './feature/rbac/permission/permission.route';
+import roleRouter from './feature/rbac/role/role.route';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.get('/health', (req: Request, res: Response) => {
 
 router.use('/rbac/modules', moduleRouter);
 router.use('/rbac/permissions', permissionRouter);
+router.use('/rbac/roles', roleRouter);
 
 registry.registerPath({
     method: 'get',

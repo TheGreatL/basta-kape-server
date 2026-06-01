@@ -12,7 +12,7 @@ export const GetPermissionListQuerySchema = z.object({
 });
 
 export const PermissionResponseSchema = z.object({
-    id: z.string().uuid(),
+    id: z.uuid(),
     name: z.string(),
     description: z.string().nullable(),
     createdAt: z.date().or(z.string())
