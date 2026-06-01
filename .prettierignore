@@ -22,3 +22,5 @@ pnpm-lock.yaml
 
 # Markdown files (if you prefer them not to be formatted by Prettier)
 README.md
+
+.agents/
