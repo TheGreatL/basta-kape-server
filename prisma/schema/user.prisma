@@ -1,7 +1,110 @@
+model Module {
+  id                String             @id @default(uuid())
+  name              String             @unique
+  description       String?
+  createdAt         DateTime           @default(now())
+  modulePermissions ModulePermission[]
+}
+
+model Permission {
+  id                String             @id @default(uuid())
+  name              String             @unique
+  description       String?
+  createdAt         DateTime           @default(now())
+  modulePermissions ModulePermission[]
+}
+
+enum AccessScope {
+  ALL
+  OWN
+  BRANCH
+  STORE
+}
+
+model ModulePermission {
+  id              String           @id @default(uuid())
+  moduleId        String
+  permissionId    String
+  module          Module           @relation(fields: [moduleId], references: [id])
+  permission      Permission       @relation(fields: [permissionId], references: [id])
+  accessScope     AccessScope      @default(ALL)
+  createdAt       DateTime         @default(now())
+  rolePermissions RolePermission[]
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  isSystem        Boolean          @default(false)
+  createdById     String?
+  createdBy       User?            @relation("RoleCreatedBy", fields: [createdById], references: [id])
+  updatedById     String?
+  updatedBy       User?            @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+}
+
+model RolePermission {
+  id                 String           @id @default(uuid())
+  roleId             String
+  role               Role             @relation(fields: [roleId], references: [id])
+  modulePermissionId String
+  modulePermission   ModulePermission @relation(fields: [modulePermissionId], references: [id])
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  deletedAt          DateTime?
+}
+
 model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  username     String     @unique
+  password     String
+  phoneNumber  String?
+  firstName    String
+  middleName   String?
+  lastName     String
+  profilePhoto String?
+  userRoles    UserRole[]
+  customer     Customer?
+
+  createdRoles Role[]        @relation("RoleCreatedBy")
+  updatedRoles Role[]        @relation("RoleUpdatedBy")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  activityLogs ActivityLog[]
+}
+
+model UserRole {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  roleId    String
+  role      Role      @relation(fields: [roleId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model ActivityLog {
   id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  title     String
+  details   String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }

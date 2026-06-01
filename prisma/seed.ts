@@ -1,29 +1,22 @@
 import { PrismaClient } from '@prisma/client';
+import { seedUsers } from './seed/user.seed';
 
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('Start seeding...');
+    try {
+        console.log('Start seeding...');
 
-    // Example seed
-    const user = await prisma.user.upsert({
-        where: { email: 'admin@bastakape.com' },
-        update: {},
-        create: {
-            email: 'admin@bastakape.com',
-            name: 'Admin User'
-        }
-    });
-    console.log(`Created user with id: ${user.id}`);
+        // Execute user-related seeding logic
+        await seedUsers(prisma);
 
-    console.log('Seeding finished.');
+        console.log('Seeding finished successfully.');
+    } catch (e) {
+        console.error(e);
+        throw e;
+    } finally {
+        await prisma.$disconnect();
+    }
 }
 
-main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+main();
