@@ -4,7 +4,7 @@ export const registry = new OpenAPIRegistry();
 
 export function generateOpenAPI() {
     const generator = new OpenApiGeneratorV3(registry.definitions);
-    
+
     return generator.generateDocument({
         openapi: '3.0.0',
         info: {
