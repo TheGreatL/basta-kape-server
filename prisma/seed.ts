@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { seedUsers } from './seed/user.seed';
+// import { seedProduct } from './seed/product.seed';
 
 const prisma = new PrismaClient();
 
@@ -9,6 +10,7 @@ async function main() {
 
         // Execute user-related seeding logic
         await seedUsers(prisma);
+        // await seedProduct(prisma);
 
         console.log('Seeding finished successfully.');
     } catch (e) {

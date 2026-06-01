@@ -1,4 +1,5 @@
 import { PrismaClient, AccessScope } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 export async function seedUsers(prisma: PrismaClient) {
     console.log('Seeding explicitly: Users, Roles, and Permissions...');
@@ -275,7 +276,8 @@ export async function seedUsers(prisma: PrismaClient) {
     // ==========================================
     // 5. CREATE USERS EXPLICITLY
     // ==========================================
-    const defaultPassword = 'password123';
+    const rawPassword = 'password123';
+    const defaultPassword = await bcrypt.hash(rawPassword, 10);
 
     await prisma.user.upsert({
         where: { email: 'owner@bastakape.com' },

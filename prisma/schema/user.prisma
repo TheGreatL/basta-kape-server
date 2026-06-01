@@ -70,6 +70,7 @@ model User {
   lastName     String
   profilePhoto String?
   userRoles    UserRole[]
+  refreshTokens RefreshToken[]
   customer     Customer?
 
   createdRoles Role[]        @relation("RoleCreatedBy")
@@ -106,5 +107,15 @@ model ActivityLog {
   actor     User?    @relation(fields: [actorId], references: [id])
   title     String
   details   String?
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique @db.VarChar(512)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
   createdAt DateTime @default(now())
 }
