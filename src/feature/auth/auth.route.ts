@@ -3,9 +3,11 @@ import { registry } from '@/docs/swagger';
 import { AuthService } from './auth.service';
 import { LoginSchema, RegisterSchema, AuthTokenResponseSchema } from './auth.types';
 import { z } from 'zod';
+import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 
 const router = Router();
 const authService = new AuthService();
+const activityLogService = new ActivityLogService();
 
 // ==========================================
 // POST /auth/login
@@ -73,6 +75,13 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     try {
         const data = RegisterSchema.parse(req.body);
         const result = await authService.register(data);
+
+        await activityLogService.logActivity({
+            actorId: result.user.id,
+            title: 'Register User',
+            details: `Registered new user: ${data.username}`
+        });
+
         res.status(201).json(result);
     } catch (error) {
         next(error);

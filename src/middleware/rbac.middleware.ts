@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { AuthService } from '@/feature/auth/auth.service';
 import { UserRepository } from '@/feature/user/user.repository';
 import { UnauthorizedException, ForbiddenException } from '@/exceptions';
+import { TAppModule, TAppPermission } from '@/constant';
 
 const authService = new AuthService();
 const userRepository = new UserRepository();
@@ -33,7 +34,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
  *
  * If granted, it attaches the `accessScope` (e.g., 'Global', 'Owned') to `req.rbacScope`.
  */
-export function requireAccess(requiredModule: string, requiredPermission: string) {
+export function requireAccess(requiredModule: TAppModule, requiredPermission: TAppPermission) {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
             // 1. Authenticate first (we run the logic manually here to avoid nested callbacks,

@@ -7,6 +7,7 @@ import moduleRouter from './feature/rbac/module/module.route';
 import permissionRouter from './feature/rbac/permission/permission.route';
 import roleRouter from './feature/rbac/role/role.route';
 import authRouter from './feature/auth/auth.route';
+import activityLogRouter from './feature/activity-log/activity-log.route';
 
 const router = Router();
 
@@ -34,6 +35,7 @@ router.use('/auth', authRouter);
 router.use('/rbac/modules', moduleRouter);
 router.use('/rbac/permissions', permissionRouter);
 router.use('/rbac/roles', roleRouter);
+router.use('/activity-logs', activityLogRouter);
 
 registry.registerPath({
     method: 'get',

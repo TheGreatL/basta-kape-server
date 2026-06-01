@@ -11,9 +11,11 @@ import {
     SelectionTreeResponseSchema
 } from './role.types';
 import { z } from 'zod';
+import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 
 const router = Router();
 const roleService = new RoleService();
+const activityLogService = new ActivityLogService();
 
 // ==========================================
 // 1. GET Selection Tree
@@ -123,6 +125,13 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const body = CreateRoleSchema.parse(req.body);
         const data = await roleService.createRole(body);
+
+        await activityLogService.logActivity({
+            actorId: req.user?.sub,
+            title: 'Create Role',
+            details: `Created role: ${data.name}`
+        });
+
         res.status(201).json(data);
     } catch (error) {
         next(error);
@@ -159,6 +168,13 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
         const id = z.string().parse(req.params.id);
         const body = UpdateRoleSchema.parse(req.body);
         const data = await roleService.updateRole(id, body);
+
+        await activityLogService.logActivity({
+            actorId: req.user?.sub,
+            title: 'Update Role',
+            details: `Updated role: ${data.name}`
+        });
+
         res.json(data);
     } catch (error) {
         next(error);
@@ -191,6 +207,13 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
     try {
         const id = z.string().parse(req.params.id);
         const data = await roleService.deleteRole(id);
+
+        await activityLogService.logActivity({
+            actorId: req.user?.sub,
+            title: 'Delete Role',
+            details: `Deleted role: ${data.name}`
+        });
+
         res.json(data);
     } catch (error) {
         next(error);

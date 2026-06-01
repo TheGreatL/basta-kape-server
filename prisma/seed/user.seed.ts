@@ -1,5 +1,6 @@
 import { PrismaClient, AccessScope } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { appModules } from '../../src/constant';
 
 export async function seedUsers(prisma: PrismaClient) {
     console.log('Seeding explicitly: Users, Roles, and Permissions...');
@@ -32,84 +33,84 @@ export async function seedUsers(prisma: PrismaClient) {
     // 2. CREATE MODULES
     // ==========================================
     const usersMod = await prisma.module.upsert({
-        where: { name: 'Users Management' },
+        where: { name: appModules.USERS_MANAGEMENT },
         update: {},
-        create: { name: 'Users Management' }
+        create: { name: appModules.USERS_MANAGEMENT }
     });
     const rolesMod = await prisma.module.upsert({
-        where: { name: 'Roles and Permissions' },
+        where: { name: appModules.ROLES_AND_PERMISSIONS },
         update: {},
-        create: { name: 'Roles and Permissions' }
+        create: { name: appModules.ROLES_AND_PERMISSIONS }
     });
     const productsMod = await prisma.module.upsert({
-        where: { name: 'Products Management' },
+        where: { name: appModules.PRODUCTS_MANAGEMENT },
         update: {},
-        create: { name: 'Products Management' }
+        create: { name: appModules.PRODUCTS_MANAGEMENT }
     });
     const productSettingsMod = await prisma.module.upsert({
-        where: { name: 'Product Settings Management' },
+        where: { name: appModules.PRODUCT_SETTINGS_MANAGEMENT },
         update: {},
-        create: { name: 'Product Settings Management' }
+        create: { name: appModules.PRODUCT_SETTINGS_MANAGEMENT }
     });
     const inventoryMod = await prisma.module.upsert({
-        where: { name: 'Inventory Management' },
+        where: { name: appModules.INVENTORY_MANAGEMENT },
         update: {},
-        create: { name: 'Inventory Management' }
+        create: { name: appModules.INVENTORY_MANAGEMENT }
     });
     const ordersMod = await prisma.module.upsert({
-        where: { name: 'Orders Management' },
+        where: { name: appModules.ORDERS_MANAGEMENT },
         update: {},
-        create: { name: 'Orders Management' }
+        create: { name: appModules.ORDERS_MANAGEMENT }
     });
     const posMod = await prisma.module.upsert({
-        where: { name: 'Point of Sale (POS)' },
+        where: { name: appModules.POINT_OF_SALE },
         update: {},
-        create: { name: 'Point of Sale (POS)' }
+        create: { name: appModules.POINT_OF_SALE }
     });
     const salesMod = await prisma.module.upsert({
-        where: { name: 'Sales Management' },
+        where: { name: appModules.SALES_MANAGEMENT },
         update: {},
-        create: { name: 'Sales Management' }
+        create: { name: appModules.SALES_MANAGEMENT }
     });
     const reportsMod = await prisma.module.upsert({
-        where: { name: 'Reports Management' },
+        where: { name: appModules.REPORTS_MANAGEMENT },
         update: {},
-        create: { name: 'Reports Management' }
+        create: { name: appModules.REPORTS_MANAGEMENT }
     });
     const customersMod = await prisma.module.upsert({
-        where: { name: 'Customers Management' },
+        where: { name: appModules.CUSTOMERS_MANAGEMENT },
         update: {},
-        create: { name: 'Customers Management' }
+        create: { name: appModules.CUSTOMERS_MANAGEMENT }
     });
     const suppliersMod = await prisma.module.upsert({
-        where: { name: 'Suppliers Management' },
+        where: { name: appModules.SUPPLIERS_MANAGEMENT },
         update: {},
-        create: { name: 'Suppliers Management' }
+        create: { name: appModules.SUPPLIERS_MANAGEMENT }
     });
     const storeSettingsMod = await prisma.module.upsert({
-        where: { name: 'Store Settings' },
+        where: { name: appModules.STORE_SETTINGS },
         update: {},
-        create: { name: 'Store Settings' }
+        create: { name: appModules.STORE_SETTINGS }
     });
     const purchaseOrdersMod = await prisma.module.upsert({
-        where: { name: 'Purchase Orders Management' },
+        where: { name: appModules.PURCHASE_ORDERS_MANAGEMENT },
         update: {},
-        create: { name: 'Purchase Orders Management' }
+        create: { name: appModules.PURCHASE_ORDERS_MANAGEMENT }
     });
     const transactionHistoryMod = await prisma.module.upsert({
-        where: { name: 'Transaction History' },
+        where: { name: appModules.TRANSACTION_HISTORY },
         update: {},
-        create: { name: 'Transaction History' }
+        create: { name: appModules.TRANSACTION_HISTORY }
     });
     const orderQueueMod = await prisma.module.upsert({
-        where: { name: 'Order Queue' },
+        where: { name: appModules.ORDER_QUEUE },
         update: {},
-        create: { name: 'Order Queue' }
+        create: { name: appModules.ORDER_QUEUE }
     });
     const menuMod = await prisma.module.upsert({
-        where: { name: 'Menu' },
+        where: { name: appModules.MENU },
         update: {},
-        create: { name: 'Menu' }
+        create: { name: appModules.MENU }
     });
 
     // ==========================================
