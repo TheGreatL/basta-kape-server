@@ -189,12 +189,24 @@ export class ProductSettingsRepository extends BaseRepository {
     }
 
     async softDeleteAttribute(id: string, actorId: string) {
-        return prisma.productAttribute.update({
-            where: { id },
-            data: {
-                deletedAt: new Date(),
-                updatedById: actorId
-            }
+        return prisma.$transaction(async (tx) => {
+            const attribute = await tx.productAttribute.update({
+                where: { id },
+                data: {
+                    deletedAt: new Date(),
+                    updatedById: actorId
+                }
+            });
+
+            await tx.productAttributeValue.updateMany({
+                where: { productAttributeId: id, deletedAt: null },
+                data: {
+                    deletedAt: new Date(),
+                    updatedById: actorId
+                }
+            });
+
+            return attribute;
         });
     }
 
