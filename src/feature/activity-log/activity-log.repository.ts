@@ -1,9 +1,11 @@
 import { prisma } from '@/lib/prisma';
+import { BaseRepository } from '@/repository/base.repository';
+import { Prisma } from '@prisma/client';
+import type { IPaginatedResult } from '@/types/base.types';
 import { z } from 'zod';
 import { GetActivityLogsQuerySchema, CreateActivityLogSchema } from './activity-log.types';
-import { Prisma } from '@prisma/client';
 
-export class ActivityLogRepository {
+export class ActivityLogRepository extends BaseRepository {
     async create(data: z.infer<typeof CreateActivityLogSchema>) {
         return prisma.activityLog.create({
             data: {
@@ -14,10 +16,11 @@ export class ActivityLogRepository {
         });
     }
 
-    async getList(query: z.infer<typeof GetActivityLogsQuerySchema>) {
-        const page = parseInt(query.page) || 1;
-        const limit = parseInt(query.limit) || 10;
-        const skip = (page - 1) * limit;
+    async getList(query: z.infer<typeof GetActivityLogsQuerySchema>): Promise<IPaginatedResult<unknown>> {
+        const { skip, take, page } = this.normalizePagination({
+            page: parseInt(query.page ?? '1') || 1,
+            limit: parseInt(query.limit ?? '10') || 10
+        });
 
         const where: Prisma.ActivityLogWhereInput = {};
 
@@ -36,11 +39,11 @@ export class ActivityLogRepository {
             if (query.dateTo) where.createdAt.lte = new Date(query.dateTo);
         }
 
-        const [items, totalCount] = await Promise.all([
+        const [data, totalRows] = await Promise.all([
             prisma.activityLog.findMany({
                 where,
                 skip,
-                take: limit,
+                take,
                 orderBy: { createdAt: 'desc' },
                 include: {
                     actor: {
@@ -56,14 +59,6 @@ export class ActivityLogRepository {
             prisma.activityLog.count({ where })
         ]);
 
-        return {
-            items,
-            meta: {
-                totalCount,
-                page,
-                limit,
-                totalPages: Math.ceil(totalCount / limit)
-            }
-        };
+        return this.formatPaginatedResult(data, totalRows, page, take);
     }
 }
