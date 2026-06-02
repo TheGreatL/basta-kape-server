@@ -11,6 +11,7 @@ vi.mock('@/feature/activity-log/activity-log.service', () => {
 
 import request from 'supertest';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { PrismaClient } from '@prisma/client';
 import authRouter from '@/feature/auth/auth.route';
 import { HttpException } from '@/exceptions/http.exception';
@@ -34,6 +35,7 @@ describe('Auth Feature Integration Tests', () => {
         app = express();
 
         app.use(express.json());
+        app.use(cookieParser());
         app.use('/auth', authRouter);
 
         // Error handler
@@ -70,7 +72,9 @@ describe('Auth Feature Integration Tests', () => {
             expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('user');
             expect(res.body).toHaveProperty('accessToken');
-            expect(res.body).toHaveProperty('refreshToken');
+            expect(res.body).not.toHaveProperty('refreshToken');
+            expect(res.headers['set-cookie']).toBeDefined();
+            expect(res.headers['set-cookie'][0]).toMatch(/refreshToken=/);
             expect(res.body.user.username).toBe(testUser.username);
             expect(res.body.user.email).toBe(testUser.email);
 
@@ -108,9 +112,14 @@ describe('Auth Feature Integration Tests', () => {
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('user');
             expect(res.body).toHaveProperty('accessToken');
-            expect(res.body).toHaveProperty('refreshToken');
+            expect(res.body).not.toHaveProperty('refreshToken');
 
-            validRefreshToken = res.body.refreshToken;
+            expect(res.headers['set-cookie']).toBeDefined();
+            expect(res.headers['set-cookie'][0]).toMatch(/refreshToken=/);
+
+            // Extract just the token value for later use
+            const cookieString = res.headers['set-cookie'][0];
+            validRefreshToken = cookieString.split(';')[0].split('=')[1];
         });
 
         it('should login successfully with valid username and password', async () => {
@@ -146,7 +155,9 @@ describe('Auth Feature Integration Tests', () => {
 
     describe('POST /auth/refresh', () => {
         it('should issue a new access token for a valid refresh token', async () => {
-            const res = await request(app).post('/auth/refresh').send({ refreshToken: validRefreshToken });
+            const res = await request(app)
+                .post('/auth/refresh')
+                .set('Cookie', [`refreshToken=${validRefreshToken}`]);
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('accessToken');
@@ -161,13 +172,17 @@ describe('Auth Feature Integration Tests', () => {
 
     describe('POST /auth/logout', () => {
         it('should successfully revoke the refresh token on logout', async () => {
-            const res = await request(app).post('/auth/logout').send({ refreshToken: validRefreshToken });
+            const res = await request(app)
+                .post('/auth/logout')
+                .set('Cookie', [`refreshToken=${validRefreshToken}`]);
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual({ success: true });
 
             // Trying to refresh again with the same token should now fail
-            const refreshRes = await request(app).post('/auth/refresh').send({ refreshToken: validRefreshToken });
+            const refreshRes = await request(app)
+                .post('/auth/refresh')
+                .set('Cookie', [`refreshToken=${validRefreshToken}`]);
 
             expect(refreshRes.status).toBe(401);
         });

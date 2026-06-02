@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import pinoHttp from 'pino-http';
+import cookieParser from 'cookie-parser';
 import { ZodTypeAny, ZodError } from 'zod';
 import { env } from '../env';
 import { logger } from '../utils/logger';
@@ -33,6 +34,9 @@ export const setupGlobalMiddleware = (app: Express) => {
 
     // Body Parsing
     app.use(express.json());
+
+    // Cookie Parsing
+    app.use(cookieParser());
 };
 
 import { HttpException } from '../exceptions/http.exception';

@@ -46,7 +46,19 @@ router.post('/login', loginRateLimiter, async (req: Request, res: Response, next
     try {
         const { identifier, password } = LoginSchema.parse(req.body);
         const result = await authService.login(identifier, password);
-        res.json(result);
+
+        // Set refresh token in HttpOnly cookie
+        res.cookie('refreshToken', result.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        // Omit refreshToken from JSON response
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { refreshToken, ...responsePayload } = result;
+        res.json(responsePayload);
     } catch (error) {
         next(error);
     }
@@ -89,7 +101,18 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
             details: `Registered new user: ${data.username}`
         });
 
-        res.status(201).json(result);
+        // Set refresh token in HttpOnly cookie
+        res.cookie('refreshToken', result.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        // Omit refreshToken from JSON response
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { refreshToken, ...responsePayload } = result;
+        res.status(201).json(responsePayload);
     } catch (error) {
         next(error);
     }
@@ -104,13 +127,7 @@ registry.registerPath({
     tags: ['Auth'],
     summary: 'Exchange a refresh token for a new access token',
     request: {
-        body: {
-            content: {
-                'application/json': {
-                    schema: z.object({ refreshToken: z.string() })
-                }
-            }
-        }
+        // No body required as token is in cookie
     },
     responses: {
         200: {
@@ -127,7 +144,11 @@ registry.registerPath({
 
 router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { refreshToken } = z.object({ refreshToken: z.string() }).parse(req.body);
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            return res.status(401).json({ success: false, error: 'No refresh token provided' });
+        }
+
         const result = await authService.refreshAccessToken(refreshToken);
         res.json(result);
     } catch (error) {
@@ -144,13 +165,7 @@ registry.registerPath({
     tags: ['Auth'],
     summary: 'Revoke a refresh token (logout)',
     request: {
-        body: {
-            content: {
-                'application/json': {
-                    schema: z.object({ refreshToken: z.string() })
-                }
-            }
-        }
+        // No body required as token is in cookie
     },
     responses: {
         200: {
@@ -166,9 +181,12 @@ registry.registerPath({
 
 router.post('/logout', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { refreshToken } = z.object({ refreshToken: z.string() }).parse(req.body);
-        const result = await authService.logout(refreshToken);
-        res.json(result);
+        const refreshToken = req.cookies.refreshToken;
+        if (refreshToken) {
+            await authService.logout(refreshToken);
+            res.clearCookie('refreshToken');
+        }
+        res.json({ success: true });
     } catch (error) {
         next(error);
     }
