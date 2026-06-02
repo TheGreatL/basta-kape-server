@@ -1,9 +1,12 @@
+import { dataStatus } from '@/constant';
 import { z } from 'zod';
 
 export const GetUserListQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1).optional(),
     limit: z.coerce.number().min(1).max(100).default(10).optional(),
-    search: z.string().optional()
+    search: z.string().optional(),
+    status: z.enum(dataStatus).optional(),
+    role: z.string().optional()
 });
 
 export type TGetUserListQuery = z.infer<typeof GetUserListQuerySchema>;

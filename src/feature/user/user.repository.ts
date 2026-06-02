@@ -100,9 +100,23 @@ export class UserRepository extends BaseRepository {
     async getList(params: TGetUserListQuery): Promise<IPaginatedResult<unknown>> {
         const { skip, take, page } = this.normalizePagination(params);
 
-        const where: Prisma.UserWhereInput = {
-            deletedAt: null
-        };
+        const where: Prisma.UserWhereInput = {};
+
+        if (params.status === 'active') {
+            where.deletedAt = null;
+        } else if (params.status === 'archive') {
+            where.deletedAt = { not: null };
+        }
+
+        if (params.role) {
+            where.userRoles = {
+                some: {
+                    role: {
+                        name: params.role
+                    }
+                }
+            };
+        }
 
         if (params.search) {
             const searchLower = params.search.toLowerCase();

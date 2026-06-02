@@ -118,6 +118,24 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
             expect(res.body.data.length).toBeGreaterThanOrEqual(1);
             expect(res.body.data[0].email).toBe('crud-test@example.com');
         });
+
+        it('should filter users by status active', async () => {
+            const res = await request(app).get('/users/list?status=active');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body.data)).toBe(true);
+        });
+
+        it('should filter users by status archive', async () => {
+            const res = await request(app).get('/users/list?status=archive');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body.data)).toBe(true);
+        });
+
+        it('should filter users by role', async () => {
+            const res = await request(app).get('/users/list?role=Admin');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body.data)).toBe(true);
+        });
     });
 
     describe('GET /users/:id', () => {
