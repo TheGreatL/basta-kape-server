@@ -196,3 +196,37 @@ export const PaginatedAdjustmentResponseSchema = z.object({
         hasMore: z.boolean()
     })
 });
+
+// ==========================================
+// 6. INVENTORY FORECAST SCHEMAS
+// ==========================================
+export const ForecastIngredientSchema = z.object({
+    ingredientId: z.string(),
+    name: z.string(),
+    currentQuantity: z.number(),
+    requiredQuantity: z.number(),
+    unit: z.string(),
+    canProduce: z.union([z.number(), z.string()])
+});
+
+export const ForecastVariantSchema = z.object({
+    variantId: z.string(),
+    productId: z.string(),
+    name: z.string(),
+    sku: z.string().nullable(),
+    price: z.number(),
+    hasRecipe: z.boolean(),
+    maxProduceable: z.union([z.number(), z.string()]).nullable(),
+    bottleneck: z
+        .object({
+            ingredientId: z.string(),
+            name: z.string(),
+            currentQuantity: z.number(),
+            requiredQuantity: z.number(),
+            unit: z.string()
+        })
+        .nullable(),
+    ingredients: z.array(ForecastIngredientSchema)
+});
+
+export const InventoryForecastResponseSchema = z.array(ForecastVariantSchema);

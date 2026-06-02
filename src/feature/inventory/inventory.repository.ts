@@ -462,4 +462,44 @@ export class InventoryRepository extends BaseRepository {
 
         return this.formatPaginatedResult(data, totalRows, page, take);
     }
+
+    async getVariantsWithRecipes() {
+        return prisma.productVariant.findMany({
+            where: { deletedAt: null },
+            include: {
+                product: {
+                    select: { id: true, name: true }
+                },
+                attributes: {
+                    where: { deletedAt: null },
+                    include: {
+                        attributeValue: {
+                            include: {
+                                attribute: { select: { name: true } }
+                            }
+                        }
+                    }
+                },
+                recipe: {
+                    where: { deletedAt: null },
+                    include: {
+                        ingredients: {
+                            where: { deletedAt: null },
+                            include: {
+                                ingredient: {
+                                    include: {
+                                        inventories: {
+                                            where: { deletedAt: null }
+                                        },
+                                        defaultUnit: true
+                                    }
+                                },
+                                unit: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 }

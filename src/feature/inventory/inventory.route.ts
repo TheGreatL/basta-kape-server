@@ -21,7 +21,8 @@ import {
     PaginatedDeliveryResponseSchema,
     CreateAdjustmentSchema,
     AdjustmentResponseSchema,
-    PaginatedAdjustmentResponseSchema
+    PaginatedAdjustmentResponseSchema,
+    InventoryForecastResponseSchema
 } from './inventory.types';
 
 const router = Router();
@@ -586,6 +587,38 @@ router.post(
             const body = CreateAdjustmentSchema.parse(req.body);
             const result = await service.logAdjustment(body, req.user!.sub);
             res.status(201).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ============================================================================
+// 6. INVENTORY FORECAST & STOCK PREDICTION ENDPOINT
+// ============================================================================
+
+// GET /inventory/forecast
+registry.registerPath({
+    method: 'get',
+    path: '/inventory/forecast',
+    tags: ['Inventory - Forecast & Predictions'],
+    summary: 'Get stock level predictions and maximum product output metrics based on current ingredients levels',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Inventory production forecast generated successfully',
+            content: { 'application/json': { schema: InventoryForecastResponseSchema } }
+        }
+    }
+});
+
+router.get(
+    '/forecast',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getInventoryForecast();
+            res.json(result);
         } catch (error) {
             next(error);
         }

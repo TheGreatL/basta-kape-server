@@ -411,4 +411,152 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
             expect(res.body.status).toBe('OUT_OF_STOCK');
         });
     });
+
+    // ==========================================
+    // 4. INVENTORY FORECASTING & STOCK PREDICTION
+    // ==========================================
+    describe('Inventory Production Forecasting', () => {
+        let forecastUnitId: string;
+        let forecastIng1Id: string;
+        let forecastIng2Id: string;
+        let forecastProductId: string;
+        let forecastVariantId: string;
+        let forecastRecipeId: string;
+
+        beforeAll(async () => {
+            // 1. Create a unit
+            const unit = await prisma.ingredientUnit.create({
+                data: {
+                    name: 'Grams Forecast',
+                    abbreviation: 'gf',
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+            forecastUnitId = unit.id;
+
+            // 2. Create raw ingredients
+            const ing1 = await prisma.ingredient.create({
+                data: {
+                    name: 'Coffee Beans Forecast',
+                    ingredientUnitId: forecastUnitId,
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+            forecastIng1Id = ing1.id;
+
+            const ing2 = await prisma.ingredient.create({
+                data: {
+                    name: 'Oat Milk Forecast',
+                    ingredientUnitId: forecastUnitId,
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+            forecastIng2Id = ing2.id;
+
+            // Initialize inventories: Coffee Beans = 100g, Oat Milk = 300g
+            await prisma.ingredientInventory.create({
+                data: {
+                    ingredientId: forecastIng1Id,
+                    currentQuantity: 100,
+                    status: 'SAFE',
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+
+            await prisma.ingredientInventory.create({
+                data: {
+                    ingredientId: forecastIng2Id,
+                    currentQuantity: 300,
+                    status: 'SAFE',
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+
+            // 3. Create a product and a variant
+            const prod = await prisma.product.create({
+                data: {
+                    name: 'Forecast Latte',
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+            forecastProductId = prod.id;
+
+            const vrnt = await prisma.productVariant.create({
+                data: {
+                    productId: forecastProductId,
+                    sku: 'FOR-LATTE',
+                    price: 150.0,
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+            forecastVariantId = vrnt.id;
+
+            // 4. Create recipe: Requires 15g Coffee Beans, 100g Oat Milk
+            const rcpe = await prisma.recipe.create({
+                data: {
+                    name: 'Latte Recipe',
+                    productVariantId: forecastVariantId,
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+            forecastRecipeId = rcpe.id;
+
+            await prisma.recipeIngredient.create({
+                data: {
+                    recipeId: forecastRecipeId,
+                    ingredientId: forecastIng1Id,
+                    quantity: 15,
+                    ingredientUnitId: forecastUnitId,
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+
+            await prisma.recipeIngredient.create({
+                data: {
+                    recipeId: forecastRecipeId,
+                    ingredientId: forecastIng2Id,
+                    quantity: 100,
+                    ingredientUnitId: forecastUnitId,
+                    createdById: 'test-inventory-user-id',
+                    updatedById: 'test-inventory-user-id'
+                }
+            });
+        });
+
+        afterAll(async () => {
+            // Cleanup forecast setup records in correct dependency order
+            await prisma.recipeIngredient.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+            await prisma.recipe.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+            await prisma.productVariant.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+            await prisma.product.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+            await prisma.ingredientInventory.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+            await prisma.ingredient.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+            await prisma.ingredientUnit.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+        });
+
+        it('should calculate forecast and identify Oat Milk as the bottleneck', async () => {
+            // Inventory levels: Coffee Beans = 100g (requires 15g -> can produce 6 units)
+            // Oat Milk = 300g (requires 100g -> can produce 3 units)
+            // Bottleneck is Oat Milk (300/100 = 3)
+            const res = await request(app).get('/inventory/forecast');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+
+            const record = res.body.find((f: { variantId: string }) => f.variantId === forecastVariantId);
+            expect(record).toBeDefined();
+            expect(record.hasRecipe).toBe(true);
+            expect(record.maxProduceable).toBe(3);
+            expect(record.bottleneck.ingredientId).toBe(forecastIng2Id);
+            expect(record.bottleneck.name).toBe('Oat Milk Forecast');
+        });
+    });
 });

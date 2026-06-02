@@ -274,4 +274,85 @@ export class InventoryService {
 
         return adjustment;
     }
+
+    async getInventoryForecast() {
+        const variants = await this.repository.getVariantsWithRecipes();
+
+        const forecast = variants.map((variant) => {
+            // Get variant descriptive name
+            const attrNames = variant.attributes.map((attr) => attr.attributeValue.value).join(', ');
+            const name = attrNames ? `${variant.product.name} (${attrNames})` : variant.product.name;
+
+            // If no recipe is configured
+            if (!variant.recipe) {
+                return {
+                    variantId: variant.id,
+                    productId: variant.productId,
+                    name,
+                    sku: variant.sku,
+                    price: variant.price,
+                    hasRecipe: false,
+                    maxProduceable: null,
+                    bottleneck: null,
+                    ingredients: []
+                };
+            }
+
+            let maxProduceable = Infinity;
+            let bottleneck: {
+                ingredientId: string;
+                name: string;
+                currentQuantity: number;
+                requiredQuantity: number;
+                unit: string;
+            } | null = null;
+
+            const ingredientDetails = variant.recipe.ingredients.map((ri) => {
+                const inventory = ri.ingredient.inventories[0];
+                const currentQty = inventory ? inventory.currentQuantity : 0;
+                const requiredQty = ri.quantity;
+
+                const canProduce = requiredQty > 0 ? Math.floor(currentQty / requiredQty) : Infinity;
+
+                if (canProduce < maxProduceable) {
+                    maxProduceable = canProduce;
+                    bottleneck = {
+                        ingredientId: ri.ingredientId,
+                        name: ri.ingredient.name,
+                        currentQuantity: currentQty,
+                        requiredQuantity: requiredQty,
+                        unit: ri.unit.abbreviation || ri.unit.name
+                    };
+                }
+
+                return {
+                    ingredientId: ri.ingredientId,
+                    name: ri.ingredient.name,
+                    currentQuantity: currentQty,
+                    requiredQuantity: requiredQty,
+                    unit: ri.unit.abbreviation || ri.unit.name,
+                    canProduce: canProduce === Infinity ? 'Unlimited' : canProduce
+                };
+            });
+
+            // Handle empty ingredients
+            if (ingredientDetails.length === 0) {
+                maxProduceable = Infinity;
+            }
+
+            return {
+                variantId: variant.id,
+                productId: variant.productId,
+                name,
+                sku: variant.sku,
+                price: variant.price,
+                hasRecipe: true,
+                maxProduceable: maxProduceable === Infinity ? 'Unlimited' : maxProduceable,
+                bottleneck,
+                ingredients: ingredientDetails
+            };
+        });
+
+        return forecast;
+    }
 }
