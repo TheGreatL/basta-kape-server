@@ -83,6 +83,9 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
         }
 
         // Seed a test user
+        await prisma.userRole.deleteMany({ where: { userId: 'test-user-id' } });
+        await prisma.user.deleteMany({ where: { id: 'test-user-id' } });
+
         const user = await prisma.user.create({
             data: {
                 id: 'test-user-id',

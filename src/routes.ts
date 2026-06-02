@@ -10,6 +10,8 @@ import authRouter from './feature/auth/auth.route';
 import activityLogRouter from './feature/activity-log/activity-log.route';
 import uploadRouter from './feature/upload/upload.route';
 import userRouter from './feature/user/user.route';
+import productSettingsRouter from './feature/product-settings/product-settings.route';
+import inventoryRouter from './feature/inventory/inventory.route';
 
 const router = Router();
 
@@ -40,6 +42,8 @@ router.use('/rbac/roles', roleRouter);
 router.use('/activity-logs', activityLogRouter);
 router.use('/upload', uploadRouter);
 router.use('/users', userRouter);
+router.use('/product-settings', productSettingsRouter);
+router.use('/inventory', inventoryRouter);
 
 registry.registerPath({
     method: 'get',

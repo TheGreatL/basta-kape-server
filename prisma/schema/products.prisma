@@ -31,6 +31,7 @@ model ProductType {
 model Product {
   id                String           @id @default(uuid())
   name              String
+  photo             String?
   description       String?
   productCategoryId String?
   category          ProductCategory? @relation(fields: [productCategoryId], references: [id])

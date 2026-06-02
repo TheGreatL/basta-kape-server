@@ -358,6 +358,7 @@ export async function seedProduct(prisma: PrismaClient) {
         create: {
             id: 'prod-spanish-latte',
             name: 'Spanish Latte',
+            photo: 'https://images.unsplash.com/photo-1541167760496-1628856ab772',
             description: 'Sweet, creamy, espresso-forward latte with condensed milk',
             productCategoryId: categoryCoffee.id,
             productTypeId: typeIced.id,
@@ -372,6 +373,7 @@ export async function seedProduct(prisma: PrismaClient) {
         create: {
             id: 'prod-espresso',
             name: 'Classic Espresso',
+            photo: 'https://images.unsplash.com/photo-1510707577719-5d687202059c',
             description: 'Intense and rich concentrated shot of our signature house roast',
             productCategoryId: categoryCoffee.id,
             productTypeId: typeHot.id,
@@ -386,6 +388,7 @@ export async function seedProduct(prisma: PrismaClient) {
         create: {
             id: 'prod-croissant',
             name: 'Classic Butter Croissant',
+            photo: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a',
             description: 'Flaky, buttery, oven-fresh laminated pastry',
             productCategoryId: categoryPastries.id,
             productTypeId: typeBaked.id,
