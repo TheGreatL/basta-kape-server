@@ -1,0 +1,276 @@
+model ProductCategory {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  products    Product[]
+
+  createdById String?
+  createdBy   User?     @relation("ProductCategoryCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("ProductCategoryUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model ProductType {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  products    Product[]
+
+  createdById String?
+  createdBy   User?     @relation("ProductTypeCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("ProductTypeUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model Product {
+  id                String           @id @default(uuid())
+  name              String
+  description       String?
+  productCategoryId String?
+  category          ProductCategory? @relation(fields: [productCategoryId], references: [id])
+  productTypeId     String?
+  type              ProductType?     @relation(fields: [productTypeId], references: [id])
+  variants          ProductVariant[]
+
+  createdById String?
+  createdBy   User?     @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model ProductAttribute {
+  id          String                  @id @default(uuid())
+  name        String // e.g., "Size", "Milk"
+  description String?
+  values      ProductAttributeValue[]
+
+  createdById String?
+  createdBy   User?     @relation("ProductAttributeCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("ProductAttributeUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model ProductAttributeValue {
+  id                 String                    @id @default(uuid())
+  productAttributeId String
+  attribute          ProductAttribute          @relation(fields: [productAttributeId], references: [id])
+  value              String // e.g., "Small", "Large", "Almond Milk"
+  variantAttributes  ProductVariantAttribute[]
+
+  createdById String?
+  createdBy   User?     @relation("ProductAttributeValueCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("ProductAttributeValueUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model ProductVariant {
+  id         String                    @id @default(uuid())
+  productId  String
+  product    Product                   @relation(fields: [productId], references: [id])
+  sku        String?                   @unique
+  price      Float                     @default(0)
+  attributes ProductVariantAttribute[]
+  recipe     Recipe?
+
+  createdById String?
+  createdBy   User?     @relation("ProductVariantCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("ProductVariantUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model ProductVariantAttribute {
+  id                      String                @id @default(uuid())
+  productVariantId        String
+  variant                 ProductVariant        @relation(fields: [productVariantId], references: [id])
+  productAttributeValueId String
+  attributeValue          ProductAttributeValue @relation(fields: [productAttributeValueId], references: [id])
+
+  createdById String?
+  createdBy   User?     @relation("ProductVariantAttributeCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("ProductVariantAttributeUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model IngredientUnit {
+  id                String             @id @default(uuid())
+  name              String // e.g., "Grams", "Milliliters", "Pieces"
+  abbreviation      String? // e.g., "g", "ml", "pcs"
+  ingredients       Ingredient[]
+  recipeIngredients RecipeIngredient[]
+
+  createdById String?
+  createdBy   User?     @relation("IngredientUnitCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("IngredientUnitUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model Ingredient {
+  id               String         @id @default(uuid())
+  name             String
+  description      String?
+  ingredientUnitId String
+  defaultUnit      IngredientUnit @relation(fields: [ingredientUnitId], references: [id])
+  reorderPoint     Float          @default(0)
+
+  deliveries        IngredientDelivery[]
+  inventories       IngredientInventory[]
+  recipeIngredients RecipeIngredient[]
+  adjustments       InventoryAdjustment[]
+
+  createdById String?
+  createdBy   User?     @relation("IngredientCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("IngredientUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model Supplier {
+  id            String               @id @default(uuid())
+  name          String
+  address       String?
+  notes         String?
+  contactPerson String?
+  contactNumber String?
+  deliveries    IngredientDelivery[]
+
+  createdById String?
+  createdBy   User?     @relation("SupplierCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("SupplierUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model IngredientDelivery {
+  id               String     @id @default(uuid())
+  ingredientId     String
+  ingredient       Ingredient @relation(fields: [ingredientId], references: [id])
+  supplierId       String?
+  supplier         Supplier?  @relation(fields: [supplierId], references: [id])
+  receivedAt       DateTime   @default(now())
+  expiryDate       DateTime?
+  quantityReceived Float      @default(0)
+  unitCost         Float      @default(0)
+  totalCost        Float      @default(0)
+  batchNumber      String?
+
+  createdById String?
+  createdBy   User?     @relation("IngredientDeliveryCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("IngredientDeliveryUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model IngredientInventory {
+  id                String          @id @default(uuid())
+  ingredientId      String
+  ingredient        Ingredient      @relation(fields: [ingredientId], references: [id])
+  currentQuantity   Float           @default(0)
+  lastPhysicalCount DateTime?
+  status            InventoryStatus @default(SAFE)
+
+  createdById String?
+  createdBy   User?     @relation("IngredientInventoryCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("IngredientInventoryUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model Recipe {
+  id               String             @id @default(uuid())
+  name             String
+  description      String?
+  productVariantId String             @unique
+  productVariant   ProductVariant     @relation(fields: [productVariantId], references: [id])
+  ingredients      RecipeIngredient[]
+
+  createdById String?
+  createdBy   User?     @relation("RecipeCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("RecipeUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+model RecipeIngredient {
+  id               String         @id @default(uuid())
+  recipeId         String
+  recipe           Recipe         @relation(fields: [recipeId], references: [id])
+  ingredientId     String
+  ingredient       Ingredient     @relation(fields: [ingredientId], references: [id])
+  quantity         Float          @default(0)
+  ingredientUnitId String
+  unit             IngredientUnit @relation(fields: [ingredientUnitId], references: [id])
+
+  createdById String?
+  createdBy   User?     @relation("RecipeIngredientCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("RecipeIngredientUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+enum InventoryStatus {
+  SAFE
+  CRITICAL
+  OUT_OF_STOCK
+}
+
+enum AdjustmentType {
+  WASTE
+  SPOILED
+  EXPIRED
+  THEFT
+  PROMOTIONAL_USE
+  PHYSICAL_COUNT_DISCREPANCY
+}
+
+model InventoryAdjustment {
+  id           String         @id @default(uuid())
+  ingredientId String
+  ingredient   Ingredient     @relation(fields: [ingredientId], references: [id])
+  quantity     Float // Negative for waste/spoilage, positive for correction
+  type         AdjustmentType
+  reason       String?
+
+  createdById String?
+  createdBy   User?     @relation("InventoryAdjustmentCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("InventoryAdjustmentUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}

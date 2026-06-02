@@ -60,21 +60,53 @@ model RolePermission {
 }
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  username     String     @unique
-  password     String
-  phoneNumber  String?
-  firstName    String
-  middleName   String?
-  lastName     String
-  profilePhoto String?
-  userRoles    UserRole[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  username      String         @unique
+  password      String
+  phoneNumber   String?
+  firstName     String
+  middleName    String?
+  lastName      String
+  profilePhoto  String?
+  userRoles     UserRole[]
   refreshTokens RefreshToken[]
-  customer     Customer?
+  customer      Customer?
 
-  createdRoles Role[]        @relation("RoleCreatedBy")
-  updatedRoles Role[]        @relation("RoleUpdatedBy")
+  createdRoles Role[] @relation("RoleCreatedBy")
+  updatedRoles Role[] @relation("RoleUpdatedBy")
+
+  createdProductCategories        ProductCategory[]         @relation("ProductCategoryCreatedBy")
+  updatedProductCategories        ProductCategory[]         @relation("ProductCategoryUpdatedBy")
+  createdProductTypes             ProductType[]             @relation("ProductTypeCreatedBy")
+  updatedProductTypes             ProductType[]             @relation("ProductTypeUpdatedBy")
+  createdProducts                 Product[]                 @relation("ProductCreatedBy")
+  updatedProducts                 Product[]                 @relation("ProductUpdatedBy")
+  createdProductAttributes        ProductAttribute[]        @relation("ProductAttributeCreatedBy")
+  updatedProductAttributes        ProductAttribute[]        @relation("ProductAttributeUpdatedBy")
+  createdProductAttributeValues   ProductAttributeValue[]   @relation("ProductAttributeValueCreatedBy")
+  updatedProductAttributeValues   ProductAttributeValue[]   @relation("ProductAttributeValueUpdatedBy")
+  createdProductVariants          ProductVariant[]          @relation("ProductVariantCreatedBy")
+  updatedProductVariants          ProductVariant[]          @relation("ProductVariantUpdatedBy")
+  createdProductVariantAttributes ProductVariantAttribute[] @relation("ProductVariantAttributeCreatedBy")
+  updatedProductVariantAttributes ProductVariantAttribute[] @relation("ProductVariantAttributeUpdatedBy")
+  createdIngredientUnits          IngredientUnit[]          @relation("IngredientUnitCreatedBy")
+  updatedIngredientUnits          IngredientUnit[]          @relation("IngredientUnitUpdatedBy")
+  createdIngredients              Ingredient[]              @relation("IngredientCreatedBy")
+  updatedIngredients              Ingredient[]              @relation("IngredientUpdatedBy")
+  createdSuppliers                Supplier[]                @relation("SupplierCreatedBy")
+  updatedSuppliers                Supplier[]                @relation("SupplierUpdatedBy")
+  createdIngredientDeliveries     IngredientDelivery[]      @relation("IngredientDeliveryCreatedBy")
+  updatedIngredientDeliveries     IngredientDelivery[]      @relation("IngredientDeliveryUpdatedBy")
+  createdIngredientInventories    IngredientInventory[]     @relation("IngredientInventoryCreatedBy")
+  updatedIngredientInventories    IngredientInventory[]     @relation("IngredientInventoryUpdatedBy")
+  createdRecipes                  Recipe[]                  @relation("RecipeCreatedBy")
+  updatedRecipes                  Recipe[]                  @relation("RecipeUpdatedBy")
+  createdRecipeIngredients        RecipeIngredient[]        @relation("RecipeIngredientCreatedBy")
+  updatedRecipeIngredients        RecipeIngredient[]        @relation("RecipeIngredientUpdatedBy")
+  createdInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentCreatedBy")
+  updatedInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentUpdatedBy")
+
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   deletedAt    DateTime?
