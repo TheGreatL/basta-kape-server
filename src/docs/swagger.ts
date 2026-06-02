@@ -2,6 +2,12 @@ import { OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-open
 
 export const registry = new OpenAPIRegistry();
 
+const bearerAuth = registry.registerComponent('securitySchemes', 'bearerAuth', {
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT'
+});
+
 export function generateOpenAPI() {
     const generator = new OpenApiGeneratorV3(registry.definitions);
 
@@ -12,6 +18,7 @@ export function generateOpenAPI() {
             title: 'Basta Kape API',
             description: 'API documentation for Basta Kape Server'
         },
-        servers: [{ url: '/api' }]
+        servers: [{ url: '/api' }],
+        security: [{ [bearerAuth.name]: [] }]
     });
 }

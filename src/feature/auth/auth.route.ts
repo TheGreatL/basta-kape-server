@@ -4,10 +4,17 @@ import { AuthService } from './auth.service';
 import { LoginSchema, RegisterSchema, AuthTokenResponseSchema } from './auth.types';
 import { z } from 'zod';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
 const authService = new AuthService();
 const activityLogService = new ActivityLogService();
+
+const loginRateLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 5, // 5 attempts per windowMs
+    message: { message: 'Too many login attempts, please try again after 5 minutes' }
+});
 
 // ==========================================
 // POST /auth/login
@@ -35,7 +42,7 @@ registry.registerPath({
     }
 });
 
-router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/login', loginRateLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { identifier, password } = LoginSchema.parse(req.body);
         const result = await authService.login(identifier, password);

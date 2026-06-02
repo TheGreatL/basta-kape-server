@@ -131,6 +131,17 @@ describe('Auth Feature Integration Tests', () => {
 
             expect(res.status).toBe(401);
         });
+
+        it('should fail with 429 Too Many Requests after 5 login attempts', async () => {
+            // We already made 3 login attempts in the previous tests of this block.
+            // Let's make 2 more to hit the limit (total 5).
+            await request(app).post('/auth/login').send({ identifier: 'test', password: '123' });
+            await request(app).post('/auth/login').send({ identifier: 'test', password: '123' });
+
+            // The 6th attempt should be blocked by the rate limiter
+            const res = await request(app).post('/auth/login').send({ identifier: 'test', password: '123' });
+            expect(res.status).toBe(429);
+        });
     });
 
     describe('POST /auth/refresh', () => {
