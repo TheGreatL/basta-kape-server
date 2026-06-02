@@ -107,6 +107,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 *   **Response (200 OK)**: The updated Role object.
 *   **Error Responses**:
     *   `403 Forbidden`: System generated roles cannot be modified.
+    *   `403 Forbidden`: The Customer role has a dedicated UI and cannot be modified. Changes to this role require system maintenance.
     *   `404 Not Found`: Role not found.
 
 #### `DELETE /rbac/roles/:id`
@@ -115,6 +116,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 *   **Response (200 OK)**: The soft-deleted Role object.
 *   **Error Responses**:
     *   `403 Forbidden`: System generated roles cannot be deleted.
+    *   `403 Forbidden`: The Customer role has a dedicated UI and cannot be modified. Changes to this role require system maintenance.
     *   `404 Not Found`: Role not found.
 
 ---

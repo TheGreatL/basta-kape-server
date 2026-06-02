@@ -19,12 +19,17 @@ export class RoleService {
     }
 
     /**
-     * Checks if a role is system generated. If it is, throws a 403 Forbidden.
+     * Checks if a role is system generated or is the Customer role. If it is, throws a 403 Forbidden.
      */
     private async ensureNotSystemRole(id: string) {
         const role = await this.roleRepository.getRoleById(id);
         if (!role) {
             throw new NotFoundException('Role not found');
+        }
+        if (role.name === 'Customer') {
+            throw new ForbiddenException(
+                'The Customer role has a dedicated UI and cannot be modified. Changes to this role require system maintenance.'
+            );
         }
         if (role.isSystem) {
             throw new ForbiddenException('System generated roles cannot be modified or deleted.');
