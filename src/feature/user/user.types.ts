@@ -11,6 +11,22 @@ export const GetUserListQuerySchema = z.object({
 
 export type TGetUserListQuery = z.infer<typeof GetUserListQuerySchema>;
 
+export const CreateUserSchema = z.object({
+    email: z.string().email(),
+    username: z.string().min(3).max(50),
+    password: z
+        .string()
+        .min(8)
+        .regex(/^(?=.*[A-Z])(?=.*\d).+$/, 'Password must contain at least one uppercase letter and one number'),
+    firstName: z.string().min(2),
+    lastName: z.string().min(2),
+    middleName: z.string().nullable().optional(),
+    phoneNumber: z.string().nullable().optional(),
+    roleIds: z.array(z.string().uuid()).optional()
+});
+
+export type TCreateUser = z.infer<typeof CreateUserSchema>;
+
 export const UpdateUserSchema = z.object({
     firstName: z.string().min(2).optional(),
     lastName: z.string().min(2).optional(),

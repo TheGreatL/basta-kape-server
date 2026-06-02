@@ -60,7 +60,7 @@ This guide details the integration endpoints available in the **Basta Kape API**
     *   `middleName` (string, optional): Middle name of the customer.
     *   `lastName` (string, required): Last name of the customer.
     *   `phoneNumber` (string, optional): Phone or mobile number.
-*   **Response (201 Created)**: Returns `accessToken`, `refreshToken`, and the created user object (with empty roles array).
+*   **Response (201 Created)**: Returns `accessToken`, `refreshToken`, and the created user object (with the automatically assigned `Customer` role).
 *   **Error Responses**:
     *   `409 Conflict`: Email or username already in use.
 

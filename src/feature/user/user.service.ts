@@ -27,6 +27,29 @@ export class UserService {
         return user;
     }
 
+    async createUser(data: import('./user.types').TCreateUser, actorId: string) {
+        // Check for duplicate email or username
+        const conflict = await this.userRepository.findConflict(data.email, data.username);
+        if (conflict) {
+            const { ConflictException } = await import('@/exceptions');
+            if (conflict.email === data.email) {
+                throw new ConflictException('An account with this email already exists.');
+            }
+            throw new ConflictException('An account with this username already exists.');
+        }
+
+        const newUser = await this.userRepository.createUser(data);
+
+        // Log the successful creation activity
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Create User',
+            details: `Successfully created user account for ${newUser.username} (${newUser.email}).`
+        });
+
+        return newUser;
+    }
+
     async updateUser(id: string, data: TUpdateUser, actorId: string) {
         // Ensure user exists first
         const user = await this.getUserById(id);

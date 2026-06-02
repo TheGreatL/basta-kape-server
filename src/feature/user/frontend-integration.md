@@ -57,7 +57,23 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     }
     ```
 
-### 2. `GET /users/:id`
+### 2. `POST /users`
+*   **Description**: Creates a new user profile (admin, staff, or customer) from the admin dashboard and allows for direct assignment of multiple roles.
+*   **RBAC Permission Required**: `create` (module: `USERS_MANAGEMENT`)
+*   **Request Body**:
+    *   `email` (string, required): Unique email address.
+    *   `username` (string, required, min 3): Unique username.
+    *   `password` (string, required, min 8, uppercase, number): User's password.
+    *   `firstName` (string, required, min 2)
+    *   `lastName` (string, required, min 2)
+    *   `middleName` (string, optional, nullable)
+    *   `phoneNumber` (string, optional, nullable)
+    *   `roleIds` (array of strings, UUIDs, optional): Array of role IDs to associate with this newly created user.
+*   **Response (201 Created)**: Returns the fully created user object including their assigned roles.
+*   **Error Responses**:
+    *   `409 Conflict`: Email or username already in use.
+
+### 3. `GET /users/:id`
 *   **Description**: Retrieves detailed profile information for a specific staff member.
 *   **RBAC Permission Required**: `read` (module: `USERS_MANAGEMENT`)
 *   **Response (200 OK)**:
@@ -85,7 +101,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     }
     ```
 
-### 3. `PUT /users/:id`
+### 4. `PUT /users/:id`
 *   **Description**: Updates a staff member's profile details and re-assigns their system roles.
 *   **RBAC Permission Required**: `update` (module: `USERS_MANAGEMENT`)
 *   **Request Body**:
@@ -96,7 +112,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     *   `roleIds` (array of strings, UUIDs, optional): Array of role IDs to associate with this user.
 *   **Response (200 OK)**: Returns the fully updated user object.
 
-### 4. `DELETE /users/:id`
+### 5. `DELETE /users/:id`
 *   **Description**: Soft-deletes a staff account. Deactivated staff will be blocked from logging into the POS or Admin control dashboard.
 *   **RBAC Permission Required**: `delete` (module: `USERS_MANAGEMENT`)
 *   **Response (200 OK)**:
@@ -106,7 +122,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     }
     ```
 
-### 5. `POST /users/:id/profile-picture`
+### 6. `POST /users/:id/profile-picture`
 *   **Description**: Uploads a profile picture for a specific user.
 *   **Access Control**: Authenticated users can upload their own profile picture. Updating another user's profile picture requires the `update` permission under `USERS_MANAGEMENT`.
 *   **Request Body**: Multi-part `multipart/form-data` containing a `file` field.

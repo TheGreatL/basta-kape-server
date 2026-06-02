@@ -96,14 +96,17 @@ export class AuthService {
             throw new ConflictException('An account with this username already exists.');
         }
 
-        const user = await this.userRepository.createUser(data);
+        const createdUser = await this.userRepository.createCustomerUser(data);
 
-        // Sign tokens right away so user is logged in after registration
+        // Re-fetch to get the assigned Customer role and match login format
+        const user = (await this.userRepository.findUserByIdentifier(createdUser.id))!;
+
+        const roles = user.userRoles.map((ur) => ur.role.name);
         const payload: IJwtPayload = {
             sub: user.id,
             email: user.email,
             username: user.username,
-            roles: [] // No roles assigned at registration
+            roles
         };
 
         const { accessToken, refreshToken } = signTokens(payload);
@@ -113,7 +116,27 @@ export class AuthService {
         const expiresAt = new Date(decodedRefresh.exp! * 1000);
         await this.userRepository.saveRefreshToken(user.id, refreshToken, expiresAt);
 
-        return { accessToken, refreshToken, user: { ...user, roles: [] } };
+        const formattedRoles = user.userRoles.map((ur) => ({
+            name: ur.role.name,
+            permissions: ur.role.rolePermissions.map((rp) => ({
+                module: rp.modulePermission.module.name,
+                permission: rp.modulePermission.permission.name,
+                scope: rp.modulePermission.accessScope
+            }))
+        }));
+
+        return {
+            accessToken,
+            refreshToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                roles: formattedRoles
+            }
+        };
     }
 
     /**

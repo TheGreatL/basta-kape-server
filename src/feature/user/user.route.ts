@@ -4,7 +4,7 @@ import { registry } from '@/docs/swagger';
 import { UserService } from './user.service';
 import { requireAccess, authenticate } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
-import { GetUserListQuerySchema, UpdateUserSchema, PaginatedUserResponseSchema, UserResponseSchema } from './user.types';
+import { GetUserListQuerySchema, CreateUserSchema, UpdateUserSchema, PaginatedUserResponseSchema, UserResponseSchema } from './user.types';
 import { UserRepository } from './user.repository';
 import { ForbiddenException, UnauthorizedException } from '@/exceptions';
 
@@ -16,6 +16,42 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 5 * 1024 * 1024 // 5MB limit
+    }
+});
+
+// ==========================================
+// POST /users
+// ==========================================
+registry.registerPath({
+    method: 'post',
+    path: '/users',
+    tags: ['Users'],
+    summary: 'Create a new user',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: CreateUserSchema
+                }
+            }
+        }
+    },
+    responses: {
+        201: {
+            description: 'User created successfully',
+            content: { 'application/json': { schema: UserResponseSchema } }
+        }
+    }
+});
+
+router.post('/', requireAccess(appModules.USERS_MANAGEMENT, appPermissions.CREATE), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const body = CreateUserSchema.parse(req.body);
+        const result = await userService.createUser(body, req.user!.sub);
+        res.status(201).json(result);
+    } catch (error) {
+        next(error);
     }
 });
 

@@ -6,7 +6,7 @@ import { BaseRepository } from '@/repository/base.repository';
 
 import type { IPaginatedResult } from '@/types/base.types';
 import { Prisma } from '@prisma/client';
-import { TGetUserListQuery, TUpdateUser } from './user.types';
+import { TCreateUser, TGetUserListQuery, TUpdateUser } from './user.types';
 
 const SALT_ROUNDS = 12;
 
@@ -70,20 +70,36 @@ export class UserRepository extends BaseRepository {
     }
 
     /**
-     * Creates a new user with a hashed password.
+     * Creates a new user with a hashed password, and automatically assigns the Customer role.
+     * Used by the public /auth/register endpoint.
      */
-    async createUser(data: z.infer<typeof RegisterSchema>) {
+    async createCustomerUser(data: z.infer<typeof RegisterSchema>) {
         const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+
+        const customerRole = await prisma.role.findFirst({
+            where: { name: 'Customer', deletedAt: null }
+        });
+
+        const userData: Prisma.UserCreateInput = {
+            email: data.email,
+            username: data.username,
+            password: hashedPassword,
+            firstName: data.firstName,
+            middleName: data.middleName,
+            lastName: data.lastName,
+            phoneNumber: data.phoneNumber
+        };
+
+        if (customerRole) {
+            userData.userRoles = {
+                create: {
+                    roleId: customerRole.id
+                }
+            };
+        }
+
         return prisma.user.create({
-            data: {
-                email: data.email,
-                username: data.username,
-                password: hashedPassword,
-                firstName: data.firstName,
-                middleName: data.middleName,
-                lastName: data.lastName,
-                phoneNumber: data.phoneNumber
-            },
+            data: userData,
             select: {
                 id: true,
                 email: true,
@@ -91,6 +107,61 @@ export class UserRepository extends BaseRepository {
                 firstName: true,
                 lastName: true
             }
+        });
+    }
+
+    /**
+     * Creates a new user from the admin panel with selected roles.
+     */
+    async createUser(data: TCreateUser) {
+        const { roleIds, ...rest } = data;
+        const hashedPassword = await bcrypt.hash(rest.password, SALT_ROUNDS);
+
+        return prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    ...rest,
+                    password: hashedPassword
+                },
+                select: { id: true }
+            });
+
+            if (roleIds && roleIds.length > 0) {
+                await tx.userRole.createMany({
+                    data: roleIds.map((roleId: string) => ({
+                        userId: user.id,
+                        roleId
+                    }))
+                });
+            }
+
+            return tx.user.findUniqueOrThrow({
+                where: { id: user.id },
+                select: {
+                    id: true,
+                    email: true,
+                    username: true,
+                    firstName: true,
+                    middleName: true,
+                    lastName: true,
+                    phoneNumber: true,
+                    profilePhoto: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    deletedAt: true,
+                    userRoles: {
+                        where: { deletedAt: null },
+                        select: {
+                            role: {
+                                select: {
+                                    id: true,
+                                    name: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         });
     }
 
