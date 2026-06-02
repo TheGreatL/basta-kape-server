@@ -14,6 +14,7 @@ import productSettingsRouter from './feature/product-settings/product-settings.r
 import inventoryRouter from './feature/inventory/inventory.route';
 import productRouter from './feature/product/product.route';
 import supplierRouter from './feature/supplier/supplier.route';
+import menuRouter from './feature/menu/menu.route';
 
 const router = Router();
 
@@ -48,6 +49,7 @@ router.use('/product-settings', productSettingsRouter);
 router.use('/inventory', inventoryRouter);
 router.use('/products', productRouter);
 router.use('/suppliers', supplierRouter);
+router.use('/menu', menuRouter);
 
 registry.registerPath({
     method: 'get',
