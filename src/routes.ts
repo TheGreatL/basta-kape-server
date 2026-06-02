@@ -12,6 +12,8 @@ import uploadRouter from './feature/upload/upload.route';
 import userRouter from './feature/user/user.route';
 import productSettingsRouter from './feature/product-settings/product-settings.route';
 import inventoryRouter from './feature/inventory/inventory.route';
+import productRouter from './feature/product/product.route';
+import supplierRouter from './feature/supplier/supplier.route';
 
 const router = Router();
 
@@ -44,6 +46,8 @@ router.use('/upload', uploadRouter);
 router.use('/users', userRouter);
 router.use('/product-settings', productSettingsRouter);
 router.use('/inventory', inventoryRouter);
+router.use('/products', productRouter);
+router.use('/suppliers', supplierRouter);
 
 registry.registerPath({
     method: 'get',
