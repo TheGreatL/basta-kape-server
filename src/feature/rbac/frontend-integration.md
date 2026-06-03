@@ -101,21 +101,19 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 *   **Response (201 Created)**: The newly created Role object.
 
 #### `PUT /rbac/roles/:id`
-*   **Description**: Updates a custom role's details and completely overwrites/re-syncs its permission mapping scopes. Cannot modify system generated roles.
+*   **Description**: Updates a role's details and completely overwrites/re-syncs its permission mapping scopes. Cannot modify the Customer role.
 *   **RBAC Permission Required**: `update` (module: `ROLES_AND_PERMISSIONS`)
 *   **Request Body**: Similar to `POST`, but all fields are optional. Providing `permissions` will completely replace all previous permission mappings for this role.
 *   **Response (200 OK)**: The updated Role object.
 *   **Error Responses**:
-    *   `403 Forbidden`: System generated roles cannot be modified.
     *   `403 Forbidden`: The Customer role has a dedicated UI and cannot be modified. Changes to this role require system maintenance.
     *   `404 Not Found`: Role not found.
 
 #### `DELETE /rbac/roles/:id`
-*   **Description**: Soft-deletes a non-system role. System roles (Owner, Administrator, Cashier, Barista, Customer) cannot be deleted.
+*   **Description**: Soft-deletes a role. The Customer role cannot be deleted.
 *   **RBAC Permission Required**: `delete` (module: `ROLES_AND_PERMISSIONS`)
 *   **Response (200 OK)**: The soft-deleted Role object.
 *   **Error Responses**:
-    *   `403 Forbidden`: System generated roles cannot be deleted.
     *   `403 Forbidden`: The Customer role has a dedicated UI and cannot be modified. Changes to this role require system maintenance.
     *   `404 Not Found`: Role not found.
 

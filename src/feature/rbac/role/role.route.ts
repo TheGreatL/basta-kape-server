@@ -156,7 +156,7 @@ registry.registerPath({
     path: '/rbac/roles/{id}',
     tags: ['RBAC Roles'],
     summary: 'Update an existing role',
-    description: 'Updates role details and completely replaces its module permissions if provided. Cannot modify system generated roles.',
+    description: 'Updates role details and completely replaces its module permissions if provided. Cannot modify the Customer role.',
     request: {
         params: z.object({ id: z.string() }),
         body: {
@@ -168,7 +168,7 @@ registry.registerPath({
             description: 'Role updated',
             content: { 'application/json': { schema: RoleResponseSchema } }
         },
-        403: { description: 'Forbidden: System generated roles cannot be modified' },
+        403: { description: 'Forbidden: The Customer role cannot be modified' },
         404: { description: 'Role not found' }
     }
 });
@@ -203,7 +203,7 @@ registry.registerPath({
     path: '/rbac/roles/{id}',
     tags: ['RBAC Roles'],
     summary: 'Delete a role',
-    description: 'Soft deletes a role. Cannot delete system generated roles.',
+    description: 'Soft deletes a role. Cannot delete the Customer role.',
     request: {
         params: z.object({ id: z.string() })
     },
@@ -212,7 +212,7 @@ registry.registerPath({
             description: 'Role soft-deleted',
             content: { 'application/json': { schema: RoleResponseSchema } }
         },
-        403: { description: 'Forbidden: System generated roles cannot be deleted' },
+        403: { description: 'Forbidden: The Customer role cannot be deleted' },
         404: { description: 'Role not found' }
     }
 });

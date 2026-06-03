@@ -140,14 +140,24 @@ describe('Role Feature (RBAC)', () => {
     });
 
     describe('PUT /roles/:id', () => {
-        it('should return 403 when trying to update a system role', async () => {
-            // "Administrator" is a system role seeded by seedUsers
+        it('should return 403 when trying to update the Customer role', async () => {
+            const customer = await prisma.role.findFirst({ where: { name: 'Customer' } });
+            if (!customer) return;
+
+            const res = await request(app).put(`/roles/${customer.id}`).send({ name: 'Hacked Customer' });
+            expect(res.status).toBe(403);
+            expect(res.body.error).toContain('Customer role has a dedicated UI');
+        });
+
+        it('should successfully update a system role other than Customer', async () => {
             const admin = await prisma.role.findFirst({ where: { name: 'Administrator' } });
             if (!admin) return;
 
-            const res = await request(app).put(`/roles/${admin.id}`).send({ name: 'Hacked Admin' });
-            expect(res.status).toBe(403);
-            expect(res.body.error).toContain('System generated roles');
+            const res = await request(app).put(`/roles/${admin.id}`).send({
+                description: 'Updated admin description'
+            });
+            expect(res.status).toBe(200);
+            expect(res.body.description).toBe('Updated admin description');
         });
 
         it('should successfully update a non-system role', async () => {
@@ -160,13 +170,34 @@ describe('Role Feature (RBAC)', () => {
     });
 
     describe('DELETE /roles/:id', () => {
-        it('should return 403 when trying to delete a system role', async () => {
-            const admin = await prisma.role.findFirst({ where: { name: 'Administrator' } });
-            if (!admin) return;
+        it('should return 403 when trying to delete the Customer role', async () => {
+            const customer = await prisma.role.findFirst({ where: { name: 'Customer' } });
+            if (!customer) return;
 
-            const res = await request(app).delete(`/roles/${admin.id}`);
+            const res = await request(app).delete(`/roles/${customer.id}`);
             expect(res.status).toBe(403);
-            expect(res.body.error).toContain('System generated roles');
+            expect(res.body.error).toContain('Customer role has a dedicated UI');
+        });
+
+        it('should successfully delete a system role other than Customer', async () => {
+            // Create a temporary system role to test deletion
+            const tempSystemRole = await prisma.role.create({
+                data: {
+                    name: 'Temp System Role Delete Test',
+                    description: 'Temp system role',
+                    isSystem: true
+                }
+            });
+
+            const res = await request(app).delete(`/roles/${tempSystemRole.id}`);
+            expect(res.status).toBe(200);
+
+            // Verify soft delete
+            const verify = await prisma.role.findFirst({ where: { id: tempSystemRole.id } });
+            expect(verify?.deletedAt).not.toBeNull();
+
+            // Clean up completely
+            await prisma.role.delete({ where: { id: tempSystemRole.id } });
         });
 
         it('should soft-delete a non-system role', async () => {

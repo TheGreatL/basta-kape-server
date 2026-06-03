@@ -19,9 +19,9 @@ export class RoleService {
     }
 
     /**
-     * Checks if a role is system generated or is the Customer role. If it is, throws a 403 Forbidden.
+     * Checks if a role is the Customer role. If it is, throws a 403 Forbidden.
      */
-    private async ensureNotSystemRole(id: string) {
+    private async ensureNotCustomerRole(id: string) {
         const role = await this.roleRepository.getRoleById(id);
         if (!role) {
             throw new NotFoundException('Role not found');
@@ -30,9 +30,6 @@ export class RoleService {
             throw new ForbiddenException(
                 'The Customer role has a dedicated UI and cannot be modified. Changes to this role require system maintenance.'
             );
-        }
-        if (role.isSystem) {
-            throw new ForbiddenException('System generated roles cannot be modified or deleted.');
         }
     }
 
@@ -79,8 +76,8 @@ export class RoleService {
     }
 
     async updateRole(id: string, data: { name?: string; description?: string; permissions?: { modulePermissionId: string }[] }) {
-        // 1. Ensure role exists and is not a system role
-        await this.ensureNotSystemRole(id);
+        // 1. Ensure role exists and is not the Customer role
+        await this.ensureNotCustomerRole(id);
 
         // 2. If renaming, check the new name doesn't conflict with another role
         if (data.name) {
@@ -101,7 +98,7 @@ export class RoleService {
     }
 
     async deleteRole(id: string) {
-        await this.ensureNotSystemRole(id);
+        await this.ensureNotCustomerRole(id);
         return this.roleRepository.deleteRole(id);
     }
 }
