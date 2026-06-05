@@ -1,6 +1,6 @@
 import { BaseRepository } from '@/repository/base.repository';
 import type { IRoleFilterParams } from './role.types';
-import type { IPaginatedResult } from '@/types/base.types';
+import { auditSelect, type IPaginatedResult } from '@/types/base.types';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
@@ -12,7 +12,9 @@ const roleSelect = {
     isSystem: true,
     createdAt: true,
     updatedAt: true,
-    deletedAt: true
+    deletedAt: true,
+    createdBy: { select: auditSelect },
+    updatedBy: { select: auditSelect }
 } satisfies Prisma.RoleSelect;
 
 // Shared select shape for role with permissions
@@ -22,6 +24,7 @@ const roleWithPermissionsSelect = {
         select: {
             modulePermission: {
                 select: {
+                    id: true,
                     accessScope: true,
                     module: { select: { name: true, description: true } },
                     permission: { select: { name: true, description: true } }
