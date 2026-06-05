@@ -129,3 +129,5 @@ dist
 # Output directories
 dist/
 build/
+
+uploads/

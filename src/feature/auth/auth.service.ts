@@ -17,6 +17,28 @@ function signTokens(payload: IJwtPayload) {
     return { accessToken, refreshToken };
 }
 
+const formatUser = (user: Awaited<ReturnType<UserRepository['findUserByIdentifier']>>) => {
+    if (!user) {
+        throw new UnauthorizedException('User no longer exists.');
+    }
+
+    return {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roles: user.userRoles.map((ur) => ({
+            name: ur.role.name,
+            permissions: ur.role.rolePermissions.map((rp) => ({
+                module: rp.modulePermission.module.name,
+                permission: rp.modulePermission.permission.name,
+                scope: rp.modulePermission.accessScope
+            }))
+        }))
+    };
+};
+
 type AuthServiceConstructor = {
     userRepository?: UserRepository;
 };
@@ -60,26 +82,10 @@ export class AuthService {
         const expiresAt = new Date(decodedRefresh.exp! * 1000);
         await this.userRepository.saveRefreshToken(user.id, refreshToken, expiresAt);
 
-        const formattedRoles = user.userRoles.map((ur) => ({
-            name: ur.role.name,
-            permissions: ur.role.rolePermissions.map((rp) => ({
-                module: rp.modulePermission.module.name,
-                permission: rp.modulePermission.permission.name,
-                scope: rp.modulePermission.accessScope
-            }))
-        }));
-
         return {
             accessToken,
             refreshToken,
-            user: {
-                id: user.id,
-                email: user.email,
-                username: user.username,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                roles: formattedRoles
-            }
+            user: formatUser(user)
         };
     }
 
@@ -116,26 +122,10 @@ export class AuthService {
         const expiresAt = new Date(decodedRefresh.exp! * 1000);
         await this.userRepository.saveRefreshToken(user.id, refreshToken, expiresAt);
 
-        const formattedRoles = user.userRoles.map((ur) => ({
-            name: ur.role.name,
-            permissions: ur.role.rolePermissions.map((rp) => ({
-                module: rp.modulePermission.module.name,
-                permission: rp.modulePermission.permission.name,
-                scope: rp.modulePermission.accessScope
-            }))
-        }));
-
         return {
             accessToken,
             refreshToken,
-            user: {
-                id: user.id,
-                email: user.email,
-                username: user.username,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                roles: formattedRoles
-            }
+            user: formatUser(user)
         };
     }
 
@@ -172,7 +162,10 @@ export class AuthService {
 
         // @ts-expect-error jsonwebtoken types expect specific string formats like "15m" instead of generic string
         const accessToken = jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: env.JWT_ACCESS_EXPIRY });
-        return { accessToken };
+        return {
+            accessToken,
+            user: formatUser(user)
+        };
     }
 
     /**

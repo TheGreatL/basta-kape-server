@@ -134,7 +134,7 @@ registry.registerPath({
             description: 'New access token issued',
             content: {
                 'application/json': {
-                    schema: z.object({ accessToken: z.string() })
+                    schema: AuthTokenResponseSchema
                 }
             }
         },
