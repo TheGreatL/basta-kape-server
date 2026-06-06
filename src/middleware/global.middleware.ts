@@ -10,7 +10,11 @@ import { logger } from '../utils/logger';
 
 export const setupGlobalMiddleware = (app: Express) => {
     // Security Middlewares
-    app.use(helmet());
+    app.use(
+        helmet({
+            crossOriginResourcePolicy: { policy: 'cross-origin' }
+        })
+    );
     app.use(
         rateLimit({
             windowMs: 15 * 60 * 1000, // 15 minutes

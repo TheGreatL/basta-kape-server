@@ -5,8 +5,8 @@ export const GetProductListQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1).optional(),
     limit: z.coerce.number().min(1).max(100).default(10).optional(),
     search: z.string().optional(),
-    productCategoryId: z.string().uuid().optional(),
-    productTypeId: z.string().uuid().optional(),
+    productCategoryId: z.string().max(100).optional(),
+    productTypeId: z.string().max(100).optional(),
     status: z.enum(['active', 'archive']).default('active').optional()
 });
 
@@ -17,8 +17,8 @@ export const CreateProductSchema = z.object({
     name: z.string().min(2).max(100),
     photo: z.string().url().or(z.string().max(2048)).optional().nullable(),
     description: z.string().max(1000).optional().nullable(),
-    productCategoryId: z.string().uuid().optional().nullable(),
-    productTypeId: z.string().uuid().optional().nullable()
+    productCategoryId: z.string().max(100).optional().nullable(),
+    productTypeId: z.string().max(100).optional().nullable()
 });
 
 export type TCreateProduct = z.infer<typeof CreateProductSchema>;
@@ -27,8 +27,8 @@ export const UpdateProductSchema = z.object({
     name: z.string().min(2).max(100).optional(),
     photo: z.string().url().or(z.string().max(2048)).optional().nullable(),
     description: z.string().max(1000).optional().nullable(),
-    productCategoryId: z.string().uuid().optional().nullable(),
-    productTypeId: z.string().uuid().optional().nullable()
+    productCategoryId: z.string().max(100).optional().nullable(),
+    productTypeId: z.string().max(100).optional().nullable()
 });
 
 export type TUpdateProduct = z.infer<typeof UpdateProductSchema>;
@@ -37,7 +37,7 @@ export type TUpdateProduct = z.infer<typeof UpdateProductSchema>;
 export const CreateProductVariantSchema = z.object({
     sku: z.string().min(2).max(50).optional().nullable(),
     price: z.number().nonnegative().default(0),
-    attributeValueIds: z.array(z.string().uuid()).default([]) // attribute values mapping (e.g. Medium, Oat Milk)
+    attributeValueIds: z.array(z.string().max(100)).default([]) // attribute values mapping (e.g. Medium, Oat Milk)
 });
 
 export type TCreateProductVariant = z.infer<typeof CreateProductVariantSchema>;
@@ -45,7 +45,7 @@ export type TCreateProductVariant = z.infer<typeof CreateProductVariantSchema>;
 export const UpdateProductVariantSchema = z.object({
     sku: z.string().min(2).max(50).optional().nullable(),
     price: z.number().nonnegative().optional(),
-    attributeValueIds: z.array(z.string().uuid()).optional() // will fully re-sync join table attributes
+    attributeValueIds: z.array(z.string().max(100)).optional() // will fully re-sync join table attributes
 });
 
 export type TUpdateProductVariant = z.infer<typeof UpdateProductVariantSchema>;
