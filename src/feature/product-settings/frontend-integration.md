@@ -79,15 +79,152 @@ Used to define customizing options (e.g. "Size", "Milk Option").
 ### 4. Product Attribute Values (`/product-settings/attribute-values` & `/product-settings/attributes/:attributeId/values`)
 Used to declare specific modifier values (e.g. Size values: "Small", "Large"; Milk values: "Oat Milk", "Almond Milk").
 
-*   **`GET /product-settings/attributes/:attributeId/values`**: Paginated list of all active values matching a parent attribute.
+*   **`GET /product-settings/attributes/:attributeId/values`**
+    *   **Description**: Retrieves a paginated list of all active values matching a parent attribute.
     *   **RBAC**: `read`
-*   **`GET /product-settings/attribute-values/:id`**: Specific attribute value details.
+    *   **Response (200 OK)**:
+        ```json
+        {
+          "data": [
+            {
+              "id": "string (UUID)",
+              "productAttributeId": "string (UUID)",
+              "value": "string",
+              "createdAt": "string (ISO Date)",
+              "updatedAt": "string (ISO Date)",
+              "deletedAt": "string (ISO Date) | null"
+            }
+          ],
+          "meta": {
+            "total": "number",
+            "pageCount": "number",
+            "count": "number",
+            "currentPage": "number",
+            "hasMore": "boolean"
+          }
+        }
+        ```
+    *   **Example Response**:
+        ```json
+        {
+          "data": [
+            {
+              "id": "val-size-12oz",
+              "productAttributeId": "attr-size-id",
+              "value": "12oz (Regular)",
+              "createdAt": "2026-06-06T14:23:10.000Z",
+              "updatedAt": "2026-06-06T14:23:10.000Z",
+              "deletedAt": null
+            }
+          ],
+          "meta": {
+            "total": 1,
+            "pageCount": 1,
+            "count": 1,
+            "currentPage": 1,
+            "hasMore": false
+          }
+        }
+        ```
+
+*   **`GET /product-settings/attribute-values/:id`**
+    *   **Description**: Retrieves specific attribute value details.
     *   **RBAC**: `read`
-*   **`POST /product-settings/attribute-values`**: Creates a value mapping.
-    *   **Body**: `productAttributeId` (UUID, required), `value` (string, required, min 1, max 100).
+    *   **Response (200 OK)**:
+        ```json
+        {
+          "id": "string (UUID)",
+          "productAttributeId": "string (UUID)",
+          "value": "string",
+          "createdAt": "string (ISO Date)",
+          "updatedAt": "string (ISO Date)",
+          "deletedAt": "string (ISO Date) | null"
+        }
+        ```
+    *   **Example Response**:
+        ```json
+        {
+          "id": "val-size-12oz",
+          "productAttributeId": "attr-size-id",
+          "value": "12oz (Regular)",
+          "createdAt": "2026-06-06T14:23:10.000Z",
+          "updatedAt": "2026-06-06T14:23:10.000Z",
+          "deletedAt": null
+        }
+        ```
+
+*   **`POST /product-settings/attribute-values`**
+    *   **Description**: Creates a new attribute value mapping.
     *   **RBAC**: `create`
-*   **`PUT /product-settings/attribute-values/:id`**: Updates value text.
-    *   **Body**: `value` (string, required, min 1, max 100).
+    *   **Request Body**:
+        ```json
+        {
+          "productAttributeId": "string (UUID, required)",
+          "value": "string (required, min 1, max 100)"
+        }
+        ```
+    *   **Response (201 Created)**:
+        ```json
+        {
+          "id": "string (UUID)",
+          "productAttributeId": "string (UUID)",
+          "value": "string",
+          "createdAt": "string (ISO Date)",
+          "updatedAt": "string (ISO Date)",
+          "deletedAt": "string (ISO Date) | null"
+        }
+        ```
+    *   **Example Response**:
+        ```json
+        {
+          "id": "val-size-12oz",
+          "productAttributeId": "attr-size-id",
+          "value": "12oz (Regular)",
+          "createdAt": "2026-06-06T14:23:10.000Z",
+          "updatedAt": "2026-06-06T14:23:10.000Z",
+          "deletedAt": null
+        }
+        ```
+
+*   **`PUT /product-settings/attribute-values/:id`**
+    *   **Description**: Updates attribute value text.
     *   **RBAC**: `update`
-*   **`DELETE /product-settings/attribute-values/:id`**: Soft-deletes a specific attribute value.
+    *   **Request Body**:
+        ```json
+        {
+          "value": "string (required, min 1, max 100)"
+        }
+        ```
+    *   **Response (200 OK)**:
+        ```json
+        {
+          "id": "string (UUID)",
+          "productAttributeId": "string (UUID)",
+          "value": "string",
+          "createdAt": "string (ISO Date)",
+          "updatedAt": "string (ISO Date)",
+          "deletedAt": "string (ISO Date) | null"
+        }
+        ```
+    *   **Example Response**:
+        ```json
+        {
+          "id": "val-size-12oz",
+          "productAttributeId": "attr-size-id",
+          "value": "12oz (Regular)",
+          "createdAt": "2026-06-06T14:23:10.000Z",
+          "updatedAt": "2026-06-06T14:23:10.000Z",
+          "deletedAt": null
+        }
+        ```
+
+*   **`DELETE /product-settings/attribute-values/:id`**
+    *   **Description**: Soft-deletes a specific attribute value.
     *   **RBAC**: `delete`
+    *   **Response (200 OK)**:
+        ```json
+        {
+          "message": "Product attribute value soft-deleted successfully"
+        }
+        ```
+

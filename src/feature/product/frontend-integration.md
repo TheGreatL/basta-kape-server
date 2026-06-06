@@ -29,6 +29,107 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 #### `GET /products/:id`
 *   **Description**: Retrieves a specific product, complete with its assigned category, product type, and list of all active pricing variants.
 *   **RBAC**: `read`
+*   **Response (200 OK)**:
+    ```json
+    {
+      "id": "string (UUID)",
+      "name": "string",
+      "photo": "string (URL) | null",
+      "description": "string | null",
+      "productCategoryId": "string (UUID) | null",
+      "productTypeId": "string (UUID) | null",
+      "category": {
+        "id": "string (UUID)",
+        "name": "string"
+      } | null,
+      "type": {
+        "id": "string (UUID)",
+        "name": "string"
+      } | null,
+      "variants": [
+        {
+          "id": "string (UUID)",
+          "productId": "string (UUID)",
+          "sku": "string | null",
+          "price": "number",
+          "attributes": [
+            {
+              "id": "string (UUID)",
+              "productVariantId": "string (UUID)",
+              "productAttributeValueId": "string (UUID)",
+              "attributeValue": {
+                "id": "string (UUID)",
+                "productAttributeId": "string (UUID)",
+                "value": "string",
+                "attribute": {
+                  "id": "string (UUID)",
+                  "name": "string"
+                }
+              }
+            }
+          ],
+          "createdAt": "string (ISO Date)",
+          "updatedAt": "string (ISO Date)",
+          "deletedAt": "string (ISO Date) | null"
+        }
+      ],
+      "createdAt": "string (ISO Date)",
+      "updatedAt": "string (ISO Date)",
+      "deletedAt": "string (ISO Date) | null"
+    }
+    ```
+
+    ##### Response Example:
+    ```json
+    {
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Caramel Macchiato",
+      "photo": "https://example.com/photos/caramel-macchiato.jpg",
+      "description": "Espresso with steamed milk, vanilla syrup, and caramel drizzle.",
+      "productCategoryId": "c1d2e3f4-a5b6-7c8d-9e0f-1a2b3c4d5e6f",
+      "productTypeId": "t1y2p3e4-a5b6-7c8d-9e0f-1a2b3c4d5e6f",
+      "category": {
+        "id": "c1d2e3f4-a5b6-7c8d-9e0f-1a2b3c4d5e6f",
+        "name": "Coffee"
+      },
+      "type": {
+        "id": "t1y2p3e4-a5b6-7c8d-9e0f-1a2b3c4d5e6f",
+        "name": "Espresso Drink"
+      },
+      "variants": [
+        {
+          "id": "v1a2r3i4-a5b6-7c8d-9e0f-1a2b3c4d5e6f",
+          "productId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+          "sku": "MAC-LRG-OAT",
+          "price": 180,
+          "attributes": [
+            {
+              "id": "pva1b2c3-d4e5-6f7a-8b9c-0d1e2f3a4b5c",
+              "productVariantId": "v1a2r3i4-a5b6-7c8d-9e0f-1a2b3c4d5e6f",
+              "productAttributeValueId": "pav1b2c3-d4e5-6f7a-8b9c-0d1e2f3a4b5c",
+              "attributeValue": {
+                "id": "pav1b2c3-d4e5-6f7a-8b9c-0d1e2f3a4b5c",
+                "productAttributeId": "pa1b2c3d-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+                "value": "Large",
+                "attribute": {
+                  "id": "pa1b2c3d-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+                  "name": "Size"
+                }
+              }
+            }
+          ],
+          "createdAt": "2026-06-06T14:23:10.000Z",
+          "updatedAt": "2026-06-06T14:23:10.000Z",
+          "deletedAt": null
+        }
+      ],
+      "createdAt": "2026-06-06T14:23:10.000Z",
+      "updatedAt": "2026-06-06T14:23:10.000Z",
+      "deletedAt": null
+    }
+    ```
+
+
 
 #### `POST /products`
 *   **Description**: Creates a new product profile.
