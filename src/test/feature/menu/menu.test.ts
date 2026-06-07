@@ -180,7 +180,7 @@ describe('Customer Menu Feature CRUD', () => {
     // ========================================================================
     describe('Menu catalog lists and details endpoints', () => {
         it('should retrieve a paginated catalog list of active products', async () => {
-            const res = await request(app).get('/menu?limit=5');
+            const res = await request(app).get('/menu?limit=50');
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('data');
             expect(res.body).toHaveProperty('meta');

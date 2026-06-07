@@ -30,7 +30,7 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    await prisma.productCategory.upsert({
+    const categoryNonCoffee = await prisma.productCategory.upsert({
         where: { id: 'cat-non-coffee' },
         update: {},
         create: {
@@ -162,124 +162,173 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
+    const supplierGrocery = await prisma.supplier.upsert({
+        where: { id: 'sup-grocery' },
+        update: {},
+        create: {
+            id: 'sup-grocery',
+            name: 'Global Pantry Supplies',
+            address: 'Pasig City, Metro Manila',
+            notes: 'Supplier of syrups, chocolate sauces, and premium matcha powders',
+            contactPerson: 'Pedro Penduko',
+            contactNumber: '+63 919 456 7890',
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
     // ==========================================
     // 5. SEED INGREDIENTS & CURRENT INVENTORIES
     // ==========================================
-    // Ingredient 1: Espresso Beans (SAFE status)
-    const ingredientBeans = await prisma.ingredient.upsert({
-        where: { id: 'ing-espresso-beans' },
-        update: {},
-        create: {
-            id: 'ing-espresso-beans',
-            name: 'Espresso Blend Beans',
-            description: 'Premium arabica-robusta house blend',
-            ingredientUnitId: unitGrams.id,
-            reorderPoint: 2000, // 2kg
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    // Helper to create ingredient and initialize inventory status
+    async function createIngredientWithInventory(
+        id: string,
+        name: string,
+        description: string,
+        unitId: string,
+        qty: number,
+        reorder: number,
+        status: InventoryStatus
+    ) {
+        const ing = await prisma.ingredient.upsert({
+            where: { id },
+            update: {},
+            create: {
+                id,
+                name,
+                description,
+                ingredientUnitId: unitId,
+                reorderPoint: reorder,
+                createdById: adminId,
+                updatedById: adminId
+            }
+        });
 
-    await prisma.ingredientInventory.upsert({
-        where: { id: 'inv-beans' },
-        update: {},
-        create: {
-            id: 'inv-beans',
-            ingredientId: ingredientBeans.id,
-            currentQuantity: 8500, // 8.5kg
-            lastPhysicalCount: new Date(),
-            status: InventoryStatus.SAFE,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+        await prisma.ingredientInventory.upsert({
+            where: { id: `inv-${id}` },
+            update: {},
+            create: {
+                id: `inv-${id}`,
+                ingredientId: ing.id,
+                currentQuantity: qty,
+                lastPhysicalCount: new Date(),
+                status,
+                createdById: adminId,
+                updatedById: adminId
+            }
+        });
 
-    // Ingredient 2: Whole Milk (SAFE status)
-    const ingredientWholeMilk = await prisma.ingredient.upsert({
-        where: { id: 'ing-whole-milk' },
-        update: {},
-        create: {
-            id: 'ing-whole-milk',
-            name: 'Barista Whole Milk',
-            description: 'High-foaming dairy milk',
-            ingredientUnitId: unitMilliliters.id,
-            reorderPoint: 5000, // 5 Liters
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+        return ing;
+    }
 
-    await prisma.ingredientInventory.upsert({
-        where: { id: 'inv-whole-milk' },
-        update: {},
-        create: {
-            id: 'inv-whole-milk',
-            ingredientId: ingredientWholeMilk.id,
-            currentQuantity: 15000, // 15 Liters
-            lastPhysicalCount: new Date(),
-            status: InventoryStatus.SAFE,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    // Ingredient 3: Oat Milk (CRITICAL status)
-    const ingredientOatMilk = await prisma.ingredient.upsert({
-        where: { id: 'ing-oat-milk' },
-        update: {},
-        create: {
-            id: 'ing-oat-milk',
-            name: 'Barista Oat Milk',
-            description: 'Premium plant-based milk alternative',
-            ingredientUnitId: unitMilliliters.id,
-            reorderPoint: 4000, // 4 Liters
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    await prisma.ingredientInventory.upsert({
-        where: { id: 'inv-oat-milk' },
-        update: {},
-        create: {
-            id: 'inv-oat-milk',
-            ingredientId: ingredientOatMilk.id,
-            currentQuantity: 2000, // 2 Liters (Below reorder point of 4L)
-            lastPhysicalCount: new Date(),
-            status: InventoryStatus.CRITICAL,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    // Ingredient 4: Croissant Dough (OUT_OF_STOCK status)
-    const ingredientCroissant = await prisma.ingredient.upsert({
-        where: { id: 'ing-croissant-dough' },
-        update: {},
-        create: {
-            id: 'ing-croissant-dough',
-            name: 'Frozen Croissant Dough',
-            description: 'Pre-portioned uncooked butter croissants',
-            ingredientUnitId: unitPieces.id,
-            reorderPoint: 15,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    await prisma.ingredientInventory.upsert({
-        where: { id: 'inv-croissant' },
-        update: {},
-        create: {
-            id: 'inv-croissant',
-            ingredientId: ingredientCroissant.id,
-            currentQuantity: 0, // 0 pcs left
-            lastPhysicalCount: new Date(),
-            status: InventoryStatus.OUT_OF_STOCK,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    const ingBeans = await createIngredientWithInventory(
+        'ing-beans',
+        'Espresso Blend Beans',
+        'Premium arabica-robusta house blend',
+        unitGrams.id,
+        8500,
+        2000,
+        InventoryStatus.SAFE
+    );
+    const ingWholeMilk = await createIngredientWithInventory(
+        'ing-whole-milk',
+        'Barista Whole Milk',
+        'High-foaming dairy milk',
+        unitMilliliters.id,
+        15000,
+        5000,
+        InventoryStatus.SAFE
+    );
+    const ingOatMilk = await createIngredientWithInventory(
+        'ing-oat-milk',
+        'Barista Oat Milk',
+        'Premium plant-based milk alternative',
+        unitMilliliters.id,
+        2000,
+        4000,
+        InventoryStatus.CRITICAL
+    );
+    const ingAlmondMilk = await createIngredientWithInventory(
+        'ing-almond-milk',
+        'Barista Almond Milk',
+        'Unsweetened plant-based milk alternative',
+        unitMilliliters.id,
+        6000,
+        3000,
+        InventoryStatus.SAFE
+    );
+    const ingCondensed = await createIngredientWithInventory(
+        'ing-condensed-milk',
+        'Sweet Condensed Milk',
+        'Thick sweetened milk for Spanish Latte',
+        unitGrams.id,
+        4500,
+        1000,
+        InventoryStatus.SAFE
+    );
+    const ingMatcha = await createIngredientWithInventory(
+        'ing-matcha-powder',
+        'Premium Uji Matcha Powder',
+        'Authentic Japanese stone-ground green tea',
+        unitGrams.id,
+        800,
+        250,
+        InventoryStatus.SAFE
+    );
+    const ingChocolate = await createIngredientWithInventory(
+        'ing-chocolate-sauce',
+        'Gourmet Chocolate Sauce',
+        'Rich dark cocoa sauce for mochas and chocolates',
+        unitGrams.id,
+        2500,
+        800,
+        InventoryStatus.SAFE
+    );
+    const ingVanilla = await createIngredientWithInventory(
+        'ing-vanilla-syrup',
+        'Sweet Vanilla Syrup',
+        'Classic vanilla flavoring syrup',
+        unitMilliliters.id,
+        1800,
+        500,
+        InventoryStatus.SAFE
+    );
+    const ingCaramel = await createIngredientWithInventory(
+        'ing-caramel-drizzle',
+        'Caramel Drizzle Sauce',
+        'Buttery caramel sauce for topping macchiatos',
+        unitMilliliters.id,
+        1200,
+        400,
+        InventoryStatus.SAFE
+    );
+    const ingCroissant = await createIngredientWithInventory(
+        'ing-croissant-dough',
+        'Frozen Croissant Dough',
+        'Pre-portioned uncooked butter croissants',
+        unitPieces.id,
+        0,
+        15,
+        InventoryStatus.OUT_OF_STOCK
+    );
+    const ingChocCroissant = await createIngredientWithInventory(
+        'ing-choc-croissant-dough',
+        'Frozen Chocolate Croissant Dough',
+        'Pre-portioned uncooked pain au chocolat',
+        unitPieces.id,
+        25,
+        10,
+        InventoryStatus.SAFE
+    );
+    const ingCookie = await createIngredientWithInventory(
+        'ing-cookie-dough',
+        'Chocolate Chip Cookie Dough',
+        'Pre-portioned soft cookie dough chunks',
+        unitPieces.id,
+        40,
+        15,
+        InventoryStatus.SAFE
+    );
 
     // ==========================================
     // 6. SEED INGREDIENT DELIVERIES & BATCHES
@@ -289,13 +338,13 @@ export async function seedProduct(prisma: PrismaClient) {
         update: {},
         create: {
             id: 'del-beans-1',
-            ingredientId: ingredientBeans.id,
+            ingredientId: ingBeans.id,
             supplierId: supplierRoastery.id,
-            quantityReceived: 10000, // 10kg
-            unitCost: 0.65, // PHP 0.65 per gram
+            quantityReceived: 10000,
+            unitCost: 0.65,
             totalCost: 6500.0,
             batchNumber: 'BATCH-BEANS-099',
-            expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // Expiration in 180 days
+            expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
             createdById: adminId,
             updatedById: adminId
         }
@@ -306,28 +355,45 @@ export async function seedProduct(prisma: PrismaClient) {
         update: {},
         create: {
             id: 'del-milk-1',
-            ingredientId: ingredientWholeMilk.id,
+            ingredientId: ingWholeMilk.id,
             supplierId: supplierDairy.id,
-            quantityReceived: 24000, // 24 Liters
-            unitCost: 0.085, // PHP 0.085 per ml
+            quantityReceived: 24000,
+            unitCost: 0.085,
             totalCost: 2040.0,
             batchNumber: 'BATCH-MILK-774',
-            expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // Expiration in 14 days
+            expiryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    await prisma.ingredientDelivery.upsert({
+        where: { id: 'del-matcha-1' },
+        update: {},
+        create: {
+            id: 'del-matcha-1',
+            ingredientId: ingMatcha.id,
+            supplierId: supplierGrocery.id,
+            quantityReceived: 1000,
+            unitCost: 2.2,
+            totalCost: 2200.0,
+            batchNumber: 'BATCH-MATCHA-003',
+            expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
             createdById: adminId,
             updatedById: adminId
         }
     });
 
     // ==========================================
-    // 7. SEED INVENTORY ADJUSTMENTS (Waste & Spoilage logs)
+    // 7. SEED INVENTORY ADJUSTMENTS (Waste logs)
     // ==========================================
     await prisma.inventoryAdjustment.upsert({
         where: { id: 'adj-beans-spill' },
         update: {},
         create: {
             id: 'adj-beans-spill',
-            ingredientId: ingredientBeans.id,
-            quantity: -250, // Spilled 250g beans
+            ingredientId: ingBeans.id,
+            quantity: -250,
             type: AdjustmentType.WASTE,
             reason: 'Accidental spill during grinder cleaning',
             createdById: adminId,
@@ -340,8 +406,8 @@ export async function seedProduct(prisma: PrismaClient) {
         update: {},
         create: {
             id: 'adj-milk-expired',
-            ingredientId: ingredientWholeMilk.id,
-            quantity: -1000, // 1 Liter milk spoiled
+            ingredientId: ingWholeMilk.id,
+            quantity: -1000,
             type: AdjustmentType.SPOILED,
             reason: 'Left outside refrigerator overnight',
             createdById: adminId,
@@ -352,14 +418,14 @@ export async function seedProduct(prisma: PrismaClient) {
     // ==========================================
     // 8. SEED PRODUCTS
     // ==========================================
-    const productSpanishLatte = await prisma.product.upsert({
-        where: { id: 'prod-spanish-latte' },
+    const prodAmericano = await prisma.product.upsert({
+        where: { id: 'prod-americano' },
         update: {},
         create: {
-            id: 'prod-spanish-latte',
-            name: 'Spanish Latte',
-            photo: 'https://images.unsplash.com/photo-1541167760496-1628856ab772',
-            description: 'Sweet, creamy, espresso-forward latte with condensed milk',
+            id: 'prod-americano',
+            name: 'Café Americano',
+            photo: 'https://images.unsplash.com/photo-1551046710-7e57f48521c5',
+            description: 'Rich, full-bodied signature espresso shot combined with filtered hot/iced water',
             productCategoryId: categoryCoffee.id,
             productTypeId: typeIced.id,
             createdById: adminId,
@@ -367,29 +433,119 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    const productEspresso = await prisma.product.upsert({
-        where: { id: 'prod-espresso' },
+    const prodLatte = await prisma.product.upsert({
+        where: { id: 'prod-latte' },
         update: {},
         create: {
-            id: 'prod-espresso',
-            name: 'Classic Espresso',
-            photo: 'https://images.unsplash.com/photo-1510707577719-5d687202059c',
-            description: 'Intense and rich concentrated shot of our signature house roast',
+            id: 'prod-latte',
+            name: 'Café Latte',
+            photo: 'https://images.unsplash.com/photo-1541167760496-1628856ab772',
+            description: 'Velvety espresso combined with perfectly steamed milk and a thin microfoam layer',
             productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodSpanishLatte = await prisma.product.upsert({
+        where: { id: 'prod-spanish-latte' },
+        update: {},
+        create: {
+            id: 'prod-spanish-latte',
+            name: 'Spanish Latte',
+            photo: 'https://images.unsplash.com/photo-1594911774802-8822a707c9f5',
+            description: 'Sweet, creamy, espresso-forward latte sweetened with rich condensed milk',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodCaramelMacchiato = await prisma.product.upsert({
+        where: { id: 'prod-caramel-macchiato' },
+        update: {},
+        create: {
+            id: 'prod-caramel-macchiato',
+            name: 'Caramel Macchiato',
+            photo: 'https://images.unsplash.com/photo-1485808191679-5f86510681a2',
+            description: 'Vanilla-flavored syrup marked with espresso, milk, and topped with buttery caramel drizzle',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodMatchaLatte = await prisma.product.upsert({
+        where: { id: 'prod-matcha-latte' },
+        update: {},
+        create: {
+            id: 'prod-matcha-latte',
+            name: 'Uji Matcha Latte',
+            photo: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a',
+            description: 'Premium Japanese stone-ground matcha tea whisked and sweetened over creamy milk',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodChocolate = await prisma.product.upsert({
+        where: { id: 'prod-chocolate' },
+        update: {},
+        create: {
+            id: 'prod-chocolate',
+            name: 'Signature Hot Chocolate',
+            photo: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574',
+            description: 'Decadent dark cocoa melted into steamed whole milk for the ultimate comfort drink',
+            productCategoryId: categoryNonCoffee.id,
             productTypeId: typeHot.id,
             createdById: adminId,
             updatedById: adminId
         }
     });
 
-    const productCroissant = await prisma.product.upsert({
+    const prodCroissant = await prisma.product.upsert({
         where: { id: 'prod-croissant' },
         update: {},
         create: {
             id: 'prod-croissant',
             name: 'Classic Butter Croissant',
             photo: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a',
-            description: 'Flaky, buttery, oven-fresh laminated pastry',
+            description: 'Flaky, buttery, oven-fresh laminated pastry baked fresh daily',
+            productCategoryId: categoryPastries.id,
+            productTypeId: typeBaked.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodChocCroissant = await prisma.product.upsert({
+        where: { id: 'prod-choc-croissant' },
+        update: {},
+        create: {
+            id: 'prod-choc-croissant',
+            name: 'Pain au Chocolat',
+            photo: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca',
+            description: 'Rich dark chocolate baton wrapped in buttery, flaky golden layers',
+            productCategoryId: categoryPastries.id,
+            productTypeId: typeBaked.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodCookie = await prisma.product.upsert({
+        where: { id: 'prod-cookie' },
+        update: {},
+        create: {
+            id: 'prod-cookie',
+            name: 'Chocolate Chip Cookie',
+            photo: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e',
+            description: 'Soft-baked, chewy cookie loaded with premium milk and dark chocolate chunks',
             productCategoryId: categoryPastries.id,
             productTypeId: typeBaked.id,
             createdById: adminId,
@@ -424,8 +580,8 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    // Attribute Values (Size)
-    await prisma.productAttributeValue.upsert({
+    // Attribute Values (Sizes)
+    const valSize12 = await prisma.productAttributeValue.upsert({
         where: { id: 'val-size-12oz' },
         update: {},
         create: {
@@ -449,26 +605,14 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    const valShotDouble = await prisma.productAttributeValue.upsert({
-        where: { id: 'val-shot-double' },
-        update: {},
-        create: {
-            id: 'val-shot-double',
-            productAttributeId: attrSize.id,
-            value: 'Double Shot',
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    // Attribute Values (Milk)
+    // Attribute Values (Milk Options)
     const valMilkWhole = await prisma.productAttributeValue.upsert({
         where: { id: 'val-milk-whole' },
         update: {},
         create: {
             id: 'val-milk-whole',
             productAttributeId: attrMilk.id,
-            value: 'Barista Whole Milk',
+            value: 'Whole Milk',
             createdById: adminId,
             updatedById: adminId
         }
@@ -486,264 +630,420 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    // ==========================================
-    // 10. SEED PRODUCT VARIANTS & ATTRIBUTE MAPS
-    // ==========================================
-    // Variant 1: Spanish Latte 16oz Whole Milk
-    const varSpanishWhole = await prisma.productVariant.upsert({
-        where: { id: 'var-spanish-16-whole' },
+    const valMilkAlmond = await prisma.productAttributeValue.upsert({
+        where: { id: 'val-milk-almond' },
         update: {},
         create: {
-            id: 'var-spanish-16-whole',
-            productId: productSpanishLatte.id,
-            sku: 'BK-SL-16-WM',
-            price: 155.0,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    await prisma.productVariantAttribute.upsert({
-        where: { id: 'map-sl-16-wm-size' },
-        update: {},
-        create: {
-            id: 'map-sl-16-wm-size',
-            productVariantId: varSpanishWhole.id,
-            productAttributeValueId: valSize16.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    await prisma.productVariantAttribute.upsert({
-        where: { id: 'map-sl-16-wm-milk' },
-        update: {},
-        create: {
-            id: 'map-sl-16-wm-milk',
-            productVariantId: varSpanishWhole.id,
-            productAttributeValueId: valMilkWhole.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    // Variant 2: Spanish Latte 16oz Oat Milk (Premium Charge)
-    const varSpanishOat = await prisma.productVariant.upsert({
-        where: { id: 'var-spanish-16-oat' },
-        update: {},
-        create: {
-            id: 'var-spanish-16-oat',
-            productId: productSpanishLatte.id,
-            sku: 'BK-SL-16-OM',
-            price: 185.0, // PHP 30 upcharge
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    await prisma.productVariantAttribute.upsert({
-        where: { id: 'map-sl-16-om-size' },
-        update: {},
-        create: {
-            id: 'map-sl-16-om-size',
-            productVariantId: varSpanishOat.id,
-            productAttributeValueId: valSize16.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    await prisma.productVariantAttribute.upsert({
-        where: { id: 'map-sl-16-om-milk' },
-        update: {},
-        create: {
-            id: 'map-sl-16-om-milk',
-            productVariantId: varSpanishOat.id,
-            productAttributeValueId: valMilkOat.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    // Variant 3: Double Espresso (No Milk attribute)
-    const varEspressoDouble = await prisma.productVariant.upsert({
-        where: { id: 'var-espresso-double' },
-        update: {},
-        create: {
-            id: 'var-espresso-double',
-            productId: productEspresso.id,
-            sku: 'BK-ESP-DBL',
-            price: 95.0,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    await prisma.productVariantAttribute.upsert({
-        where: { id: 'map-esp-dbl-size' },
-        update: {},
-        create: {
-            id: 'map-esp-dbl-size',
-            productVariantId: varEspressoDouble.id,
-            productAttributeValueId: valShotDouble.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    // Variant 4: Croissant (No size/milk attribute options)
-    const varCroissant = await prisma.productVariant.upsert({
-        where: { id: 'var-croissant-standard' },
-        update: {},
-        create: {
-            id: 'var-croissant-standard',
-            productId: productCroissant.id,
-            sku: 'BK-CR-STD',
-            price: 110.0,
+            id: 'val-milk-almond',
+            productAttributeId: attrMilk.id,
+            value: 'Almond Milk Alternative',
             createdById: adminId,
             updatedById: adminId
         }
     });
 
     // ==========================================
-    // 11. SEED RECIPES & RECIPE INGREDIENTS
+    // 10. SEED PRODUCT VARIANTS, RECIPES, AND CASING
     // ==========================================
 
-    // Recipe 1: Spanish Latte 16oz Whole Milk Recipe
-    const recSpanishWhole = await prisma.recipe.upsert({
-        where: { productVariantId: varSpanishWhole.id },
-        update: {},
-        create: {
-            name: '16oz Hot Spanish Latte Recipe (Dairy)',
-            description: 'Double espresso with 250ml steamed whole milk and 30ml condensed milk base',
-            productVariantId: varSpanishWhole.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    // Helper to seed a variant, map its size/milk attributes, and create its recipe
+    async function seedVariantWithRecipe(
+        id: string,
+        productId: string,
+        sku: string,
+        price: number,
+        attributeIds: string[],
+        recipeName: string,
+        recipeDesc: string,
+        ingredients: { ingredientId: string; qty: number; unitId: string }[]
+    ) {
+        // Create Variant
+        const variant = await prisma.productVariant.upsert({
+            where: { id },
+            update: { price },
+            create: {
+                id,
+                productId,
+                sku,
+                price,
+                createdById: adminId,
+                updatedById: adminId
+            }
+        });
 
-    await prisma.recipeIngredient.upsert({
-        where: { id: 'rec-ing-sl-wm-beans' },
-        update: {},
-        create: {
-            id: 'rec-ing-sl-wm-beans',
-            recipeId: recSpanishWhole.id,
-            ingredientId: ingredientBeans.id,
-            quantity: 18.0, // 18 grams espresso
-            ingredientUnitId: unitGrams.id,
-            createdById: adminId,
-            updatedById: adminId
+        // Map Attributes
+        for (let i = 0; i < attributeIds.length; i++) {
+            const valId = attributeIds[i];
+            await prisma.productVariantAttribute.upsert({
+                where: { id: `map-${id}-${i}` },
+                update: {},
+                create: {
+                    id: `map-${id}-${i}`,
+                    productVariantId: variant.id,
+                    productAttributeValueId: valId,
+                    createdById: adminId,
+                    updatedById: adminId
+                }
+            });
         }
-    });
 
-    await prisma.recipeIngredient.upsert({
-        where: { id: 'rec-ing-sl-wm-milk' },
-        update: {},
-        create: {
-            id: 'rec-ing-sl-wm-milk',
-            recipeId: recSpanishWhole.id,
-            ingredientId: ingredientWholeMilk.id,
-            quantity: 250.0, // 250 milliliters whole milk
-            ingredientUnitId: unitMilliliters.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+        // Create Recipe
+        const recipe = await prisma.recipe.upsert({
+            where: { productVariantId: variant.id },
+            update: { name: recipeName, description: recipeDesc },
+            create: {
+                name: recipeName,
+                description: recipeDesc,
+                productVariantId: variant.id,
+                createdById: adminId,
+                updatedById: adminId
+            }
+        });
 
-    // Recipe 2: Spanish Latte 16oz Oat Milk Recipe
-    const recSpanishOat = await prisma.recipe.upsert({
-        where: { productVariantId: varSpanishOat.id },
-        update: {},
-        create: {
-            name: '16oz Hot Spanish Latte Recipe (Oat)',
-            description: 'Double espresso with 250ml steamed oat milk and 30ml condensed milk base',
-            productVariantId: varSpanishOat.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+        // Seed Recipe Ingredients
+        // First clean up previous recipe ingredients for this recipe to keep it clean and synced
+        await prisma.recipeIngredient.deleteMany({
+            where: { recipeId: recipe.id }
+        });
 
-    await prisma.recipeIngredient.upsert({
-        where: { id: 'rec-ing-sl-om-beans' },
-        update: {},
-        create: {
-            id: 'rec-ing-sl-om-beans',
-            recipeId: recSpanishOat.id,
-            ingredientId: ingredientBeans.id,
-            quantity: 18.0,
-            ingredientUnitId: unitGrams.id,
-            createdById: adminId,
-            updatedById: adminId
+        for (let j = 0; j < ingredients.length; j++) {
+            const ing = ingredients[j];
+            await prisma.recipeIngredient.create({
+                data: {
+                    id: `recing-${id}-${j}`,
+                    recipeId: recipe.id,
+                    ingredientId: ing.ingredientId,
+                    quantity: ing.qty,
+                    ingredientUnitId: ing.unitId,
+                    createdById: adminId,
+                    updatedById: adminId
+                }
+            });
         }
-    });
+    }
 
-    await prisma.recipeIngredient.upsert({
-        where: { id: 'rec-ing-sl-om-milk' },
-        update: {},
-        create: {
-            id: 'rec-ing-sl-om-milk',
-            recipeId: recSpanishOat.id,
-            ingredientId: ingredientOatMilk.id,
-            quantity: 250.0, // 250 milliliters oat milk
-            ingredientUnitId: unitMilliliters.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    // A. CAFÉ AMERICANO
+    // Variant: 12oz
+    await seedVariantWithRecipe(
+        'var-americano-12',
+        prodAmericano.id,
+        'BK-AME-12',
+        110.0,
+        [valSize12.id],
+        '12oz Café Americano Recipe',
+        'Double shot pull (18g beans) with 200ml hot/cold water base',
+        [{ ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }]
+    );
+    // Variant: 16oz
+    await seedVariantWithRecipe(
+        'var-americano-16',
+        prodAmericano.id,
+        'BK-AME-16',
+        125.0,
+        [valSize16.id],
+        '16oz Café Americano Recipe',
+        'Double shot pull (18g beans) with 300ml hot/cold water base',
+        [{ ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }]
+    );
 
-    // Recipe 3: Double Espresso Recipe
-    const recEspressoDouble = await prisma.recipe.upsert({
-        where: { productVariantId: varEspressoDouble.id },
-        update: {},
-        create: {
-            name: 'Classic Double Shot Espresso Recipe',
-            description: 'Double shot pull of arabica-robusta house blend',
-            productVariantId: varEspressoDouble.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    // B. CAFÉ LATTE
+    // Variant: 12oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-latte-12-whole',
+        prodLatte.id,
+        'BK-LAT-12-WM',
+        135.0,
+        [valSize12.id, valMilkWhole.id],
+        '12oz Café Latte (Whole Milk)',
+        'Double shot pull (18g beans) with 220ml steamed whole milk and light foam',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-latte-16-whole',
+        prodLatte.id,
+        'BK-LAT-16-WM',
+        150.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Café Latte (Whole Milk)',
+        'Double shot pull (18g beans) with 280ml steamed whole milk and light foam',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 12oz Oat Milk
+    await seedVariantWithRecipe(
+        'var-latte-12-oat',
+        prodLatte.id,
+        'BK-LAT-12-OM',
+        165.0,
+        [valSize12.id, valMilkOat.id],
+        '12oz Café Latte (Oat Milk)',
+        'Double shot pull (18g beans) with 220ml steamed plant oat milk',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingOatMilk.id, qty: 220.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Oat Milk
+    await seedVariantWithRecipe(
+        'var-latte-16-oat',
+        prodLatte.id,
+        'BK-LAT-16-OM',
+        180.0,
+        [valSize16.id, valMilkOat.id],
+        '16oz Café Latte (Oat Milk)',
+        'Double shot pull (18g beans) with 280ml steamed plant oat milk',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 12oz Almond Milk
+    await seedVariantWithRecipe(
+        'var-latte-12-almond',
+        prodLatte.id,
+        'BK-LAT-12-AM',
+        165.0,
+        [valSize12.id, valMilkAlmond.id],
+        '12oz Café Latte (Almond Milk)',
+        'Double shot pull (18g beans) with 220ml steamed plant almond milk',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingAlmondMilk.id, qty: 220.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Almond Milk
+    await seedVariantWithRecipe(
+        'var-latte-16-almond',
+        prodLatte.id,
+        'BK-LAT-16-AM',
+        180.0,
+        [valSize16.id, valMilkAlmond.id],
+        '16oz Café Latte (Almond Milk)',
+        'Double shot pull (18g beans) with 280ml steamed plant almond milk',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingAlmondMilk.id, qty: 280.0, unitId: unitMilliliters.id }
+        ]
+    );
 
-    await prisma.recipeIngredient.upsert({
-        where: { id: 'rec-ing-esp-beans' },
-        update: {},
-        create: {
-            id: 'rec-ing-esp-beans',
-            recipeId: recEspressoDouble.id,
-            ingredientId: ingredientBeans.id,
-            quantity: 18.0,
-            ingredientUnitId: unitGrams.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    // C. SPANISH LATTE
+    // Variant: 12oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-spanish-12-whole',
+        prodSpanishLatte.id,
+        'BK-SL-12-WM',
+        145.0,
+        [valSize12.id, valMilkWhole.id],
+        '12oz Spanish Latte (Whole Milk)',
+        'Steamed whole milk sweetened with 25g condensed milk, marked with double espresso',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 200.0, unitId: unitMilliliters.id },
+            { ingredientId: ingCondensed.id, qty: 25.0, unitId: unitGrams.id }
+        ]
+    );
+    // Variant: 16oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-spanish-16-whole',
+        prodSpanishLatte.id,
+        'BK-SL-16-WM',
+        160.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Spanish Latte (Whole Milk)',
+        'Steamed whole milk sweetened with 35g condensed milk, marked with double espresso',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 250.0, unitId: unitMilliliters.id },
+            { ingredientId: ingCondensed.id, qty: 35.0, unitId: unitGrams.id }
+        ]
+    );
+    // Variant: 16oz Oat Milk
+    await seedVariantWithRecipe(
+        'var-spanish-16-oat',
+        prodSpanishLatte.id,
+        'BK-SL-16-OM',
+        190.0,
+        [valSize16.id, valMilkOat.id],
+        '16oz Spanish Latte (Oat Milk)',
+        'Steamed oat milk sweetened with 35g condensed milk, marked with double espresso',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingOatMilk.id, qty: 250.0, unitId: unitMilliliters.id },
+            { ingredientId: ingCondensed.id, qty: 35.0, unitId: unitGrams.id }
+        ]
+    );
 
-    // Recipe 4: Classic Butter Croissant Recipe
-    const recCroissant = await prisma.recipe.upsert({
-        where: { productVariantId: varCroissant.id },
-        update: {},
-        create: {
-            name: 'Classic Baked Butter Croissant Recipe',
-            description: 'Single uncooked frozen pastry baked to order',
-            productVariantId: varCroissant.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    // D. CARAMEL MACCHIATO
+    // Variant: 12oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-macchiato-12-whole',
+        prodCaramelMacchiato.id,
+        'BK-CM-12-WM',
+        155.0,
+        [valSize12.id, valMilkWhole.id],
+        '12oz Caramel Macchiato (Whole Milk)',
+        'Double shot pull, 220ml whole milk, 15ml vanilla syrup, topped with 10ml caramel drizzle',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id },
+            { ingredientId: ingVanilla.id, qty: 15.0, unitId: unitMilliliters.id },
+            { ingredientId: ingCaramel.id, qty: 10.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-macchiato-16-whole',
+        prodCaramelMacchiato.id,
+        'BK-CM-16-WM',
+        170.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Caramel Macchiato (Whole Milk)',
+        'Double shot pull, 280ml whole milk, 20ml vanilla syrup, topped with 15ml caramel drizzle',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id },
+            { ingredientId: ingCaramel.id, qty: 15.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Oat Milk
+    await seedVariantWithRecipe(
+        'var-macchiato-16-oat',
+        prodCaramelMacchiato.id,
+        'BK-CM-16-OM',
+        200.0,
+        [valSize16.id, valMilkOat.id],
+        '16oz Caramel Macchiato (Oat Milk)',
+        'Double shot pull, 280ml oat milk, 20ml vanilla syrup, topped with 15ml caramel drizzle',
+        [
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
+            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id },
+            { ingredientId: ingCaramel.id, qty: 15.0, unitId: unitMilliliters.id }
+        ]
+    );
 
-    await prisma.recipeIngredient.upsert({
-        where: { id: 'rec-ing-croissant-pcs' },
-        update: {},
-        create: {
-            id: 'rec-ing-croissant-pcs',
-            recipeId: recCroissant.id,
-            ingredientId: ingredientCroissant.id,
-            quantity: 1.0, // 1 piece frozen croissant dough
-            ingredientUnitId: unitPieces.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
+    // E. UJI MATCHA LATTE
+    // Variant: 12oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-matcha-12-whole',
+        prodMatchaLatte.id,
+        'BK-MAT-12-WM',
+        150.0,
+        [valSize12.id, valMilkWhole.id],
+        '12oz Uji Matcha Latte (Whole Milk)',
+        '6g premium green tea powder blended with 15ml vanilla syrup and 220ml whole milk',
+        [
+            { ingredientId: ingMatcha.id, qty: 6.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id },
+            { ingredientId: ingVanilla.id, qty: 15.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-matcha-16-whole',
+        prodMatchaLatte.id,
+        'BK-MAT-16-WM',
+        165.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Uji Matcha Latte (Whole Milk)',
+        '8g premium green tea powder blended with 20ml vanilla syrup and 280ml whole milk',
+        [
+            { ingredientId: ingMatcha.id, qty: 8.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Oat Milk
+    await seedVariantWithRecipe(
+        'var-matcha-16-oat',
+        prodMatchaLatte.id,
+        'BK-MAT-16-OM',
+        195.0,
+        [valSize16.id, valMilkOat.id],
+        '16oz Uji Matcha Latte (Oat Milk)',
+        '8g premium green tea powder blended with 20ml vanilla syrup and 280ml plant oat milk',
+        [
+            { ingredientId: ingMatcha.id, qty: 8.0, unitId: unitGrams.id },
+            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id }
+        ]
+    );
+
+    // F. SIGNATURE HOT CHOCOLATE
+    // Variant: 12oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-chocolate-12-whole',
+        prodChocolate.id,
+        'BK-CHO-12-WM',
+        140.0,
+        [valSize12.id, valMilkWhole.id],
+        '12oz Signature Hot Chocolate',
+        '30g rich dark chocolate sauce combined with 220ml steamed whole milk',
+        [
+            { ingredientId: ingChocolate.id, qty: 30.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id }
+        ]
+    );
+    // Variant: 16oz Whole Milk
+    await seedVariantWithRecipe(
+        'var-chocolate-16-whole',
+        prodChocolate.id,
+        'BK-CHO-16-WM',
+        155.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Signature Hot Chocolate',
+        '40g rich dark chocolate sauce combined with 280ml steamed whole milk',
+        [
+            { ingredientId: ingChocolate.id, qty: 40.0, unitId: unitGrams.id },
+            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id }
+        ]
+    );
+
+    // G. CLASSIC BUTTER CROISSANT
+    // Variant: Standard
+    await seedVariantWithRecipe(
+        'var-croissant-standard',
+        prodCroissant.id,
+        'BK-CR-STD',
+        110.0,
+        [],
+        'Classic Butter Croissant Recipe',
+        '1 piece frozen butter croissant dough baked in oven',
+        [{ ingredientId: ingCroissant.id, qty: 1.0, unitId: unitPieces.id }]
+    );
+
+    // H. PAIN AU CHOCOLAT (CHOCOLATE CROISSANT)
+    // Variant: Standard
+    await seedVariantWithRecipe(
+        'var-choc-croissant-standard',
+        prodChocCroissant.id,
+        'BK-PAC-STD',
+        125.0,
+        [],
+        'Pain au Chocolat Recipe',
+        '1 piece frozen chocolate croissant dough baked in oven',
+        [{ ingredientId: ingChocCroissant.id, qty: 1.0, unitId: unitPieces.id }]
+    );
+
+    // I. CHOCOLATE CHIP COOKIE
+    // Variant: Standard
+    await seedVariantWithRecipe(
+        'var-cookie-standard',
+        prodCookie.id,
+        'BK-CK-STD',
+        85.0,
+        [],
+        'Chocolate Chip Cookie Recipe',
+        '1 piece frozen cookie dough baked soft in oven',
+        [{ ingredientId: ingCookie.id, qty: 1.0, unitId: unitPieces.id }]
+    );
 
     console.log('Explicit Products, Recipes, Inventory, and Suppliers Seeded successfully!');
 }
