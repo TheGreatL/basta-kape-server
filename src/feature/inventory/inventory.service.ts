@@ -9,7 +9,8 @@ import type {
     TUpdateIngredient,
     TCreateDelivery,
     TCreateAdjustment,
-    TGetListQuery
+    TGetListQuery,
+    TGetStockLevelListQuery
 } from './inventory.types';
 
 export class InventoryService {
@@ -164,7 +165,7 @@ export class InventoryService {
     // 3. PHYSICAL COUNT UPDATES
     // ==========================================
 
-    async getInventoryLevelsList(params: TGetListQuery) {
+    async getInventoryLevelsList(params: TGetStockLevelListQuery) {
         return this.repository.getInventoryLevelsList(params);
     }
 

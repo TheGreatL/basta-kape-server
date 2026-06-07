@@ -9,7 +9,8 @@ import type {
     TUpdateIngredient,
     TCreateDelivery,
     TCreateAdjustment,
-    TGetListQuery
+    TGetListQuery,
+    TGetStockLevelListQuery
 } from './inventory.types';
 
 export class InventoryRepository extends BaseRepository {
@@ -99,7 +100,7 @@ export class InventoryRepository extends BaseRepository {
     // ==========================================
 
     async createIngredient(data: TCreateIngredient, actorId: string) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const ingredient = await tx.ingredient.create({
                 data: {
                     name: data.name,
@@ -127,7 +128,7 @@ export class InventoryRepository extends BaseRepository {
     }
 
     async updateIngredient(id: string, data: TUpdateIngredient, actorId: string) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const updated = await tx.ingredient.update({
                 where: { id },
                 data: {
@@ -156,7 +157,7 @@ export class InventoryRepository extends BaseRepository {
     }
 
     async softDeleteIngredient(id: string, actorId: string) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const updated = await tx.ingredient.update({
                 where: { id },
                 data: {
@@ -234,14 +235,18 @@ export class InventoryRepository extends BaseRepository {
         });
     }
 
-    async getInventoryLevelsList(params: TGetListQuery): Promise<IPaginatedResult<unknown>> {
+    async getInventoryLevelsList(params: TGetStockLevelListQuery): Promise<IPaginatedResult<unknown>> {
         const { skip, take, page } = this.normalizePagination(params);
         const where: Prisma.IngredientInventoryWhereInput = {};
 
-        if (params.status === 'active') {
+        if (params.recordStatus === 'active') {
             where.deletedAt = null;
-        } else if (params.status === 'archive') {
+        } else if (params.recordStatus === 'archive') {
             where.deletedAt = { not: null };
+        }
+
+        if (params.status) {
+            where.status = params.status;
         }
 
         if (params.search) {
@@ -273,7 +278,7 @@ export class InventoryRepository extends BaseRepository {
     // ==========================================
 
     async adjustStockAndStatus(ingredientId: string, quantityDiff: number, isPhysicalCount: boolean, actorId: string) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Retrieve the ingredient (to fetch reorderPoint)
             const ingredient = await tx.ingredient.findFirst({
                 where: { id: ingredientId, deletedAt: null }

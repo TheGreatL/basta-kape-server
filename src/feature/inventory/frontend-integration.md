@@ -54,6 +54,12 @@ Used to manage raw pantry materials (e.g. Espresso Beans, Fresh Milk).
 #### `GET /inventory/levels`
 *   **Description**: Retrieves a paginated list of live ingredient inventories, alert statuses (`SAFE`, `CRITICAL`, `OUT_OF_STOCK`), and reorder points. Ranks `OUT_OF_STOCK` and `CRITICAL` items first.
 *   **RBAC**: `read`
+*   **Query Parameters**:
+    *   `page` (number, optional, default: `1`): Current page.
+    *   `limit` (number, optional, default: `10`, max: `100`): Items per page.
+    *   `search` (string, optional): Matches on ingredient name.
+    *   `status` (enum: `"SAFE" | "CRITICAL" | "OUT_OF_STOCK"`, optional): Filter by stock level status.
+    *   `recordStatus` (enum: `"active" | "archive"`, optional, default: `"active"`): Filter active/deleted inventory records.
 *   **Response (200 OK)**: Paginated data containing stock levels, status, and nested ingredient details (including `defaultUnit` with `name` and `abbreviation`).
 
 #### `GET /inventory/levels/:ingredientId`

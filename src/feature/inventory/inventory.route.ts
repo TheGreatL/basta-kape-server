@@ -5,6 +5,7 @@ import { requireAccess } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
 import {
     GetListQuerySchema,
+    GetStockLevelListQuerySchema,
     CreateIngredientUnitSchema,
     UpdateIngredientUnitSchema,
     IngredientUnitResponseSchema,
@@ -363,6 +364,9 @@ registry.registerPath({
     tags: ['Inventory - Levels & Counts'],
     summary: 'Get paginated list of ingredient stock levels',
     security: [{ bearerAuth: [] }],
+    request: {
+        query: GetStockLevelListQuerySchema
+    },
     responses: {
         200: {
             description: 'Inventory levels list retrieved successfully',
@@ -376,7 +380,7 @@ router.get(
     requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const query = GetListQuerySchema.parse(req.query);
+            const query = GetStockLevelListQuerySchema.parse(req.query);
             const result = await service.getInventoryLevelsList(query);
             res.json(result);
         } catch (error) {

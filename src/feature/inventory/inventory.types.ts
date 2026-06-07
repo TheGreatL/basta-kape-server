@@ -9,6 +9,15 @@ export const GetListQuerySchema = z.object({
 });
 export type TGetListQuery = z.infer<typeof GetListQuerySchema>;
 
+export const GetStockLevelListQuerySchema = z.object({
+    page: z.coerce.number().min(1).default(1).optional(),
+    limit: z.coerce.number().min(1).max(100).default(10).optional(),
+    search: z.string().optional(),
+    status: z.enum(['SAFE', 'CRITICAL', 'OUT_OF_STOCK']).optional(),
+    recordStatus: z.enum(['active', 'archive']).default('active').optional()
+});
+export type TGetStockLevelListQuery = z.infer<typeof GetStockLevelListQuerySchema>;
+
 // ==========================================
 // 1. INGREDIENT UNIT SCHEMAS
 // ==========================================
