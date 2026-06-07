@@ -16,6 +16,7 @@ import productRouter from './feature/product/product.route';
 import supplierRouter from './feature/supplier/supplier.route';
 import menuRouter from './feature/menu/menu.route';
 import customerRouter from './feature/customer/customer.route';
+import recipeRouter from './feature/recipe/recipe.route';
 
 const router = Router();
 
@@ -48,6 +49,7 @@ router.use('/upload', uploadRouter);
 router.use('/users', userRouter);
 router.use('/product-settings', productSettingsRouter);
 router.use('/inventory', inventoryRouter);
+router.use('/products/variants', recipeRouter);
 router.use('/products', productRouter);
 router.use('/suppliers', supplierRouter);
 router.use('/menu', menuRouter);

@@ -73,7 +73,43 @@ export class ProductRepository extends BaseRepository {
                     }
                 });
 
-                // 4. Soft-delete related variants
+                // 4. Fetch related recipes to soft-delete recipe ingredients
+                const recipes = await tx.recipe.findMany({
+                    where: {
+                        productVariantId: { in: activeVariantIds },
+                        deletedAt: null
+                    },
+                    select: { id: true }
+                });
+
+                const recipeIds = recipes.map((r) => r.id);
+
+                if (recipeIds.length > 0) {
+                    // Soft-delete recipe ingredients
+                    await tx.recipeIngredient.updateMany({
+                        where: {
+                            recipeId: { in: recipeIds },
+                            deletedAt: null
+                        },
+                        data: {
+                            deletedAt: new Date(),
+                            updatedById: actorId
+                        }
+                    });
+
+                    // Soft-delete recipes
+                    await tx.recipe.updateMany({
+                        where: {
+                            id: { in: recipeIds }
+                        },
+                        data: {
+                            deletedAt: new Date(),
+                            updatedById: actorId
+                        }
+                    });
+                }
+
+                // 5. Soft-delete related variants
                 await tx.productVariant.updateMany({
                     where: {
                         id: { in: activeVariantIds }
@@ -321,6 +357,30 @@ export class ProductRepository extends BaseRepository {
                     updatedById: actorId
                 }
             });
+
+            // 3. Soft-delete recipe if exists
+            const recipe = await tx.recipe.findFirst({
+                where: { productVariantId: id, deletedAt: null },
+                select: { id: true }
+            });
+
+            if (recipe) {
+                await tx.recipeIngredient.updateMany({
+                    where: { recipeId: recipe.id, deletedAt: null },
+                    data: {
+                        deletedAt: new Date(),
+                        updatedById: actorId
+                    }
+                });
+
+                await tx.recipe.update({
+                    where: { id: recipe.id },
+                    data: {
+                        deletedAt: new Date(),
+                        updatedById: actorId
+                    }
+                });
+            }
 
             return variant;
         });
