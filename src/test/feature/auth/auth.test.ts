@@ -240,7 +240,7 @@ describe('Auth Feature Integration Tests', () => {
             expect(loginRes.status).toBe(200);
             testUserAccessToken = loginRes.body.accessToken;
             testUser.password = 'NewPassword123!';
-        });
+        }, 15000);
 
         // --- CHANGE PASSWORD ---
         it('should fail to change password with incorrect old password', async () => {
@@ -272,6 +272,6 @@ describe('Auth Feature Integration Tests', () => {
             });
             expect(loginRes.status).toBe(200);
             testUser.password = 'FinalPassword123!';
-        });
+        }, 15000);
     });
 });

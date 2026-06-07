@@ -194,6 +194,7 @@ describe('Customer Menu Feature CRUD', () => {
             expect(found.variants.length).toBe(1);
             expect(found.variants[0].sku).toBe('TEST-MENU-CAP-LRG');
             expect(found.variants[0].price).toBe(180.0);
+            expect(found.variants[0].maxProduceable).toBe(0);
             expect(found.variants[0].recipe.name).toBe('Cappuccino Recipe');
             expect(found.variants[0].recipe.ingredients.length).toBe(1);
             expect(found.variants[0].recipe.ingredients[0].ingredient.name).toBe('Menu Espresso Beans');
@@ -206,6 +207,7 @@ describe('Customer Menu Feature CRUD', () => {
             expect(res.body.name).toBe('Menu Cappuccino');
             expect(res.body.category.name).toBe('Test Menu Category');
             expect(res.body.variants[0].recipe.ingredients[0].quantity).toBe(15);
+            expect(res.body.variants[0].maxProduceable).toBe(0);
         });
 
         it('should retrieve active categories with no pagination', async () => {

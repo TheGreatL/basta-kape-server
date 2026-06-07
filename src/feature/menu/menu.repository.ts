@@ -51,7 +51,16 @@ export class MenuRepository extends BaseRepository {
                                     ingredients: {
                                         where: { deletedAt: null },
                                         include: {
-                                            ingredient: { select: { id: true, name: true } },
+                                            ingredient: {
+                                                select: {
+                                                    id: true,
+                                                    name: true,
+                                                    inventories: {
+                                                        where: { deletedAt: null },
+                                                        select: { currentQuantity: true }
+                                                    }
+                                                }
+                                            },
                                             unit: { select: { id: true, name: true, abbreviation: true } }
                                         }
                                     }
@@ -92,7 +101,16 @@ export class MenuRepository extends BaseRepository {
                                 ingredients: {
                                     where: { deletedAt: null },
                                     include: {
-                                        ingredient: { select: { id: true, name: true } },
+                                        ingredient: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                inventories: {
+                                                    where: { deletedAt: null },
+                                                    select: { currentQuantity: true }
+                                                }
+                                            }
+                                        },
                                         unit: { select: { id: true, name: true, abbreviation: true } }
                                     }
                                 }

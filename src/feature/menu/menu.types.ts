@@ -66,7 +66,8 @@ export const MenuProductVariantResponseSchema = z.object({
             description: z.string().nullable(),
             ingredients: z.array(MenuRecipeIngredientResponseSchema)
         })
-        .nullable()
+        .nullable(),
+    maxProduceable: z.number().nullable().optional()
 });
 
 export const MenuProductResponseSchema = z.object({
