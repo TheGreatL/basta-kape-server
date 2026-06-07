@@ -87,6 +87,7 @@ model ProductVariant {
   price      Float                     @default(0)
   attributes ProductVariantAttribute[]
   recipe     Recipe?
+  cartItems  CustomerCart[]
 
   createdById String?
   createdBy   User?     @relation("ProductVariantCreatedBy", fields: [createdById], references: [id])

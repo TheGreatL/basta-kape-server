@@ -128,9 +128,30 @@ model Customer {
   id        String    @id @default(uuid())
   userId    String    @unique
   user      User      @relation(fields: [userId], references: [id])
+  carts      CustomerCart[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+}
+
+model CustomerCart {
+  id         String    @id @default(uuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+
+  unitPrice Float @default(0)
+  quantity  Int   @default(1)
+
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@unique([customerId, productVariantId])
+  @@index([productVariantId])
+  @@index([customerId])
 }
 
 model ActivityLog {
