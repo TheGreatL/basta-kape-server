@@ -4,10 +4,13 @@ import { UserRepository } from '../user/user.repository';
 import type { IJwtPayload } from './auth.types';
 import type { z } from 'zod';
 import type { RegisterSchema } from './auth.types';
-import { UnauthorizedException, ConflictException } from '@/exceptions';
+import { UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@/exceptions';
 import { randomUUID } from 'crypto';
 
 import { env } from '@/env';
+
+// In-memory store for password reset tokens: Maps token -> { userId, expiresAt }
+const resetTokens = new Map<string, { userId: string; expiresAt: Date }>();
 
 function signTokens(payload: IJwtPayload) {
     // @ts-expect-error jsonwebtoken types expect specific string formats like "15m" instead of generic string
@@ -190,5 +193,81 @@ export class AuthService {
             // It might already be revoked or not exist, which is fine for logout.
         }
         return { success: true };
+    }
+
+    /**
+     * Generate password reset token and store it.
+     */
+    async forgotPassword(email: string) {
+        const user = await this.userRepository.findUserByIdentifier(email);
+        if (!user) {
+            return {
+                success: true,
+                message: 'If an account with that email exists, a password reset token has been generated.'
+            };
+        }
+
+        const token = randomUUID();
+        resetTokens.set(token, {
+            userId: user.id,
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour expiration
+        });
+
+        return {
+            success: true,
+            message: 'If an account with that email exists, a password reset token has been generated.',
+            resetToken: process.env.NODE_ENV !== 'production' ? token : undefined
+        };
+    }
+
+    /**
+     * Resets a user's password using a valid token.
+     */
+    async resetPassword(token: string, newPassword: string) {
+        const record = resetTokens.get(token);
+        if (!record || record.expiresAt.getTime() < Date.now()) {
+            throw new BadRequestException('Reset token is invalid or has expired.');
+        }
+
+        const user = await this.userRepository.findUserByIdentifier(record.userId);
+        if (!user) {
+            throw new NotFoundException('User no longer exists.');
+        }
+
+        const SALT_ROUNDS = 12;
+        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        await this.userRepository.updatePassword(user.id, hashedPassword);
+
+        // Revoke all current active refresh tokens to force log out of other sessions
+        await this.userRepository.revokeAllUserTokens(user.id);
+
+        // Delete the used reset token
+        resetTokens.delete(token);
+
+        return { success: true, message: 'Password has been reset successfully.' };
+    }
+
+    /**
+     * Changes password for an authenticated user session.
+     */
+    async changePassword(userId: string, oldPassword: string, newPassword: string) {
+        const user = await this.userRepository.findUserByIdentifier(userId);
+        if (!user) {
+            throw new NotFoundException('User no longer exists.');
+        }
+
+        const passwordMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!passwordMatch) {
+            throw new BadRequestException('Incorrect old password.');
+        }
+
+        const SALT_ROUNDS = 12;
+        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        await this.userRepository.updatePassword(user.id, hashedPassword);
+
+        // Revoke all refresh tokens
+        await this.userRepository.revokeAllUserTokens(user.id);
+
+        return { success: true, message: 'Password changed successfully.' };
     }
 }

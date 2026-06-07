@@ -1,6 +1,6 @@
 # Frontend Integration Guide: Authentication
 
-This guide details the integration endpoints available in the **Basta Kape API** for managing user login sessions, token refresh, registration, and logout.
+This guide details the integration endpoints available in the **Basta Kape API** for managing user login sessions, token refresh, registration, logout, and password resets/changes.
 
 ---
 
@@ -8,83 +8,86 @@ This guide details the integration endpoints available in the **Basta Kape API**
 
 *   `POST /auth/login` and `POST /auth/register` are **public** (no token required).
 *   `POST /auth/login` is **rate-limited** to 5 attempts per 5 minutes per IP.
-*   `POST /auth/refresh` and `POST /auth/logout` are **public** but require a valid `refreshToken` in the request body.
+*   `POST /auth/refresh` and `POST /auth/logout` are **public** but require a valid `refreshToken` cookie.
+*   `POST /auth/forgot-password` and `POST /auth/reset-password` are **public** (no token required).
+*   `POST /auth/change-password` is **private** and requires a valid JWT `Authorization: Bearer <token>` header.
 
 ---
 
 ## Endpoints Description
 
 ### 1. `POST /auth/login`
-*   **Description**: Authenticates a user (Cashier, Barista, Admin, Owner, or Customer) and issues a JWT access token and refresh token pair.
+*   **Description**: Authenticates a user (Cashier, Barista, Admin, Owner, or Customer) and issues a JWT access token and sets a refresh token cookie.
 *   **Rate Limit**: 5 attempts per 5-minute window. Returns `429 Too Many Requests` when exceeded.
 *   **Request Body**:
     *   `identifier` (string, required): The user's email or username.
     *   `password` (string, required): The user's password.
-*   **Response (200 OK)**:
-    ```json
-    {
-        "accessToken": "eyJhbGciOi...",
-        "refreshToken": "eyJhbGciOi...",
-        "user": {
-            "id": "user-uuid",
-            "email": "user@example.com",
-            "username": "username",
-            "firstName": "John",
-            "lastName": "Doe",
-            "roles": [
-                {
-                    "name": "Administrator",
-                    "permissions": [
-                        {
-                            "module": "Users Management",
-                            "permission": "create",
-                            "scope": "ALL"
-                        }
-                    ]
-                }
-            ]
-        }
-    }
-    ```
-*   **Error Responses**:
-    *   `401 Unauthorized`: Invalid credentials.
-*   **Integration Tip**: Save both `accessToken` and `refreshToken` securely on the client (e.g. inside httpOnly cookies or secure state). Attach the `accessToken` as an `Authorization: Bearer <accessToken>` header for subsequent authenticated requests. Use the `refreshToken` to obtain a new access token when the current one expires.
+*   **Response (200 OK)**: Returns user payload and `accessToken`.
 
 ### 2. `POST /auth/register`
-*   **Description**: Registers a new customer user profile and immediately returns signed tokens so the user is logged in after registration.
-*   **Request Body**:
-    *   `email` (string, required): Valid email address.
-    *   `username` (string, required): Unique username (min 3 chars).
-    *   `password` (string, required): Password (min 8 chars, must contain at least one uppercase letter and one number).
-    *   `firstName` (string, required): First name of the customer.
-    *   `middleName` (string, optional): Middle name of the customer.
-    *   `lastName` (string, required): Last name of the customer.
-    *   `phoneNumber` (string, optional): Phone or mobile number.
-*   **Response (201 Created)**: Returns `accessToken`, `refreshToken`, and the created user object (with the automatically assigned `Customer` role).
-*   **Error Responses**:
-    *   `409 Conflict`: Email or username already in use.
+*   **Description**: Registers a new customer user profile and immediately returns signed tokens.
+*   **Request Body**: Standard registration fields.
+*   **Response (201 Created)**: Returns `accessToken` and user object.
 
 ### 3. `POST /auth/refresh`
-*   **Description**: Exchanges a valid refresh token for a new access token. Use this when the current access token has expired.
-*   **Request Body**:
-    *   `refreshToken` (string, required): The refresh token issued during login or registration.
+*   **Description**: Exchanges a valid refresh token cookie for a new access token.
 *   **Response (200 OK)**:
     ```json
     {
         "accessToken": "eyJhbGciOi..."
     }
     ```
-*   **Error Responses**:
-    *   `401 Unauthorized`: Refresh token is invalid, expired, or has been revoked.
 
 ### 4. `POST /auth/logout`
-*   **Description**: Revokes a refresh token to end the user session.
-*   **Request Body**:
-    *   `refreshToken` (string, required): The refresh token to revoke.
+*   **Description**: Revokes the refresh token cookie to end the user session.
 *   **Response (200 OK)**:
     ```json
     {
         "success": true
     }
     ```
-*   **Integration Tip**: Clear both the saved access token and refresh token from the client's store and redirect the user back to the login page.
+
+### 5. `POST /auth/forgot-password`
+*   **Description**: Requests a password reset link. In development (`NODE_ENV !== 'production'`), the generated token is returned directly in the response payload for testing convenience.
+*   **Request Body**:
+    *   `email` (string, required): The email address of the account to reset.
+*   **Response (200 OK)**:
+    ```json
+    {
+        "success": true,
+        "message": "If an account with that email exists, a password reset token has been generated.",
+        "resetToken": "generated-token-uuid-returned-only-in-development"
+    }
+    ```
+
+### 6. `POST /auth/reset-password`
+*   **Description**: Resets the password using a valid reset token. This will automatically invalidate the reset token and revoke all existing active refresh tokens (logging out all active user sessions).
+*   **Request Body**:
+    *   `token` (string, required): The reset token generated by `/auth/forgot-password`.
+    *   `newPassword` (string, required): Min 8 chars, at least one uppercase letter and one number.
+*   **Response (200 OK)**:
+    ```json
+    {
+        "success": true,
+        "message": "Password has been reset successfully."
+    }
+    ```
+*   **Error Responses**:
+    *   `400 Bad Request`: Token is invalid or has expired.
+
+### 7. `POST /auth/change-password`
+*   **Description**: Changes the password for the currently logged-in user. This requires authenticated headers. It will automatically revoke all active refresh tokens (logging out all other devices/sessions).
+*   **Headers**: `Authorization: Bearer <accessToken>`
+*   **Request Body**:
+    *   `oldPassword` (string, required): The current password.
+    *   `newPassword` (string, required): The new password (min 8 chars, at least one uppercase letter and one number).
+*   **Response (200 OK)**:
+    ```json
+    {
+        "success": true,
+        "message": "Password changed successfully."
+    }
+    ```
+*   **Error Responses**:
+    *   `400 Bad Request`: Incorrect old password.
+    *   `401 Unauthorized`: Token is invalid or expired.

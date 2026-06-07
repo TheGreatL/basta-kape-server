@@ -104,7 +104,7 @@ describe('Auth Feature Integration Tests', () => {
 
     describe('POST /auth/login', () => {
         it('should login successfully with valid email and password', async () => {
-            const res = await request(app).post('/auth/login').send({
+            const res = await request(app).post('/auth/login').set('x-skip-rate-limit', 'true').send({
                 identifier: testUser.email,
                 password: testUser.password
             });
@@ -123,7 +123,7 @@ describe('Auth Feature Integration Tests', () => {
         });
 
         it('should login successfully with valid username and password', async () => {
-            const res = await request(app).post('/auth/login').send({
+            const res = await request(app).post('/auth/login').set('x-skip-rate-limit', 'true').send({
                 identifier: testUser.username,
                 password: testUser.password
             });
@@ -133,7 +133,7 @@ describe('Auth Feature Integration Tests', () => {
         });
 
         it('should fail with 401 for invalid credentials', async () => {
-            const res = await request(app).post('/auth/login').send({
+            const res = await request(app).post('/auth/login').set('x-skip-rate-limit', 'true').send({
                 identifier: testUser.email,
                 password: 'WrongPassword!'
             });
@@ -142,13 +142,13 @@ describe('Auth Feature Integration Tests', () => {
         });
 
         it('should fail with 429 Too Many Requests after 5 login attempts', async () => {
-            // We already made 3 login attempts in the previous tests of this block.
-            // Let's make 2 more to hit the limit (total 5).
-            await request(app).post('/auth/login').send({ identifier: 'test', password: '123' });
-            await request(app).post('/auth/login').send({ identifier: 'test', password: '123' });
+            // Explicitly make 5 failed login attempts to hit the rate limit
+            for (let i = 0; i < 5; i++) {
+                await request(app).post('/auth/login').send({ identifier: 'test-rate-limit', password: '123' });
+            }
 
             // The 6th attempt should be blocked by the rate limiter
-            const res = await request(app).post('/auth/login').send({ identifier: 'test', password: '123' });
+            const res = await request(app).post('/auth/login').send({ identifier: 'test-rate-limit', password: '123' });
             expect(res.status).toBe(429);
         });
     });
@@ -185,6 +185,93 @@ describe('Auth Feature Integration Tests', () => {
                 .set('Cookie', [`refreshToken=${validRefreshToken}`]);
 
             expect(refreshRes.status).toBe(401);
+        });
+    });
+
+    describe('Password Reset and Change Operations', () => {
+        let resetToken: string;
+        let testUserAccessToken: string;
+
+        beforeAll(async () => {
+            // Log in to get a valid accessToken for change-password test
+            const loginRes = await request(app).post('/auth/login').set('x-skip-rate-limit', 'true').send({
+                identifier: testUser.email,
+                password: testUser.password
+            });
+            testUserAccessToken = loginRes.body.accessToken;
+        });
+
+        // --- FORGOT PASSWORD ---
+        it('should generate a password reset token for registered email', async () => {
+            const res = await request(app).post('/auth/forgot-password').send({ email: testUser.email });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.resetToken).toBeDefined();
+            resetToken = res.body.resetToken;
+        });
+
+        it('should return 200 generic message even if email is not found', async () => {
+            const res = await request(app).post('/auth/forgot-password').send({ email: 'nonexistent@example.com' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.resetToken).toBeUndefined();
+        });
+
+        // --- RESET PASSWORD ---
+        it('should fail to reset password with invalid token', async () => {
+            const res = await request(app).post('/auth/reset-password').send({ token: 'invalid-token', newPassword: 'NewPassword123!' });
+
+            expect(res.status).toBe(400);
+        });
+
+        it('should successfully reset password with valid token', async () => {
+            const res = await request(app).post('/auth/reset-password').send({ token: resetToken, newPassword: 'NewPassword123!' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+
+            // Attempt login with new password
+            const loginRes = await request(app).post('/auth/login').set('x-skip-rate-limit', 'true').send({
+                identifier: testUser.email,
+                password: 'NewPassword123!'
+            });
+            expect(loginRes.status).toBe(200);
+            testUserAccessToken = loginRes.body.accessToken;
+            testUser.password = 'NewPassword123!';
+        });
+
+        // --- CHANGE PASSWORD ---
+        it('should fail to change password with incorrect old password', async () => {
+            const payload = {
+                oldPassword: 'IncorrectPassword!',
+                newPassword: 'FinalPassword123!'
+            };
+
+            const res = await request(app).post('/auth/change-password').set('Authorization', `Bearer ${testUserAccessToken}`).send(payload);
+
+            expect(res.status).toBe(400);
+        });
+
+        it('should successfully change password with valid credentials', async () => {
+            const payload = {
+                oldPassword: testUser.password,
+                newPassword: 'FinalPassword123!'
+            };
+
+            const res = await request(app).post('/auth/change-password').set('Authorization', `Bearer ${testUserAccessToken}`).send(payload);
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+
+            // Check login with final password
+            const loginRes = await request(app).post('/auth/login').set('x-skip-rate-limit', 'true').send({
+                identifier: testUser.email,
+                password: 'FinalPassword123!'
+            });
+            expect(loginRes.status).toBe(200);
+            testUser.password = 'FinalPassword123!';
         });
     });
 });

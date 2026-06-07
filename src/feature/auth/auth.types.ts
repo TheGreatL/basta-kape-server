@@ -8,7 +8,7 @@ export const LoginSchema = z.object({
 
 // ── Register ─────────────────────────────────────────────────────────────────
 export const RegisterSchema = z.object({
-    email: z.email('Invalid email address'),
+    email: z.string().email('Invalid email address'),
     username: z.string().min(3, 'Username must be at least 3 characters'),
     password: z
         .string()
@@ -52,3 +52,32 @@ export const AuthTokenResponseSchema = z.object({
         )
     })
 });
+
+// ── Password Reset & Change ───────────────────────────────────────────────────
+export const ForgotPasswordSchema = z.object({
+    email: z.string().email('Invalid email address')
+});
+
+export type TForgotPassword = z.infer<typeof ForgotPasswordSchema>;
+
+export const ResetPasswordSchema = z.object({
+    token: z.string().min(1, 'Reset token is required'),
+    newPassword: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+        .regex(/[0-9]/, 'Password must contain at least one number')
+});
+
+export type TResetPassword = z.infer<typeof ResetPasswordSchema>;
+
+export const ChangePasswordSchema = z.object({
+    oldPassword: z.string().min(1, 'Old password is required'),
+    newPassword: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+        .regex(/[0-9]/, 'Password must contain at least one number')
+});
+
+export type TChangePassword = z.infer<typeof ChangePasswordSchema>;

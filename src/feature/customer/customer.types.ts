@@ -84,7 +84,7 @@ export type TPaginatedCustomerResponse = z.infer<typeof PaginatedCustomerRespons
 // ==========================================
 
 export const AddCartItemSchema = z.object({
-    productVariantId: z.string().uuid(),
+    productVariantId: z.string(),
     quantity: z.number().int().min(1)
 });
 

@@ -388,4 +388,11 @@ export class UserRepository extends BaseRepository {
             data: { isRevoked: true }
         });
     }
+
+    async updatePassword(id: string, passwordHash: string) {
+        return prisma.user.update({
+            where: { id },
+            data: { password: passwordHash }
+        });
+    }
 }

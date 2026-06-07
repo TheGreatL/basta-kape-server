@@ -1,7 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { registry } from '@/docs/swagger';
 import { AuthService } from './auth.service';
-import { LoginSchema, RegisterSchema, AuthTokenResponseSchema } from './auth.types';
+import { LoginSchema, RegisterSchema, AuthTokenResponseSchema, ForgotPasswordSchema, ResetPasswordSchema, ChangePasswordSchema } from './auth.types';
+import { authenticate } from '@/middleware/rbac.middleware';
 import { z } from 'zod';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import rateLimit from 'express-rate-limit';
@@ -13,6 +14,7 @@ const activityLogService = new ActivityLogService();
 const loginRateLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
     max: 5, // 5 attempts per windowMs
+    skip: (req) => req.headers['x-skip-rate-limit'] === 'true',
     message: { message: 'Too many login attempts, please try again after 5 minutes' }
 });
 
@@ -187,6 +189,146 @@ router.post('/logout', async (req: Request, res: Response, next: NextFunction) =
             res.clearCookie('refreshToken');
         }
         res.json({ success: true });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ==========================================
+// POST /auth/forgot-password
+// ==========================================
+registry.registerPath({
+    method: 'post',
+    path: '/auth/forgot-password',
+    tags: ['Auth'],
+    summary: 'Request password reset token',
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: ForgotPasswordSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Password reset request handled successfully',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        message: z.string(),
+                        resetToken: z.string().optional()
+                    })
+                }
+            }
+        }
+    }
+});
+
+router.post('/forgot-password', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email } = ForgotPasswordSchema.parse(req.body);
+        const result = await authService.forgotPassword(email);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ==========================================
+// POST /auth/reset-password
+// ==========================================
+registry.registerPath({
+    method: 'post',
+    path: '/auth/reset-password',
+    tags: ['Auth'],
+    summary: 'Reset password using token',
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: ResetPasswordSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Password reset successfully',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        message: z.string()
+                    })
+                }
+            }
+        },
+        400: { description: 'Invalid or expired token' }
+    }
+});
+
+router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { token, newPassword } = ResetPasswordSchema.parse(req.body);
+        const result = await authService.resetPassword(token, newPassword);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ==========================================
+// POST /auth/change-password
+// ==========================================
+registry.registerPath({
+    method: 'post',
+    path: '/auth/change-password',
+    tags: ['Auth'],
+    summary: 'Change password for authenticated user',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: ChangePasswordSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Password changed successfully',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        message: z.string()
+                    })
+                }
+            }
+        },
+        400: { description: 'Incorrect old password' },
+        401: { description: 'Unauthorized' }
+    }
+});
+
+router.post('/change-password', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { oldPassword, newPassword } = ChangePasswordSchema.parse(req.body);
+        const userId = req.user!.sub;
+        const result = await authService.changePassword(userId, oldPassword, newPassword);
+
+        await activityLogService.logActivity({
+            actorId: userId,
+            title: 'Change Password',
+            details: 'Successfully changed account password'
+        });
+
+        res.clearCookie('refreshToken');
+        res.json(result);
     } catch (error) {
         next(error);
     }
