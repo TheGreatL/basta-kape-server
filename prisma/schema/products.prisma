@@ -43,6 +43,7 @@ model Product {
   createdBy   User?     @relation("ProductCreatedBy", fields: [createdById], references: [id])
   updatedById String?
   updatedBy   User?     @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  modifierGroups ModifierGroup[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
@@ -93,6 +94,7 @@ model ProductVariant {
   createdBy   User?     @relation("ProductVariantCreatedBy", fields: [createdById], references: [id])
   updatedById String?
   updatedBy   User?     @relation("ProductVariantUpdatedBy", fields: [updatedById], references: [id])
+  orderItems  OrderItem[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
@@ -142,6 +144,7 @@ model Ingredient {
   inventories       IngredientInventory[]
   recipeIngredients RecipeIngredient[]
   adjustments       InventoryAdjustment[]
+  purchaseOrderItems PurchaseOrderItem[]
 
   createdById String?
   createdBy   User?     @relation("IngredientCreatedBy", fields: [createdById], references: [id])
@@ -160,6 +163,7 @@ model Supplier {
   contactPerson String?
   contactNumber String?
   deliveries    IngredientDelivery[]
+  purchaseOrders PurchaseOrder[]
 
   createdById String?
   createdBy   User?     @relation("SupplierCreatedBy", fields: [createdById], references: [id])
@@ -182,6 +186,9 @@ model IngredientDelivery {
   unitCost         Float      @default(0)
   totalCost        Float      @default(0)
   batchNumber      String?
+
+  purchaseOrderId     String?
+  purchaseOrder       PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
 
   createdById String?
   createdBy   User?     @relation("IngredientDeliveryCreatedBy", fields: [createdById], references: [id])
@@ -275,4 +282,51 @@ model InventoryAdjustment {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id           String              @id @default(uuid())
+  poNumber     String              @unique // E.g., PO-2026-0001
+  status       PurchaseOrderStatus @default(DRAFT)
+  notes        String?
+  totalAmount  Float               @default(0)
+  
+  supplierId   String
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+  
+  createdById  String
+  createdBy    User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
+  
+  items        PurchaseOrderItem[]
+  deliveries   IngredientDelivery[]
+  
+  orderedAt    DateTime?
+  receivedAt   DateTime?
+  
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  ingredientId    String
+  ingredient      Ingredient    @relation(fields: [ingredientId], references: [id])
+  
+  quantity        Float         @default(0)
+  unitCost        Float         @default(0)
+  totalCost       Float         @default(0)
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
 }

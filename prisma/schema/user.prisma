@@ -107,6 +107,11 @@ model User {
   createdInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentCreatedBy")
   updatedInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentUpdatedBy")
 
+  registerShifts      RegisterShift[]
+  statusChanges       OrderStatusHistory[]
+  voidedOrders        OrderVoidLog[]
+  createdPurchaseOrders PurchaseOrder[] @relation("PurchaseOrderCreatedBy")
+
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   deletedAt    DateTime?
@@ -129,6 +134,7 @@ model Customer {
   userId    String    @unique
   user      User      @relation(fields: [userId], references: [id])
   carts      CustomerCart[]
+  orders     Order[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -144,6 +150,8 @@ model CustomerCart {
 
   productVariantId String
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  cartModifiers CustomerCartModifier[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,4 +179,19 @@ model RefreshToken {
   expiresAt DateTime
   isRevoked Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model CustomerCartModifier {
+  id               String         @id @default(uuid())
+  customerCartId   String
+  customerCart     CustomerCart   @relation(fields: [customerCartId], references: [id], onDelete: Cascade)
+  modifierOptionId String
+  modifierOption   ModifierOption @relation(fields: [modifierOptionId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([customerCartId, modifierOptionId])
+  @@index([customerCartId])
+  @@index([modifierOptionId])
 }
