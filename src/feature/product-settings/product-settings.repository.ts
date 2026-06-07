@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
-import type { IPaginatedResult } from '@/types/base.types';
+import { auditSelect, type IPaginatedResult } from '@/types/base.types';
 import type {
     TCreateCategory,
     TUpdateCategory,
@@ -26,6 +26,10 @@ export class ProductSettingsRepository extends BaseRepository {
                 description: data.description,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -36,6 +40,10 @@ export class ProductSettingsRepository extends BaseRepository {
             data: {
                 ...data,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -52,7 +60,11 @@ export class ProductSettingsRepository extends BaseRepository {
 
     async findCategoryById(id: string) {
         return prisma.productCategory.findFirst({
-            where: { id, deletedAt: null }
+            where: { id, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -81,7 +93,11 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
             }),
             prisma.productCategory.count({ where })
         ]);
@@ -100,6 +116,10 @@ export class ProductSettingsRepository extends BaseRepository {
                 description: data.description,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -110,6 +130,10 @@ export class ProductSettingsRepository extends BaseRepository {
             data: {
                 ...data,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -126,7 +150,11 @@ export class ProductSettingsRepository extends BaseRepository {
 
     async findTypeById(id: string) {
         return prisma.productType.findFirst({
-            where: { id, deletedAt: null }
+            where: { id, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -155,7 +183,11 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
             }),
             prisma.productType.count({ where })
         ]);
@@ -174,6 +206,10 @@ export class ProductSettingsRepository extends BaseRepository {
                 description: data.description,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -184,6 +220,10 @@ export class ProductSettingsRepository extends BaseRepository {
             data: {
                 ...data,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -212,7 +252,11 @@ export class ProductSettingsRepository extends BaseRepository {
 
     async findAttributeById(id: string) {
         return prisma.productAttribute.findFirst({
-            where: { id, deletedAt: null }
+            where: { id, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -241,7 +285,11 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
             }),
             prisma.productAttribute.count({ where })
         ]);
@@ -260,6 +308,10 @@ export class ProductSettingsRepository extends BaseRepository {
                 value: data.value,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -270,6 +322,10 @@ export class ProductSettingsRepository extends BaseRepository {
             data: {
                 value: data.value,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -286,7 +342,11 @@ export class ProductSettingsRepository extends BaseRepository {
 
     async findAttributeValueById(id: string) {
         return prisma.productAttributeValue.findFirst({
-            where: { id, deletedAt: null }
+            where: { id, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -321,7 +381,11 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
             }),
             prisma.productAttributeValue.count({ where })
         ]);

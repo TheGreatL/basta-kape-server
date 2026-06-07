@@ -1,12 +1,15 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import type { TCreateRecipe, TUpdateRecipe } from './recipe.types';
+import { auditSelect } from '@/types/base.types';
 
 export class RecipeRepository extends BaseRepository {
     async findRecipeByVariantId(variantId: string) {
         return prisma.recipe.findFirst({
             where: { productVariantId: variantId, deletedAt: null },
             include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect },
                 ingredients: {
                     where: { deletedAt: null },
                     include: {
@@ -26,6 +29,8 @@ export class RecipeRepository extends BaseRepository {
         return prisma.recipe.findFirst({
             where: { id, deletedAt: null },
             include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect },
                 ingredients: {
                     where: { deletedAt: null },
                     include: {
@@ -89,6 +94,8 @@ export class RecipeRepository extends BaseRepository {
             const result = await tx.recipe.findUnique({
                 where: { id: recipe.id },
                 include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect },
                     ingredients: {
                         where: { deletedAt: null },
                         include: {
@@ -148,6 +155,8 @@ export class RecipeRepository extends BaseRepository {
             const result = await tx.recipe.findUnique({
                 where: { id: recipeId },
                 include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect },
                     ingredients: {
                         where: { deletedAt: null },
                         include: {

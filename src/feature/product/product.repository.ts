@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
-import type { IPaginatedResult } from '@/types/base.types';
+import { auditSelect, type IPaginatedResult } from '@/types/base.types';
 import type { TCreateProduct, TUpdateProduct, TCreateProductVariant, TUpdateProductVariant, TGetProductListQuery } from './product.types';
 
 export class ProductRepository extends BaseRepository {
@@ -22,7 +22,9 @@ export class ProductRepository extends BaseRepository {
             },
             include: {
                 category: true,
-                type: true
+                type: true,
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -36,7 +38,9 @@ export class ProductRepository extends BaseRepository {
             },
             include: {
                 category: true,
-                type: true
+                type: true,
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -135,9 +139,13 @@ export class ProductRepository extends BaseRepository {
                 type: {
                     select: { id: true, name: true }
                 },
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect },
                 variants: {
                     where: { deletedAt: null },
                     include: {
+                        createdBy: { select: auditSelect },
+                        updatedBy: { select: auditSelect },
                         attributes: {
                             where: { deletedAt: null },
                             include: {
@@ -197,9 +205,13 @@ export class ProductRepository extends BaseRepository {
                     type: {
                         select: { id: true, name: true }
                     },
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect },
                     variants: {
                         where: { deletedAt: null },
                         include: {
+                            createdBy: { select: auditSelect },
+                            updatedBy: { select: auditSelect },
                             attributes: {
                                 where: { deletedAt: null },
                                 include: {
@@ -255,6 +267,8 @@ export class ProductRepository extends BaseRepository {
             const result = await tx.productVariant.findUnique({
                 where: { id: variant.id },
                 include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect },
                     attributes: {
                         where: { deletedAt: null },
                         include: {
@@ -319,6 +333,8 @@ export class ProductRepository extends BaseRepository {
             const result = await tx.productVariant.findUnique({
                 where: { id },
                 include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect },
                     attributes: {
                         where: { deletedAt: null },
                         include: {
@@ -393,9 +409,13 @@ export class ProductRepository extends BaseRepository {
                 product: {
                     include: {
                         category: { select: { id: true, name: true } },
-                        type: { select: { id: true, name: true } }
+                        type: { select: { id: true, name: true } },
+                        createdBy: { select: auditSelect },
+                        updatedBy: { select: auditSelect }
                     }
                 },
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect },
                 attributes: {
                     where: { deletedAt: null },
                     include: {

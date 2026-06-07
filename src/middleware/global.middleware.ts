@@ -72,8 +72,13 @@ export const validateRequest = <T extends ZodTypeAny>(schema: T, type: 'body' | 
             if (type === 'body') {
                 req.body = await schema.parseAsync(req.body);
             } else if (type === 'query') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                req.query = (await schema.parseAsync(req.query)) as any;
+                const parsedQuery = await schema.parseAsync(req.query);
+                Object.defineProperty(req, 'query', {
+                    value: parsedQuery,
+                    writable: true,
+                    configurable: true,
+                    enumerable: true
+                });
             } else if (type === 'params') {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 req.params = (await schema.parseAsync(req.params)) as any;

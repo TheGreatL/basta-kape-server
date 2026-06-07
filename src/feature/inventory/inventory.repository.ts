@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma, InventoryStatus } from '@prisma/client';
-import type { IPaginatedResult } from '@/types/base.types';
+import { auditSelect, type IPaginatedResult } from '@/types/base.types';
 import type {
     TCreateIngredientUnit,
     TUpdateIngredientUnit,
@@ -25,6 +25,10 @@ export class InventoryRepository extends BaseRepository {
                 abbreviation: data.abbreviation,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -35,6 +39,10 @@ export class InventoryRepository extends BaseRepository {
             data: {
                 ...data,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -51,7 +59,11 @@ export class InventoryRepository extends BaseRepository {
 
     async findUnitById(id: string) {
         return prisma.ingredientUnit.findFirst({
-            where: { id, deletedAt: null }
+            where: { id, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -87,7 +99,11 @@ export class InventoryRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
             }),
             prisma.ingredientUnit.count({ where })
         ]);
@@ -109,6 +125,10 @@ export class InventoryRepository extends BaseRepository {
                     reorderPoint: data.reorderPoint,
                     createdById: actorId,
                     updatedById: actorId
+                },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
                 }
             });
 
@@ -134,6 +154,10 @@ export class InventoryRepository extends BaseRepository {
                 data: {
                     ...data,
                     updatedById: actorId
+                },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
                 }
             });
 
@@ -182,7 +206,11 @@ export class InventoryRepository extends BaseRepository {
     async findIngredientById(id: string) {
         return prisma.ingredient.findFirst({
             where: { id, deletedAt: null },
-            include: { defaultUnit: true }
+            include: {
+                defaultUnit: true,
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -212,7 +240,11 @@ export class InventoryRepository extends BaseRepository {
                 skip,
                 take,
                 orderBy: { createdAt: 'desc' },
-                include: { defaultUnit: true }
+                include: {
+                    defaultUnit: true,
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
             }),
             prisma.ingredient.count({ where })
         ]);
@@ -230,7 +262,9 @@ export class InventoryRepository extends BaseRepository {
             include: {
                 ingredient: {
                     include: { defaultUnit: true }
-                }
+                },
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -264,7 +298,9 @@ export class InventoryRepository extends BaseRepository {
                 include: {
                     ingredient: {
                         include: { defaultUnit: true }
-                    }
+                    },
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
                 }
             }),
             prisma.ingredientInventory.count({ where })
@@ -336,7 +372,9 @@ export class InventoryRepository extends BaseRepository {
                 include: {
                     ingredient: {
                         include: { defaultUnit: true }
-                    }
+                    },
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
                 }
             });
         });
@@ -368,6 +406,10 @@ export class InventoryRepository extends BaseRepository {
                 expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -403,7 +445,9 @@ export class InventoryRepository extends BaseRepository {
                     ingredient: {
                         include: { defaultUnit: true }
                     },
-                    supplier: true
+                    supplier: true,
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
                 }
             }),
             prisma.ingredientDelivery.count({ where })
@@ -425,6 +469,10 @@ export class InventoryRepository extends BaseRepository {
                 reason: data.reason,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -459,7 +507,9 @@ export class InventoryRepository extends BaseRepository {
                 include: {
                     ingredient: {
                         include: { defaultUnit: true }
-                    }
+                    },
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
                 }
             }),
             prisma.inventoryAdjustment.count({ where })

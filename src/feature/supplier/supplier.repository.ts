@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
-import type { IPaginatedResult } from '@/types/base.types';
+import { auditSelect, type IPaginatedResult } from '@/types/base.types';
 import type { TCreateSupplier, TUpdateSupplier, TGetSupplierListQuery } from './supplier.types';
 
 export class SupplierRepository extends BaseRepository {
@@ -15,6 +15,10 @@ export class SupplierRepository extends BaseRepository {
                 notes: data.notes || null,
                 createdById: actorId,
                 updatedById: actorId
+            },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
             }
         });
     }
@@ -31,7 +35,11 @@ export class SupplierRepository extends BaseRepository {
 
         return prisma.supplier.update({
             where: { id },
-            data: updateFields
+            data: updateFields,
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -47,7 +55,11 @@ export class SupplierRepository extends BaseRepository {
 
     async findSupplierById(id: string) {
         return prisma.supplier.findFirst({
-            where: { id, deletedAt: null }
+            where: { id, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
         });
     }
 
@@ -81,7 +93,11 @@ export class SupplierRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
             }),
             prisma.supplier.count({ where })
         ]);
