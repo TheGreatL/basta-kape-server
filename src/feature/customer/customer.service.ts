@@ -112,7 +112,7 @@ export class CustomerService {
 
     async addCartItem(customerId: string, data: TAddCartItem, actorId: string) {
         // Ensure customer exists
-        await this.getCustomerById(customerId);
+        const customer = await this.getCustomerById(customerId);
 
         // Fetch product variant details
         const variant = await prisma.productVariant.findFirst({
@@ -128,7 +128,7 @@ export class CustomerService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Add Cart Item',
-            details: `Added ${data.quantity} units of product variant ${data.productVariantId} to customer ${customerId}'s cart.`
+            details: `Added ${data.quantity} unit(s) of a product variant to customer ${customer.user.username}'s cart.`
         });
 
         return cartItem;
@@ -136,7 +136,7 @@ export class CustomerService {
 
     async updateCartItem(customerId: string, cartItemId: string, data: TUpdateCartItem, actorId: string) {
         // Ensure customer exists
-        await this.getCustomerById(customerId);
+        const customer = await this.getCustomerById(customerId);
 
         // Ensure cart item exists
         const existingItem = await this.customerRepository.findCartItemById(customerId, cartItemId);
@@ -149,7 +149,7 @@ export class CustomerService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Cart Item',
-            details: `Updated cart item ${cartItemId} quantity to ${data.quantity} for customer ${customerId}.`
+            details: `Updated cart item quantity to ${data.quantity} for customer ${customer.user.username}.`
         });
 
         return updatedItem;
@@ -157,7 +157,7 @@ export class CustomerService {
 
     async removeCartItem(customerId: string, cartItemId: string, actorId: string) {
         // Ensure customer exists
-        await this.getCustomerById(customerId);
+        const customer = await this.getCustomerById(customerId);
 
         // Ensure cart item exists
         const existingItem = await this.customerRepository.findCartItemById(customerId, cartItemId);
@@ -170,20 +170,20 @@ export class CustomerService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Remove Cart Item',
-            details: `Removed cart item ${cartItemId} from customer ${customerId}'s cart.`
+            details: `Removed a cart item from customer ${customer.user.username}'s cart.`
         });
     }
 
     async clearCart(customerId: string, actorId: string) {
         // Ensure customer exists
-        await this.getCustomerById(customerId);
+        const customer = await this.getCustomerById(customerId);
 
         await this.customerRepository.clearCart(customerId);
 
         await this.activityLogService.logActivity({
             actorId,
             title: 'Clear Cart',
-            details: `Cleared all cart items for customer ${customerId}.`
+            details: `Cleared all cart items for customer ${customer.user.username}.`
         });
     }
 }

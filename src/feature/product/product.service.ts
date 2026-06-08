@@ -59,7 +59,7 @@ export class ProductService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Product',
-            details: `Successfully created product: ${product.name} (${product.id}).`
+            details: `Successfully created product: ${product.name}.`
         });
 
         return product;
@@ -97,7 +97,7 @@ export class ProductService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Product',
-            details: `Successfully updated product: ${product.name} -> ${updated.name} (${id}).`
+            details: `Successfully updated product: ${product.name} -> ${updated.name}.`
         });
 
         return updated;
@@ -111,7 +111,7 @@ export class ProductService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Product',
-            details: `Successfully soft-deleted product and all its variants: ${product.name} (${id}).`
+            details: `Successfully deleted product and all its variants: ${product.name}.`
         });
     }
 
@@ -154,7 +154,7 @@ export class ProductService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Product Variant',
-            details: `Successfully created variant with SKU ${variant.sku || 'N/A'} for product: ${product.name} (${variant.id}).`
+            details: `Successfully created variant with SKU ${variant.sku || 'N/A'} for product: ${product.name}.`
         });
 
         return variant;
@@ -187,7 +187,7 @@ export class ProductService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Product Variant',
-            details: `Successfully updated variant ${id} for product: ${variant.product.name}.`
+            details: `Successfully updated variant (SKU: ${variant.sku || 'N/A'}) for product: ${variant.product.name}.`
         });
 
         return updatedVariant;
@@ -201,7 +201,7 @@ export class ProductService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Product Variant',
-            details: `Successfully soft-deleted variant ${id} with SKU ${variant.sku || 'N/A'}.`
+            details: `Successfully deleted variant (SKU: ${variant.sku || 'N/A'}) for product: ${variant.product.name}.`
         });
     }
 }

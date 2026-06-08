@@ -61,10 +61,11 @@ export class RecipeService {
         const recipe = await this.repository.createRecipe(variantId, data, actorId);
 
         // 5. Log activity
+        const variantLabel = this.getVariantLabel(variant);
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Recipe',
-            details: `Successfully created recipe: ${recipe.name} (${recipe.id}) for variant ${variantId}.`
+            details: `Successfully created recipe: ${recipe.name} for variant ${variantLabel}.`
         });
 
         return recipe;
@@ -93,10 +94,12 @@ export class RecipeService {
         const updated = await this.repository.updateRecipe(recipe.id, data, actorId);
 
         // 4. Log activity
+        const variantForLog = await this.repository.findVariantById(variantId);
+        const variantLabel = variantForLog ? this.getVariantLabel(variantForLog) : variantId;
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Recipe',
-            details: `Successfully updated recipe: ${updated.name} (${recipe.id}) for variant ${variantId}.`
+            details: `Successfully updated recipe: ${updated.name} for variant ${variantLabel}.`
         });
 
         return updated;
@@ -110,10 +113,17 @@ export class RecipeService {
         await this.repository.softDeleteRecipe(recipe.id, actorId);
 
         // 3. Log activity
+        const variant = await this.repository.findVariantById(variantId);
+        const variantLabel = variant ? this.getVariantLabel(variant) : variantId;
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Recipe',
-            details: `Successfully deleted recipe: ${recipe.name} (${recipe.id}) for variant ${variantId}.`
+            details: `Successfully deleted recipe: ${recipe.name} for variant ${variantLabel}.`
         });
+    }
+
+    private getVariantLabel(variant: { product: { name: string }; attributes: Array<{ attributeValue: { value: string } }> }): string {
+        const attrNames = variant.attributes.map((a) => a.attributeValue.value).join(', ');
+        return attrNames ? `${variant.product.name} (${attrNames})` : variant.product.name;
     }
 }

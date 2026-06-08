@@ -49,7 +49,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Product Category',
-            details: `Successfully created product category: ${category.name} (${category.id}).`
+            details: `Successfully created product category: ${category.name}.`
         });
 
         return category;
@@ -70,7 +70,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Product Category',
-            details: `Successfully updated product category: ${category.name} -> ${updated.name} (${id}).`
+            details: `Successfully updated product category: ${category.name} -> ${updated.name}.`
         });
 
         return updated;
@@ -84,7 +84,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Product Category',
-            details: `Successfully soft-deleted product category: ${category.name} (${id}).`
+            details: `Successfully deleted product category: ${category.name}.`
         });
     }
 
@@ -115,7 +115,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Product Type',
-            details: `Successfully created product type: ${type.name} (${type.id}).`
+            details: `Successfully created product type: ${type.name}.`
         });
 
         return type;
@@ -136,7 +136,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Product Type',
-            details: `Successfully updated product type: ${type.name} -> ${updated.name} (${id}).`
+            details: `Successfully updated product type: ${type.name} -> ${updated.name}.`
         });
 
         return updated;
@@ -150,7 +150,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Product Type',
-            details: `Successfully soft-deleted product type: ${type.name} (${id}).`
+            details: `Successfully deleted product type: ${type.name}.`
         });
     }
 
@@ -181,7 +181,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Product Attribute',
-            details: `Successfully created product attribute: ${attribute.name} (${attribute.id}).`
+            details: `Successfully created product attribute: ${attribute.name}.`
         });
 
         return attribute;
@@ -202,7 +202,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Product Attribute',
-            details: `Successfully updated product attribute: ${attribute.name} -> ${updated.name} (${id}).`
+            details: `Successfully updated product attribute: ${attribute.name} -> ${updated.name}.`
         });
 
         return updated;
@@ -216,7 +216,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Product Attribute',
-            details: `Successfully soft-deleted product attribute: ${attribute.name} (${id}).`
+            details: `Successfully deleted product attribute: ${attribute.name}.`
         });
     }
 
@@ -252,7 +252,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Product Attribute Value',
-            details: `Successfully added attribute value "${valueNode.value}" to attribute "${attribute.name}" (${valueNode.id}).`
+            details: `Successfully added attribute value "${valueNode.value}" to attribute "${attribute.name}".`
         });
 
         return valueNode;
@@ -274,7 +274,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Product Attribute Value',
-            details: `Successfully updated attribute value: ${valueNode.value} -> ${updated.value} (${id}).`
+            details: `Successfully updated attribute value: ${valueNode.value} -> ${updated.value}.`
         });
 
         return updated;
@@ -288,7 +288,7 @@ export class ProductSettingsService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Product Attribute Value',
-            details: `Successfully soft-deleted attribute value: ${valueNode.value} (${id}).`
+            details: `Successfully deleted attribute value: ${valueNode.value}.`
         });
     }
 }

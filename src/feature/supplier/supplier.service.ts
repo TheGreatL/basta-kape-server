@@ -35,7 +35,7 @@ export class SupplierService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Supplier',
-            details: `Successfully created supplier: ${supplier.name} (${supplier.id}).`
+            details: `Successfully created supplier: ${supplier.name}.`
         });
 
         return supplier;
@@ -56,7 +56,7 @@ export class SupplierService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Supplier',
-            details: `Successfully updated supplier: ${supplier.name} -> ${updated.name} (${id}).`
+            details: `Successfully updated supplier: ${supplier.name} -> ${updated.name}.`
         });
 
         return updated;
@@ -70,7 +70,7 @@ export class SupplierService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Supplier',
-            details: `Successfully soft-deleted supplier: ${supplier.name} (${id}).`
+            details: `Successfully deleted supplier: ${supplier.name}.`
         });
     }
 }

@@ -49,7 +49,7 @@ export class InventoryService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Ingredient Unit',
-            details: `Successfully created ingredient unit: ${unit.name} (${unit.id}).`
+            details: `Successfully created ingredient unit: ${unit.name}.`
         });
 
         return unit;
@@ -70,7 +70,7 @@ export class InventoryService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Ingredient Unit',
-            details: `Successfully updated ingredient unit: ${unit.name} -> ${updated.name} (${id}).`
+            details: `Successfully updated ingredient unit: ${unit.name} -> ${updated.name}.`
         });
 
         return updated;
@@ -84,7 +84,7 @@ export class InventoryService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Ingredient Unit',
-            details: `Successfully soft-deleted ingredient unit: ${unit.name} (${id}).`
+            details: `Successfully deleted ingredient unit: ${unit.name}.`
         });
     }
 
@@ -118,7 +118,7 @@ export class InventoryService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Ingredient',
-            details: `Successfully registered new raw ingredient: ${ingredient.name} (${ingredient.id}).`
+            details: `Successfully registered new raw ingredient: ${ingredient.name}.`
         });
 
         return ingredient;
@@ -143,7 +143,7 @@ export class InventoryService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Ingredient',
-            details: `Successfully updated raw ingredient properties for ${ingredient.name} (${id}).`
+            details: `Successfully updated raw ingredient properties for ${ingredient.name}.`
         });
 
         return updated;
@@ -157,7 +157,7 @@ export class InventoryService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Delete Ingredient',
-            details: `Successfully soft-deleted raw ingredient: ${ingredient.name} (${id}) and archived its inventory record.`
+            details: `Successfully deleted raw ingredient: ${ingredient.name} and archived its inventory record.`
         });
     }
 
@@ -239,7 +239,7 @@ export class InventoryService {
         await this.activityLogService.logActivity({
             actorId,
             title: 'Log Ingredient Delivery',
-            details: `Received delivery batch ${data.batchNumber || delivery.id} of ${data.quantityReceived} ${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name} ${ingredient.name} at PHP ${data.unitCost}/${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name} (Total: PHP ${totalCost}). Live inventory increased to ${updatedInventory.currentQuantity} (Alert: ${updatedInventory.status}).`
+            details: `Received delivery batch ${data.batchNumber || 'N/A'} of ${data.quantityReceived} ${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name} ${ingredient.name} at PHP ${data.unitCost}/${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name} (Total: PHP ${totalCost}). Live inventory increased to ${updatedInventory.currentQuantity} (Alert: ${updatedInventory.status}).`
         });
 
         return delivery;

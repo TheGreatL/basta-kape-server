@@ -48,7 +48,16 @@ export class RecipeRepository extends BaseRepository {
 
     async findVariantById(variantId: string) {
         return prisma.productVariant.findFirst({
-            where: { id: variantId, deletedAt: null }
+            where: { id: variantId, deletedAt: null },
+            include: {
+                product: { select: { name: true } },
+                attributes: {
+                    where: { deletedAt: null },
+                    include: {
+                        attributeValue: { select: { value: true } }
+                    }
+                }
+            }
         });
     }
 
