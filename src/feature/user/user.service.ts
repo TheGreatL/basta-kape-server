@@ -80,6 +80,24 @@ export class UserService {
         });
     }
 
+    async restoreUser(id: string, actorId: string) {
+        const user = await this.userRepository.findByIdIncludingDeleted(id);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        await this.userRepository.restoreUser(id);
+
+        // Log the successful restore activity
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore User',
+            details: `Successfully restored user account for ${user.username} (${user.email}).`
+        });
+
+        return user;
+    }
+
     async uploadProfilePicture(id: string, file: Express.Multer.File, actorId: string) {
         // Ensure user exists first
         const user = await this.getUserById(id);

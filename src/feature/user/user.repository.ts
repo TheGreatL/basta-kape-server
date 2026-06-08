@@ -270,6 +270,38 @@ export class UserRepository extends BaseRepository {
     }
 
     /**
+     * Finds a user by ID, including soft-deleted ones.
+     */
+    async findByIdIncludingDeleted(id: string) {
+        return prisma.user.findFirst({
+            where: { id },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                phoneNumber: true,
+                profilePhoto: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                userRoles: {
+                    select: {
+                        role: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Updates an existing user and optionally syncs roles.
      */
     async updateUser(id: string, data: TUpdateUser) {
@@ -341,6 +373,16 @@ export class UserRepository extends BaseRepository {
         return prisma.user.update({
             where: { id },
             data: { deletedAt: new Date() }
+        });
+    }
+
+    /**
+     * Restores a soft-deleted user.
+     */
+    async restoreUser(id: string) {
+        return prisma.user.update({
+            where: { id },
+            data: { deletedAt: null }
         });
     }
 

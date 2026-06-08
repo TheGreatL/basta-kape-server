@@ -392,4 +392,118 @@ export class ProductSettingsRepository extends BaseRepository {
 
         return this.formatPaginatedResult(data, totalRows, page, take);
     }
+
+    // ==========================================
+    // 5. RESTORE & FIND INCLUDING DELETED METHODS
+    // ==========================================
+
+    async restoreCategory(id: string, actorId: string) {
+        return prisma.productCategory.update({
+            where: { id },
+            data: {
+                deletedAt: null,
+                updatedById: actorId
+            }
+        });
+    }
+
+    async findCategoryByIdIncludingDeleted(id: string) {
+        return prisma.productCategory.findFirst({
+            where: { id },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async restoreType(id: string, actorId: string) {
+        return prisma.productType.update({
+            where: { id },
+            data: {
+                deletedAt: null,
+                updatedById: actorId
+            }
+        });
+    }
+
+    async findTypeByIdIncludingDeleted(id: string) {
+        return prisma.productType.findFirst({
+            where: { id },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async restoreAttribute(id: string, actorId: string) {
+        const attribute = await prisma.productAttribute.findUniqueOrThrow({
+            where: { id }
+        });
+
+        if (!attribute.deletedAt) {
+            return attribute;
+        }
+
+        const deleteTime = attribute.deletedAt;
+        const timeWindowStart = new Date(deleteTime.getTime() - 5000);
+        const timeWindowEnd = new Date(deleteTime.getTime() + 5000);
+
+        return prisma.$transaction(async (tx) => {
+            const updatedAttr = await tx.productAttribute.update({
+                where: { id },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.productAttributeValue.updateMany({
+                where: {
+                    productAttributeId: id,
+                    deletedAt: {
+                        gte: timeWindowStart,
+                        lte: timeWindowEnd
+                    }
+                },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            return updatedAttr;
+        });
+    }
+
+    async findAttributeByIdIncludingDeleted(id: string) {
+        return prisma.productAttribute.findFirst({
+            where: { id },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async restoreAttributeValue(id: string, actorId: string) {
+        return prisma.productAttributeValue.update({
+            where: { id },
+            data: {
+                deletedAt: null,
+                updatedById: actorId
+            }
+        });
+    }
+
+    async findAttributeValueByIdIncludingDeleted(id: string) {
+        return prisma.productAttributeValue.findFirst({
+            where: { id },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
 }

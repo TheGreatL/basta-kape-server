@@ -557,4 +557,79 @@ export class InventoryRepository extends BaseRepository {
             }
         });
     }
+
+    // ==========================================
+    // 7. RESTORE & FIND INCLUDING DELETED METHODS
+    // ==========================================
+
+    async restoreUnit(id: string, actorId: string) {
+        return prisma.ingredientUnit.update({
+            where: { id },
+            data: {
+                deletedAt: null,
+                updatedById: actorId
+            }
+        });
+    }
+
+    async findUnitByIdIncludingDeleted(id: string) {
+        return prisma.ingredientUnit.findFirst({
+            where: { id },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async restoreIngredient(id: string, actorId: string) {
+        const ingredient = await prisma.ingredient.findUniqueOrThrow({
+            where: { id }
+        });
+
+        if (!ingredient.deletedAt) {
+            return ingredient;
+        }
+
+        const deleteTime = ingredient.deletedAt;
+        const timeWindowStart = new Date(deleteTime.getTime() - 5000);
+        const timeWindowEnd = new Date(deleteTime.getTime() + 5000);
+
+        return prisma.$transaction(async (tx) => {
+            const restoredIngredient = await tx.ingredient.update({
+                where: { id },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.ingredientInventory.updateMany({
+                where: {
+                    ingredientId: id,
+                    deletedAt: {
+                        gte: timeWindowStart,
+                        lte: timeWindowEnd
+                    }
+                },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            return restoredIngredient;
+        });
+    }
+
+    async findIngredientByIdIncludingDeleted(id: string) {
+        return prisma.ingredient.findFirst({
+            where: { id },
+            include: {
+                defaultUnit: true,
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
 }

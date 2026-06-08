@@ -291,4 +291,72 @@ export class ProductSettingsService {
             details: `Successfully deleted attribute value: ${valueNode.value}.`
         });
     }
+
+    async restoreCategory(id: string, actorId: string) {
+        const category = await this.repository.findCategoryByIdIncludingDeleted(id);
+        if (!category) {
+            throw new NotFoundException('Product category not found');
+        }
+
+        const restored = await this.repository.restoreCategory(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Product Category',
+            details: `Successfully restored product category: ${category.name}.`
+        });
+
+        return restored;
+    }
+
+    async restoreType(id: string, actorId: string) {
+        const type = await this.repository.findTypeByIdIncludingDeleted(id);
+        if (!type) {
+            throw new NotFoundException('Product type not found');
+        }
+
+        const restored = await this.repository.restoreType(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Product Type',
+            details: `Successfully restored product type: ${type.name}.`
+        });
+
+        return restored;
+    }
+
+    async restoreAttribute(id: string, actorId: string) {
+        const attribute = await this.repository.findAttributeByIdIncludingDeleted(id);
+        if (!attribute) {
+            throw new NotFoundException('Product attribute not found');
+        }
+
+        const restored = await this.repository.restoreAttribute(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Product Attribute',
+            details: `Successfully restored product attribute: ${attribute.name}.`
+        });
+
+        return restored;
+    }
+
+    async restoreAttributeValue(id: string, actorId: string) {
+        const valueNode = await this.repository.findAttributeValueByIdIncludingDeleted(id);
+        if (!valueNode) {
+            throw new NotFoundException('Product attribute value not found');
+        }
+
+        const restored = await this.repository.restoreAttributeValue(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Product Attribute Value',
+            details: `Successfully restored attribute value: ${valueNode.value}.`
+        });
+
+        return restored;
+    }
 }

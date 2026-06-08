@@ -238,4 +238,47 @@ router.delete(
     }
 );
 
+// ==========================================
+// PATCH /rbac/roles/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/rbac/roles/{id}/restore',
+    tags: ['RBAC Roles'],
+    summary: 'Restore soft-deleted role by ID',
+    security: [{ bearerAuth: [] }],
+    request: {
+        params: z.object({ id: z.string() })
+    },
+    responses: {
+        200: {
+            description: 'Role restored successfully',
+            content: { 'application/json': { schema: RoleResponseSchema } }
+        },
+        403: { description: 'Forbidden: The Customer role cannot be restored' },
+        404: { description: 'Role not found' }
+    }
+});
+
+router.patch(
+    '/:id/restore',
+    requireAccess(appModules.ROLES_AND_PERMISSIONS, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = z.string().parse(req.params.id);
+            const data = await roleService.restoreRole(id);
+
+            await activityLogService.logActivity({
+                actorId: req.user?.sub,
+                title: 'Restore Role',
+                details: `Restored role: ${data.name}`
+            });
+
+            res.json(data);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 export default router;

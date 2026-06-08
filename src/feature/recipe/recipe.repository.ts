@@ -61,6 +61,20 @@ export class RecipeRepository extends BaseRepository {
         });
     }
 
+    async findVariantByIdIncludingDeleted(variantId: string) {
+        return prisma.productVariant.findFirst({
+            where: { id: variantId },
+            include: {
+                product: { select: { name: true } },
+                attributes: {
+                    include: {
+                        attributeValue: { select: { value: true } }
+                    }
+                }
+            }
+        });
+    }
+
     async findIngredientById(ingredientId: string) {
         return prisma.ingredient.findFirst({
             where: { id: ingredientId, deletedAt: null }
@@ -203,6 +217,66 @@ export class RecipeRepository extends BaseRepository {
             });
 
             return recipe;
+        });
+    }
+
+    async findRecipeByVariantIdIncludingDeleted(variantId: string) {
+        return prisma.recipe.findFirst({
+            where: { productVariantId: variantId },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect },
+                ingredients: {
+                    include: {
+                        ingredient: {
+                            select: { id: true, name: true }
+                        },
+                        unit: {
+                            select: { id: true, name: true, abbreviation: true }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async restoreRecipe(variantId: string, actorId: string) {
+        const recipe = await prisma.recipe.findFirst({
+            where: { productVariantId: variantId }
+        });
+
+        if (!recipe || !recipe.deletedAt) {
+            return recipe;
+        }
+
+        const deleteTime = recipe.deletedAt;
+        const timeWindowStart = new Date(deleteTime.getTime() - 5000);
+        const timeWindowEnd = new Date(deleteTime.getTime() + 5000);
+
+        return prisma.$transaction(async (tx) => {
+            const restoredRecipe = await tx.recipe.update({
+                where: { id: recipe.id },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.recipeIngredient.updateMany({
+                where: {
+                    recipeId: recipe.id,
+                    deletedAt: {
+                        gte: timeWindowStart,
+                        lte: timeWindowEnd
+                    }
+                },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            return restoredRecipe;
         });
     }
 }

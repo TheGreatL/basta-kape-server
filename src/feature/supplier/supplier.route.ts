@@ -165,4 +165,34 @@ router.delete(
     }
 );
 
+// ==========================================
+// PATCH /suppliers/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/suppliers/{id}/restore',
+    tags: ['Suppliers'],
+    summary: 'Restore soft-deleted supplier by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Supplier restored successfully',
+            content: { 'application/json': { schema: SupplierResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/:id/restore',
+    requireAccess(appModules.SUPPLIERS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreSupplier(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 export default router;

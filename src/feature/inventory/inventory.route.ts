@@ -189,6 +189,36 @@ router.delete(
     }
 );
 
+// ==========================================
+// PATCH /inventory/units/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/inventory/units/{id}/restore',
+    tags: ['Inventory - Units'],
+    summary: 'Restore soft-deleted ingredient unit by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Ingredient unit restored successfully',
+            content: { 'application/json': { schema: IngredientUnitResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/units/:id/restore',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreUnit(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 // ============================================================================
 // 2. INGREDIENTS ENDPOINTS
 // ============================================================================
@@ -347,6 +377,36 @@ router.delete(
         try {
             await service.deleteIngredient(req.params.id as string, req.user!.sub);
             res.json({ message: 'Ingredient soft-deleted successfully' });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
+// PATCH /inventory/ingredients/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/inventory/ingredients/{id}/restore',
+    tags: ['Inventory - Ingredients'],
+    summary: 'Restore soft-deleted raw ingredient by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Ingredient restored successfully',
+            content: { 'application/json': { schema: IngredientResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/ingredients/:id/restore',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreIngredient(req.params.id as string, req.user!.sub);
+            res.json(result);
         } catch (error) {
             next(error);
         }

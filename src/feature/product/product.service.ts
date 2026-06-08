@@ -204,4 +204,38 @@ export class ProductService {
             details: `Successfully deleted variant (SKU: ${variant.sku || 'N/A'}) for product: ${variant.product.name}.`
         });
     }
+
+    async restoreProduct(id: string, actorId: string) {
+        const product = await this.repository.findProductByIdIncludingDeleted(id);
+        if (!product) {
+            throw new NotFoundException('Product not found');
+        }
+
+        const restored = await this.repository.restoreProduct(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Product',
+            details: `Successfully restored product: ${product.name}.`
+        });
+
+        return restored;
+    }
+
+    async restoreVariant(id: string, actorId: string) {
+        const variant = await this.repository.findVariantByIdIncludingDeleted(id);
+        if (!variant) {
+            throw new NotFoundException('Product variant not found');
+        }
+
+        const restored = await this.repository.restoreVariant(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Product Variant',
+            details: `Successfully restored variant (SKU: ${variant.sku || 'N/A'}) for product: ${variant.product.name}.`
+        });
+
+        return restored;
+    }
 }

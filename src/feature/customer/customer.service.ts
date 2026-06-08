@@ -91,6 +91,23 @@ export class CustomerService {
         });
     }
 
+    async restoreCustomer(id: string, actorId: string) {
+        const customer = await this.customerRepository.findCustomerByIdIncludingDeleted(id);
+        if (!customer) {
+            throw new NotFoundException('Customer not found');
+        }
+
+        await this.customerRepository.restoreCustomer(id);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Customer',
+            details: `Successfully restored customer account: ${customer.user.username} (${customer.user.email}).`
+        });
+
+        return customer;
+    }
+
     // ==========================================
     // CART OPERATIONS
     // ==========================================

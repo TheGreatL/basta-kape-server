@@ -73,4 +73,21 @@ export class SupplierService {
             details: `Successfully deleted supplier: ${supplier.name}.`
         });
     }
+
+    async restoreSupplier(id: string, actorId: string) {
+        const supplier = await this.repository.findSupplierByIdIncludingDeleted(id);
+        if (!supplier) {
+            throw new NotFoundException('Supplier not found');
+        }
+
+        const restored = await this.repository.restoreSupplier(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Supplier',
+            details: `Successfully restored supplier: ${supplier.name}.`
+        });
+
+        return restored;
+    }
 }

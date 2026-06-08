@@ -190,6 +190,36 @@ router.delete(
     }
 );
 
+// ==========================================
+// PATCH /product-settings/categories/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/product-settings/categories/{id}/restore',
+    tags: ['Product Settings - Categories'],
+    summary: 'Restore soft-deleted product category by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Category restored successfully',
+            content: { 'application/json': { schema: CategoryResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/categories/:id/restore',
+    requireAccess(appModules.PRODUCT_SETTINGS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreCategory(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 // ============================================================================
 // 2. PRODUCT TYPES ENDPOINTS
 // ============================================================================
@@ -348,6 +378,36 @@ router.delete(
         try {
             await service.deleteType(req.params.id as string, req.user!.sub);
             res.json({ message: 'Product type soft-deleted successfully' });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
+// PATCH /product-settings/types/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/product-settings/types/{id}/restore',
+    tags: ['Product Settings - Types'],
+    summary: 'Restore soft-deleted product type by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Type restored successfully',
+            content: { 'application/json': { schema: TypeResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/types/:id/restore',
+    requireAccess(appModules.PRODUCT_SETTINGS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreType(req.params.id as string, req.user!.sub);
+            res.json(result);
         } catch (error) {
             next(error);
         }
@@ -518,6 +578,36 @@ router.delete(
     }
 );
 
+// ==========================================
+// PATCH /product-settings/attributes/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/product-settings/attributes/{id}/restore',
+    tags: ['Product Settings - Attributes'],
+    summary: 'Restore soft-deleted product attribute by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Attribute restored successfully',
+            content: { 'application/json': { schema: AttributeResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/attributes/:id/restore',
+    requireAccess(appModules.PRODUCT_SETTINGS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreAttribute(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 // ============================================================================
 // 4. PRODUCT ATTRIBUTE VALUES ENDPOINTS
 // ============================================================================
@@ -676,6 +766,36 @@ router.delete(
         try {
             await service.deleteAttributeValue(req.params.id as string, req.user!.sub);
             res.json({ message: 'Product attribute value soft-deleted successfully' });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
+// PATCH /product-settings/attribute-values/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/product-settings/attribute-values/{id}/restore',
+    tags: ['Product Settings - Attribute Values'],
+    summary: 'Restore soft-deleted product attribute value by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Attribute value restored successfully',
+            content: { 'application/json': { schema: AttributeValueResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/attribute-values/:id/restore',
+    requireAccess(appModules.PRODUCT_SETTINGS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreAttributeValue(req.params.id as string, req.user!.sub);
+            res.json(result);
         } catch (error) {
             next(error);
         }

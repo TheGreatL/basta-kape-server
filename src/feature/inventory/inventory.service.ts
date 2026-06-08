@@ -88,6 +88,23 @@ export class InventoryService {
         });
     }
 
+    async restoreUnit(id: string, actorId: string) {
+        const unit = await this.repository.findUnitByIdIncludingDeleted(id);
+        if (!unit) {
+            throw new NotFoundException('Ingredient unit not found');
+        }
+
+        const restored = await this.repository.restoreUnit(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Ingredient Unit',
+            details: `Successfully restored ingredient unit: ${unit.name}.`
+        });
+
+        return restored;
+    }
+
     // ==========================================
     // 2. INGREDIENT SERVICES
     // ==========================================
@@ -159,6 +176,23 @@ export class InventoryService {
             title: 'Delete Ingredient',
             details: `Successfully deleted raw ingredient: ${ingredient.name} and archived its inventory record.`
         });
+    }
+
+    async restoreIngredient(id: string, actorId: string) {
+        const ingredient = await this.repository.findIngredientByIdIncludingDeleted(id);
+        if (!ingredient) {
+            throw new NotFoundException('Ingredient not found');
+        }
+
+        const restored = await this.repository.restoreIngredient(id, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Ingredient',
+            details: `Successfully restored raw ingredient: ${ingredient.name} and unarchived its stock record.`
+        });
+
+        return restored;
     }
 
     // ==========================================

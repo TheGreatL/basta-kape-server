@@ -170,6 +170,36 @@ router.delete('/:id', requireAccess(appModules.USERS_MANAGEMENT, appPermissions.
 });
 
 // ==========================================
+// PATCH /users/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/users/{id}/restore',
+    tags: ['Users'],
+    summary: 'Restore soft-deleted user by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'User restored successfully',
+            content: { 'application/json': { schema: UserResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/:id/restore',
+    requireAccess(appModules.USERS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await userService.restoreUser(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
 // POST /users/:id/profile-picture
 // ==========================================
 registry.registerPath({

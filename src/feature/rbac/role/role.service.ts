@@ -101,4 +101,15 @@ export class RoleService {
         await this.ensureNotCustomerRole(id);
         return this.roleRepository.deleteRole(id);
     }
+
+    async restoreRole(id: string) {
+        const role = await this.roleRepository.findRoleByIdIncludingDeleted(id);
+        if (!role) {
+            throw new NotFoundException('Role not found');
+        }
+        if (role.name === 'Customer') {
+            throw new ForbiddenException('The Customer role cannot be modified.');
+        }
+        return this.roleRepository.restoreRole(id);
+    }
 }

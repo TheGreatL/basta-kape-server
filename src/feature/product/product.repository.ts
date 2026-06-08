@@ -437,4 +437,221 @@ export class ProductRepository extends BaseRepository {
             where: { sku, deletedAt: null }
         });
     }
+
+    // ==========================================
+    // 3. RESTORE & FIND INCLUDING DELETED METHODS
+    // ==========================================
+
+    async restoreProduct(id: string, actorId: string) {
+        const product = await prisma.product.findUniqueOrThrow({
+            where: { id }
+        });
+
+        if (!product.deletedAt) {
+            return product;
+        }
+
+        const deleteTime = product.deletedAt;
+        const timeWindowStart = new Date(deleteTime.getTime() - 5000);
+        const timeWindowEnd = new Date(deleteTime.getTime() + 5000);
+
+        return prisma.$transaction(async (tx) => {
+            const restoredProduct = await tx.product.update({
+                where: { id },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            const variantsToRestore = await tx.productVariant.findMany({
+                where: {
+                    productId: id,
+                    deletedAt: {
+                        gte: timeWindowStart,
+                        lte: timeWindowEnd
+                    }
+                },
+                select: { id: true }
+            });
+
+            const variantIds = variantsToRestore.map((v) => v.id);
+
+            if (variantIds.length > 0) {
+                await tx.productVariantAttribute.updateMany({
+                    where: {
+                        productVariantId: { in: variantIds },
+                        deletedAt: {
+                            gte: timeWindowStart,
+                            lte: timeWindowEnd
+                        }
+                    },
+                    data: {
+                        deletedAt: null,
+                        updatedById: actorId
+                    }
+                });
+
+                const recipesToRestore = await tx.recipe.findMany({
+                    where: {
+                        productVariantId: { in: variantIds },
+                        deletedAt: {
+                            gte: timeWindowStart,
+                            lte: timeWindowEnd
+                        }
+                    },
+                    select: { id: true }
+                });
+
+                const recipeIds = recipesToRestore.map((r) => r.id);
+
+                if (recipeIds.length > 0) {
+                    await tx.recipeIngredient.updateMany({
+                        where: {
+                            recipeId: { in: recipeIds },
+                            deletedAt: {
+                                gte: timeWindowStart,
+                                lte: timeWindowEnd
+                            }
+                        },
+                        data: {
+                            deletedAt: null,
+                            updatedById: actorId
+                        }
+                    });
+
+                    await tx.recipe.updateMany({
+                        where: {
+                            id: { in: recipeIds }
+                        },
+                        data: {
+                            deletedAt: null,
+                            updatedById: actorId
+                        }
+                    });
+                }
+
+                await tx.productVariant.updateMany({
+                    where: {
+                        id: { in: variantIds }
+                    },
+                    data: {
+                        deletedAt: null,
+                        updatedById: actorId
+                    }
+                });
+            }
+
+            return restoredProduct;
+        });
+    }
+
+    async findProductByIdIncludingDeleted(id: string) {
+        return prisma.product.findFirst({
+            where: { id },
+            include: {
+                category: {
+                    select: { id: true, name: true }
+                },
+                type: {
+                    select: { id: true, name: true }
+                },
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async restoreVariant(id: string, actorId: string) {
+        const variant = await prisma.productVariant.findUniqueOrThrow({
+            where: { id }
+        });
+
+        if (!variant.deletedAt) {
+            return variant;
+        }
+
+        const deleteTime = variant.deletedAt;
+        const timeWindowStart = new Date(deleteTime.getTime() - 5000);
+        const timeWindowEnd = new Date(deleteTime.getTime() + 5000);
+
+        return prisma.$transaction(async (tx) => {
+            const restoredVariant = await tx.productVariant.update({
+                where: { id },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.productVariantAttribute.updateMany({
+                where: {
+                    productVariantId: id,
+                    deletedAt: {
+                        gte: timeWindowStart,
+                        lte: timeWindowEnd
+                    }
+                },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            const recipe = await tx.recipe.findFirst({
+                where: {
+                    productVariantId: id,
+                    deletedAt: {
+                        gte: timeWindowStart,
+                        lte: timeWindowEnd
+                    }
+                },
+                select: { id: true }
+            });
+
+            if (recipe) {
+                await tx.recipeIngredient.updateMany({
+                    where: {
+                        recipeId: recipe.id,
+                        deletedAt: {
+                            gte: timeWindowStart,
+                            lte: timeWindowEnd
+                        }
+                    },
+                    data: {
+                        deletedAt: null,
+                        updatedById: actorId
+                    }
+                });
+
+                await tx.recipe.update({
+                    where: { id: recipe.id },
+                    data: {
+                        deletedAt: null,
+                        updatedById: actorId
+                    }
+                });
+            }
+
+            return restoredVariant;
+        });
+    }
+
+    async findVariantByIdIncludingDeleted(id: string) {
+        return prisma.productVariant.findFirst({
+            where: { id },
+            include: {
+                product: {
+                    include: {
+                        category: { select: { id: true, name: true } },
+                        type: { select: { id: true, name: true } },
+                        createdBy: { select: auditSelect },
+                        updatedBy: { select: auditSelect }
+                    }
+                },
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
 }

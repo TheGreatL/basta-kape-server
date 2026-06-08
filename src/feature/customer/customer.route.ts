@@ -173,6 +173,36 @@ router.delete(
 );
 
 // ==========================================
+// PATCH /customers/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/customers/{id}/restore',
+    tags: ['Customers'],
+    summary: 'Restore soft-deleted customer by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Customer restored successfully',
+            content: { 'application/json': { schema: CustomerResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/:id/restore',
+    requireAccess(appModules.CUSTOMERS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await customerService.restoreCustomer(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
 // CART ENDPOINTS
 // ==========================================
 

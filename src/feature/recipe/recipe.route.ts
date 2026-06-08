@@ -143,4 +143,34 @@ router.delete(
     }
 );
 
+// ==========================================
+// PATCH /products/variants/:variantId/recipe/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/products/variants/{variantId}/recipe/restore',
+    tags: ['Recipes'],
+    summary: 'Restore soft-deleted recipe by variant ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Recipe restored successfully',
+            content: { 'application/json': { schema: RecipeResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/:variantId/recipe/restore',
+    requireAccess(appModules.PRODUCTS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreRecipe(req.params.variantId as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 export default router;

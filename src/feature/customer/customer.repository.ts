@@ -146,11 +146,44 @@ export class CustomerRepository extends BaseRepository {
     }
 
     /**
+     * Restores a soft-deleted Customer and their associated User.
+     */
+    async restoreCustomer(id: string) {
+        const customer = await prisma.customer.findUniqueOrThrow({
+            where: { id }
+        });
+
+        return prisma.$transaction(async (tx) => {
+            await tx.customer.update({
+                where: { id },
+                data: { deletedAt: null }
+            });
+
+            await tx.user.update({
+                where: { id: customer.userId },
+                data: { deletedAt: null }
+            });
+        });
+    }
+
+    /**
      * Finds a single customer by ID.
      */
     async findCustomerById(id: string) {
         return prisma.customer.findFirst({
             where: { id, deletedAt: null },
+            include: {
+                user: true
+            }
+        });
+    }
+
+    /**
+     * Finds a single customer by ID, including soft-deleted ones.
+     */
+    async findCustomerByIdIncludingDeleted(id: string) {
+        return prisma.customer.findFirst({
+            where: { id },
             include: {
                 user: true
             }
@@ -213,7 +246,10 @@ export class CustomerRepository extends BaseRepository {
         return prisma.customerCart.findMany({
             where: {
                 customerId,
-                deletedAt: null
+                deletedAt: null,
+                productVariant: {
+                    deletedAt: null
+                }
             },
             include: {
                 productVariant: {

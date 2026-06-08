@@ -168,6 +168,36 @@ router.delete(
     }
 );
 
+// ==========================================
+// PATCH /products/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/products/{id}/restore',
+    tags: ['Products'],
+    summary: 'Restore soft-deleted product by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Product restored successfully',
+            content: { 'application/json': { schema: ProductResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/:id/restore',
+    requireAccess(appModules.PRODUCTS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreProduct(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 // ============================================================================
 // 2. PRODUCT VARIANTS ENDPOINTS
 // ============================================================================
@@ -297,6 +327,36 @@ router.delete(
         try {
             await service.deleteVariant(req.params.id as string, req.user!.sub);
             res.json({ message: 'Product variant soft-deleted successfully' });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
+// PATCH /products/variants/:id/restore
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/products/variants/{id}/restore',
+    tags: ['Product Variants'],
+    summary: 'Restore soft-deleted product variant by ID',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Variant restored successfully',
+            content: { 'application/json': { schema: ProductVariantResponseSchema } }
+        }
+    }
+});
+
+router.patch(
+    '/variants/:id/restore',
+    requireAccess(appModules.PRODUCTS_MANAGEMENT, appPermissions.DELETE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.restoreVariant(req.params.id as string, req.user!.sub);
+            res.json(result);
         } catch (error) {
             next(error);
         }

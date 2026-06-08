@@ -53,9 +53,29 @@ export class SupplierRepository extends BaseRepository {
         });
     }
 
+    async restoreSupplier(id: string, actorId: string) {
+        return prisma.supplier.update({
+            where: { id },
+            data: {
+                deletedAt: null,
+                updatedById: actorId
+            }
+        });
+    }
+
     async findSupplierById(id: string) {
         return prisma.supplier.findFirst({
             where: { id, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async findSupplierByIdIncludingDeleted(id: string) {
+        return prisma.supplier.findFirst({
+            where: { id },
             include: {
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }

@@ -122,6 +122,26 @@ export class RecipeService {
         });
     }
 
+    async restoreRecipe(variantId: string, actorId: string) {
+        const recipe = await this.repository.findRecipeByVariantIdIncludingDeleted(variantId);
+        if (!recipe) {
+            throw new NotFoundException(`Recipe not found for variant ID "${variantId}"`);
+        }
+
+        const restored = await this.repository.restoreRecipe(variantId, actorId);
+
+        const variant = await this.repository.findVariantByIdIncludingDeleted(variantId);
+        const variantLabel = variant ? this.getVariantLabel(variant) : variantId;
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Recipe',
+            details: `Successfully restored recipe: ${recipe.name} for variant ${variantLabel}.`
+        });
+
+        return restored;
+    }
+
     private getVariantLabel(variant: { product: { name: string }; attributes: Array<{ attributeValue: { value: string } }> }): string {
         const attrNames = variant.attributes.map((a) => a.attributeValue.value).join(', ');
         return attrNames ? `${variant.product.name} (${attrNames})` : variant.product.name;

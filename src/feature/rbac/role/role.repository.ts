@@ -147,4 +147,19 @@ export class RoleRepository extends BaseRepository {
             select: roleSelect
         });
     }
+
+    async restoreRole(id: string) {
+        return prisma.role.update({
+            where: { id },
+            data: { deletedAt: null },
+            select: roleSelect
+        });
+    }
+
+    async findRoleByIdIncludingDeleted(id: string) {
+        return prisma.role.findFirst({
+            where: { id },
+            select: roleSelect
+        });
+    }
 }
