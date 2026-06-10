@@ -244,14 +244,13 @@ export class ReportGenerator {
                 y += headerHeight;
             };
 
-            const ensureSpace = (requiredHeight: number, isFooter = false) => {
+            const ensureSpace = (requiredHeight: number) => {
                 const bottom = doc.page.height - doc.page.margins.bottom;
                 if (y + requiredHeight > bottom) {
                     doc.addPage();
                     y = doc.page.margins.top;
-                    if (!isFooter) {
-                        drawTableHeader();
-                    }
+                    drawPageHeader();
+                    drawTableHeader();
                 }
             };
 
@@ -282,7 +281,7 @@ export class ReportGenerator {
                 y += rowHeight;
             });
 
-            ensureSpace(footerBlockHeight, true);
+            ensureSpace(footerBlockHeight);
             const signatureY = y + 12;
             this.drawPdfSignatureBlock(doc, dataset, pageWidth, signatureY);
 
