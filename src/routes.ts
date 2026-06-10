@@ -18,6 +18,7 @@ import menuRouter from './feature/menu/menu.route';
 import customerRouter from './feature/customer/customer.route';
 import recipeRouter from './feature/recipe/recipe.route';
 import reportRouter from './feature/report/report.route';
+import storeSettingsRouter from './feature/store-settings/store-settings.route';
 
 const router = Router();
 
@@ -56,6 +57,7 @@ router.use('/suppliers', supplierRouter);
 router.use('/menu', menuRouter);
 router.use('/customers', customerRouter);
 router.use('/reports', reportRouter);
+router.use('/store-settings', storeSettingsRouter);
 
 registry.registerPath({
     method: 'get',
