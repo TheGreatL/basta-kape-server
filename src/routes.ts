@@ -17,6 +17,7 @@ import supplierRouter from './feature/supplier/supplier.route';
 import menuRouter from './feature/menu/menu.route';
 import customerRouter from './feature/customer/customer.route';
 import recipeRouter from './feature/recipe/recipe.route';
+import reportRouter from './feature/report/report.route';
 
 const router = Router();
 
@@ -54,6 +55,7 @@ router.use('/products', productRouter);
 router.use('/suppliers', supplierRouter);
 router.use('/menu', menuRouter);
 router.use('/customers', customerRouter);
+router.use('/reports', reportRouter);
 
 registry.registerPath({
     method: 'get',
