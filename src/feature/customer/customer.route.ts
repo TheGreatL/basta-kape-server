@@ -12,7 +12,8 @@ import {
     AddCartItemSchema,
     UpdateCartItemSchema,
     CartResponseSchema,
-    CartItemResponseSchema
+    CartItemResponseSchema,
+    GetCustomerOrdersQuerySchema
 } from './customer.types';
 
 const router = Router();
@@ -195,6 +196,39 @@ router.patch(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const result = await customerService.restoreCustomer(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
+// GET /customers/:id/orders
+// ==========================================
+registry.registerPath({
+    method: 'get',
+    path: '/customers/{id}/orders',
+    tags: ['Customers'],
+    summary: 'Get customer order history',
+    security: [{ bearerAuth: [] }],
+    request: {
+        query: GetCustomerOrdersQuerySchema
+    },
+    responses: {
+        200: {
+            description: 'Customer order history retrieved successfully'
+        }
+    }
+});
+
+router.get(
+    '/:id/orders',
+    requireAccess(appModules.CUSTOMERS_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const query = GetCustomerOrdersQuerySchema.parse(req.query);
+            const result = await customerService.getCustomerOrders(req.params.id as string, query);
             res.json(result);
         } catch (error) {
             next(error);

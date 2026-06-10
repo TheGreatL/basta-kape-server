@@ -2,7 +2,14 @@ import { prisma } from '@/lib/prisma';
 import { CustomerRepository } from './customer.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, ConflictException } from '@/exceptions';
-import type { TCreateCustomer, TUpdateCustomer, TGetCustomerListQuery, TAddCartItem, TUpdateCartItem } from './customer.types';
+import type {
+    TCreateCustomer,
+    TUpdateCustomer,
+    TGetCustomerListQuery,
+    TAddCartItem,
+    TUpdateCartItem,
+    TGetCustomerOrdersQuery
+} from './customer.types';
 
 type CustomerServiceConstructor = {
     customerRepository?: CustomerRepository;
@@ -202,5 +209,12 @@ export class CustomerService {
             title: 'Clear Cart',
             details: `Cleared all cart items for customer ${customer.user.username}.`
         });
+    }
+
+    async getCustomerOrders(customerId: string, params: TGetCustomerOrdersQuery) {
+        // Ensure customer exists
+        await this.getCustomerById(customerId);
+
+        return this.customerRepository.getCustomerOrders(customerId, params);
     }
 }

@@ -20,6 +20,7 @@ import recipeRouter from './feature/recipe/recipe.route';
 import reportRouter from './feature/report/report.route';
 import storeSettingsRouter from './feature/store-settings/store-settings.route';
 import registerShiftRouter from './feature/register-shift/register-shift.route';
+import orderRouter from './feature/order/order.route';
 
 const router = Router();
 
@@ -60,6 +61,7 @@ router.use('/customers', customerRouter);
 router.use('/reports', reportRouter);
 router.use('/store-settings', storeSettingsRouter);
 router.use('/register-shifts', registerShiftRouter);
+router.use('/orders', orderRouter);
 
 registry.registerPath({
     method: 'get',

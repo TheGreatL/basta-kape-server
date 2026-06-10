@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dataStatus } from '@/constant';
+import { OrderStatusEnum } from '@/feature/order/order.types';
 
 // ==========================================
 // CUSTOMER TYPES
@@ -160,3 +161,12 @@ export const CartResponseSchema = z.object({
 });
 
 export type TCartResponse = z.infer<typeof CartResponseSchema>;
+
+export const GetCustomerOrdersQuerySchema = z.object({
+    page: z.coerce.number().min(1).default(1).optional(),
+    limit: z.coerce.number().min(1).max(100).default(10).optional(),
+    search: z.string().optional(),
+    status: OrderStatusEnum.optional()
+});
+
+export type TGetCustomerOrdersQuery = z.infer<typeof GetCustomerOrdersQuerySchema>;

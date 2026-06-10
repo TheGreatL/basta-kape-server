@@ -132,6 +132,15 @@ describe('Customer Feature CRUD', () => {
             await prisma.customerCart.deleteMany({
                 where: { customerId: testCustomerId }
             });
+            await prisma.orderStatusHistory.deleteMany({
+                where: { order: { customerId: testCustomerId } }
+            });
+            await prisma.orderItem.deleteMany({
+                where: { order: { customerId: testCustomerId } }
+            });
+            await prisma.order.deleteMany({
+                where: { customerId: testCustomerId }
+            });
             await prisma.customer.deleteMany({
                 where: { id: testCustomerId }
             });
@@ -317,6 +326,69 @@ describe('Customer Feature CRUD', () => {
             // Verify cart is cleared
             const cartRes = await request(app).get(`/customers/${testCustomerId}/cart`);
             expect(cartRes.body.items).toHaveLength(0);
+        });
+    });
+
+    describe('Customer Order History Operations', () => {
+        it('should fetch an empty order list initially', async () => {
+            const res = await request(app).get(`/customers/${testCustomerId}/orders`);
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('data');
+            expect(res.body.data).toHaveLength(0);
+            expect(res.body.meta.total).toBe(0);
+        });
+
+        it('should retrieve customer orders after placing an order', async () => {
+            // Create a test order referencing this customer
+            const order = await prisma.order.create({
+                data: {
+                    customerId: testCustomerId,
+                    queueNumber: '#099',
+                    orderType: 'DINE_IN',
+                    orderSource: 'MOBILE_APP',
+                    subtotal: 150.0,
+                    taxAmount: 18.0,
+                    netTotal: 168.0,
+                    notes: 'Extra sugar test customer orders',
+                    items: {
+                        create: {
+                            productVariantId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14',
+                            quantity: 1,
+                            unitPrice: 150.0,
+                            totalPrice: 150.0
+                        }
+                    }
+                }
+            });
+
+            const res = await request(app).get(`/customers/${testCustomerId}/orders`);
+            expect(res.status).toBe(200);
+            expect(res.body.data).toHaveLength(1);
+            expect(res.body.data[0].id).toBe(order.id);
+            expect(res.body.data[0].notes).toBe('Extra sugar test customer orders');
+            expect(res.body.data[0].items[0].productVariantId).toBe('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14');
+            expect(res.body.data[0].items[0].variant.product.name).toBe('Customer Test Coffee');
+            expect(res.body.meta.total).toBe(1);
+        });
+
+        it('should filter customer orders by status and search query', async () => {
+            // Test search filter
+            const resSearch = await request(app).get(`/customers/${testCustomerId}/orders?search=Extra%20sugar`);
+            expect(resSearch.status).toBe(200);
+            expect(resSearch.body.data).toHaveLength(1);
+
+            const resSearchNone = await request(app).get(`/customers/${testCustomerId}/orders?search=nonexistent`);
+            expect(resSearchNone.status).toBe(200);
+            expect(resSearchNone.body.data).toHaveLength(0);
+
+            // Test status filter
+            const resStatusPending = await request(app).get(`/customers/${testCustomerId}/orders?status=PENDING`);
+            expect(resStatusPending.status).toBe(200);
+            expect(resStatusPending.body.data).toHaveLength(1);
+
+            const resStatusCompleted = await request(app).get(`/customers/${testCustomerId}/orders?status=COMPLETED`);
+            expect(resStatusCompleted.status).toBe(200);
+            expect(resStatusCompleted.body.data).toHaveLength(0);
         });
     });
 

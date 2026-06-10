@@ -3,7 +3,7 @@ import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import type { IPaginatedResult } from '@/types/base.types';
-import type { TCreateCustomer, TUpdateCustomer, TGetCustomerListQuery } from './customer.types';
+import type { TCreateCustomer, TUpdateCustomer, TGetCustomerListQuery, TGetCustomerOrdersQuery } from './customer.types';
 
 const SALT_ROUNDS = 12;
 
@@ -376,5 +376,60 @@ export class CustomerRepository extends BaseRepository {
                 deletedAt: null
             }
         });
+    }
+
+    /**
+     * Retrieves a paginated list of orders for a specific customer.
+     */
+    async getCustomerOrders(customerId: string, params: TGetCustomerOrdersQuery): Promise<IPaginatedResult<unknown>> {
+        const { skip, take, page } = this.normalizePagination(params);
+        const where: Prisma.OrderWhereInput = {
+            customerId
+        };
+
+        if (params.status) {
+            where.status = params.status;
+        }
+
+        if (params.search) {
+            const searchLower = params.search.toLowerCase();
+            where.OR = [{ queueNumber: { contains: searchLower } }, { notes: { contains: searchLower } }];
+        }
+
+        const [data, totalRows] = await Promise.all([
+            prisma.order.findMany({
+                where,
+                skip,
+                take,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    items: {
+                        include: {
+                            variant: {
+                                include: {
+                                    product: true
+                                }
+                            }
+                        }
+                    },
+                    statusHistory: {
+                        include: {
+                            changedBy: {
+                                select: {
+                                    username: true,
+                                    firstName: true,
+                                    lastName: true
+                                }
+                            }
+                        },
+                        orderBy: { createdAt: 'asc' }
+                    },
+                    payments: true
+                }
+            }),
+            prisma.order.count({ where })
+        ]);
+
+        return this.formatPaginatedResult(data, totalRows, page, take);
     }
 }
