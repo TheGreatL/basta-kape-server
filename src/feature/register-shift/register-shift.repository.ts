@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@/repository/base.repository';
-import type { TOpenShift, TCloseShift } from './register-shift.types';
+import type { TOpenShift, TCloseShift, TGetRegisterShiftListQuery } from './register-shift.types';
 
 export class RegisterShiftRepository extends BaseRepository {
     private cashierSelect = {
@@ -66,5 +67,53 @@ export class RegisterShiftRepository extends BaseRepository {
             }
         });
         return payments.reduce((sum, p) => sum + p.amount, 0);
+    }
+
+    async listShifts(params?: TGetRegisterShiftListQuery, cashierId?: string) {
+        const { skip, take, page } = this.normalizePagination(params);
+
+        const where: Prisma.RegisterShiftWhereInput = {};
+
+        if (cashierId) {
+            where.cashierId = cashierId;
+        }
+
+        if (params?.search) {
+            const searchLower = params.search.toLowerCase();
+            if (cashierId) {
+                // Cashier is already locked, so search filters notes directly
+                where.notes = { contains: searchLower };
+            } else {
+                where.OR = [
+                    { notes: { contains: searchLower } },
+                    {
+                        cashier: {
+                            OR: [
+                                { username: { contains: searchLower } },
+                                { firstName: { contains: searchLower } },
+                                { lastName: { contains: searchLower } }
+                            ]
+                        }
+                    }
+                ];
+            }
+        }
+
+        const [data, totalRows] = await Promise.all([
+            prisma.registerShift.findMany({
+                where,
+                skip,
+                take,
+                include: {
+                    cashier: this.cashierSelect
+                },
+                orderBy: {
+                    openedAt: 'desc'
+                }
+            }),
+            prisma.registerShift.count({ where })
+        ]);
+
+        return this.formatPaginatedResult(data, totalRows, page, take);
     }
 }

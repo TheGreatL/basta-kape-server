@@ -12,7 +12,32 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 
 ## Endpoints Description
 
-### 1. `GET /register-shifts/active`
+### 1. `GET /register-shifts`
+*   **Description**: Retrieves all cashier register shifts chronologically (ordered by date opened descending).
+*   **RBAC Permission Required**: `read` (module: `Point of Sale (POS)`)
+*   **Response (200 OK)**:
+    ```json
+    [
+        {
+            "id": "shift-uuid-1",
+            "cashierId": "cashier-user-uuid",
+            "openedAt": "2026-06-11T12:00:00.000Z",
+            "closedAt": "2026-06-11T20:00:00.000Z",
+            "startBalance": 5000.00,
+            "endBalance": 8500.00,
+            "actualBalance": 8500.00,
+            "notes": "End of morning shift. Drawer was fully balanced.",
+            "cashier": {
+                "id": "cashier-user-uuid",
+                "username": "cashier_john",
+                "firstName": "John",
+                "lastName": "Doe"
+            }
+        }
+    ]
+    ```
+
+### 2. `GET /register-shifts/active`
 *   **Description**: Retrieves the currently active register shift session for the logged-in cashier.
 *   **RBAC Permission Required**: `read` (module: `Point of Sale (POS)`)
 *   **Response (200 OK)**:
@@ -43,7 +68,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
         }
         ```
 
-### 2. `POST /register-shifts/open`
+### 3. `POST /register-shifts/open`
 *   **Description**: Opens a new register shift session. A cashier can only have one active shift session at a time.
 *   **RBAC Permission Required**: `create` (module: `Point of Sale (POS)`)
 *   **Request Body**:
@@ -77,7 +102,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
         }
         ```
 
-### 3. `POST /register-shifts/close`
+### 4. `POST /register-shifts/close`
 *   **Description**: Closes the active register shift session, records the physical cash count, and automatically computes the drawer discrepancies (over/short).
 *   **Business Logic**:
     *   The system aggregates all finalized cash sales during the shift: `cashSales = sum(Order.netTotal)` where `order.cashierSessionId = activeShift.id`, `order.status = 'COMPLETED'`, and order payment is `CASH`.

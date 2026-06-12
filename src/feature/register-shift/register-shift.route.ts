@@ -3,7 +3,14 @@ import { registry } from '@/docs/swagger';
 import { RegisterShiftService } from './register-shift.service';
 import { requireAccess } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
-import { OpenShiftSchema, CloseShiftSchema, RegisterShiftResponseSchema } from './register-shift.types';
+import { ForbiddenException } from '@/exceptions';
+import {
+    OpenShiftSchema,
+    CloseShiftSchema,
+    RegisterShiftResponseSchema,
+    GetRegisterShiftListQuerySchema,
+    PaginatedRegisterShiftResponseSchema
+} from './register-shift.types';
 
 const router = Router();
 const service = new RegisterShiftService();
@@ -98,6 +105,73 @@ router.post('/close', requireAccess(appModules.POINT_OF_SALE, appPermissions.UPD
     try {
         const body = CloseShiftSchema.parse(req.body);
         const result = await service.closeShift(req.user!.sub, body, req.user!.sub);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// GET /register-shifts/my-shifts
+registry.registerPath({
+    method: 'get',
+    path: '/register-shifts/my-shifts',
+    tags: ['Register Shift'],
+    summary: 'Retrieve register shift sessions for the logged-in cashier',
+    security: [{ bearerAuth: [] }],
+    request: {
+        query: GetRegisterShiftListQuerySchema
+    },
+    responses: {
+        200: {
+            description: 'Logged-in cashier register shift list retrieved successfully',
+            content: {
+                'application/json': {
+                    schema: PaginatedRegisterShiftResponseSchema
+                }
+            }
+        }
+    }
+});
+
+router.get('/my-shifts', requireAccess(appModules.POINT_OF_SALE, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const query = GetRegisterShiftListQuerySchema.parse(req.query);
+        const result = await service.getShifts(query, req.user!.sub);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// GET /register-shifts
+registry.registerPath({
+    method: 'get',
+    path: '/register-shifts',
+    tags: ['Register Shift'],
+    summary: 'Retrieve all register shift sessions (requires ALL scope)',
+    security: [{ bearerAuth: [] }],
+    request: {
+        query: GetRegisterShiftListQuerySchema
+    },
+    responses: {
+        200: {
+            description: 'Register shift list retrieved successfully',
+            content: {
+                'application/json': {
+                    schema: PaginatedRegisterShiftResponseSchema
+                }
+            }
+        }
+    }
+});
+
+router.get('/', requireAccess(appModules.POINT_OF_SALE, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        if (!req.rbacScope || req.rbacScope.toUpperCase() !== 'ALL') {
+            throw new ForbiddenException('Insufficient access scope permissions. Scope ALL required.');
+        }
+        const query = GetRegisterShiftListQuerySchema.parse(req.query);
+        const result = await service.getShifts(query);
         res.json(result);
     } catch (error) {
         next(error);

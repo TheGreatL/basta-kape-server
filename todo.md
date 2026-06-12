@@ -5,7 +5,7 @@
 - [x] Define schemas & Zod validation types (`register-shift.types.ts`)
 - [x] Create repository queries (`register-shift.repository.ts`)
 - [x] Create shift service business logic (`register-shift.service.ts`)
-- [x] Declare API endpoints (`GET /active`, `POST /open`, `POST /close`) & Swagger docs (`register-shift.route.ts`)
+- [x] Declare API endpoints (`GET /active`, `POST /open`, `POST /close`, `GET /register-shifts` [scope: ALL], `GET /register-shifts/my-shifts` [scope: self/own]) & Swagger docs (`register-shift.route.ts`)
 - [x] Write integration and validation tests (`register-shift.test.ts`)
 - [x] Create detailed summary and put it in the md file so it can be used in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/register-shift/frontend-integration.md))
 

@@ -198,5 +198,35 @@ describe('Register Shift Feature CRUD', () => {
             expect(res.status).toBe(404);
             expect(res.body.error).toContain('No active register shift');
         });
+
+        it('should forbid cashiers from listing all register shifts', async () => {
+            const res = await request(app).get('/register-shifts');
+            expect(res.status).toBe(403);
+            expect(res.body.error).toContain('Insufficient access scope permissions');
+        });
+
+        it('should allow cashiers to list their own shifts with pagination via /my-shifts', async () => {
+            const res = await request(app).get('/register-shifts/my-shifts');
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('data');
+            expect(res.body).toHaveProperty('meta');
+            expect(Array.isArray(res.body.data)).toBe(true);
+            expect(res.body.data.length).toBeGreaterThan(0);
+            expect(res.body.data[0]).toHaveProperty('startBalance');
+            expect(res.body.data[0].cashierId).toBe('test-cashier-user-id');
+        });
+
+        it('should support searching shifts by notes on /my-shifts', async () => {
+            // Search by notes
+            const res = await request(app).get('/register-shifts/my-shifts?search=Balanced');
+            expect(res.status).toBe(200);
+            expect(res.body.data.length).toBeGreaterThan(0);
+            expect(res.body.data[0].notes).toContain('Balanced');
+
+            // Search by non-existent term
+            const resEmpty = await request(app).get('/register-shifts/my-shifts?search=nonexistentterm');
+            expect(resEmpty.status).toBe(200);
+            expect(resEmpty.body.data.length).toBe(0);
+        });
     });
 });

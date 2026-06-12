@@ -1,7 +1,7 @@
 import { RegisterShiftRepository } from './register-shift.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, ConflictException } from '@/exceptions';
-import type { TOpenShift, TCloseShift } from './register-shift.types';
+import type { TOpenShift, TCloseShift, TGetRegisterShiftListQuery } from './register-shift.types';
 
 type RegisterShiftServiceConstructor = {
     registerShiftRepository?: RegisterShiftRepository;
@@ -68,5 +68,9 @@ export class RegisterShiftService {
         });
 
         return closedShift;
+    }
+
+    async getShifts(params?: TGetRegisterShiftListQuery, cashierId?: string) {
+        return this.repository.listShifts(params, cashierId);
     }
 }

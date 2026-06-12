@@ -34,3 +34,24 @@ export const RegisterShiftResponseSchema = z.object({
 });
 
 export type TRegisterShiftResponse = z.infer<typeof RegisterShiftResponseSchema>;
+
+export const GetRegisterShiftListQuerySchema = z.object({
+    page: z.coerce.number().min(1).default(1).optional(),
+    limit: z.coerce.number().min(1).max(100).default(10).optional(),
+    search: z.string().optional()
+});
+
+export type TGetRegisterShiftListQuery = z.infer<typeof GetRegisterShiftListQuerySchema>;
+
+export const PaginatedRegisterShiftResponseSchema = z.object({
+    data: z.array(RegisterShiftResponseSchema),
+    meta: z.object({
+        total: z.number(),
+        pageCount: z.number(),
+        count: z.number(),
+        currentPage: z.number(),
+        hasMore: z.boolean()
+    })
+});
+
+export type TPaginatedRegisterShiftResponse = z.infer<typeof PaginatedRegisterShiftResponseSchema>;
