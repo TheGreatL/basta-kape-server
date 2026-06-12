@@ -24,6 +24,7 @@ import orderRouter from './feature/order/order.route';
 import modifierRouter from './feature/modifier/modifier.route';
 import paymentRouter from './feature/payment/payment.route';
 import { discountConfigRouter, orderDiscountRouter } from './feature/discount/discount.route';
+import { voidRouter } from './feature/void/void.route';
 
 const router = Router();
 
@@ -64,6 +65,7 @@ router.use('/customers', customerRouter);
 router.use('/reports', reportRouter);
 router.use('/store-settings', storeSettingsRouter);
 router.use('/register-shifts', registerShiftRouter);
+router.use('/orders', voidRouter);
 router.use('/orders', orderRouter);
 router.use('/orders', paymentRouter);
 router.use('/orders', orderDiscountRouter);

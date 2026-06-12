@@ -57,18 +57,20 @@ Not implemented in frontend yet
 
 ## 5. Discounts & Philippine BIR Compliance (`Discount`, `OrderDiscount`)
 
-- [ ] Define discount types and BIR metadata schemas (`discount.types.ts`)
-- [ ] Build discount configuration queries (`discount.repository.ts`)
-- [ ] Implement BIR discount deductions calculations (`discount.service.ts`)
-- [ ] Declare discount configuration & application endpoints (`discount.route.ts`)
-- [ ] Write BIR-compliant calculation tests (`discount.test.ts`)
+- [x] Define discount types and BIR metadata schemas (`discount.types.ts`)
+- [x] Build discount configuration queries (`discount.repository.ts`)
+- [x] Implement BIR discount deductions calculations (`discount.service.ts`)
+- [x] Declare discount configuration & application endpoints (`discount.route.ts`)
+- [x] Write BIR-compliant calculation tests (`discount.test.ts`)
+- [x] Create detailed summary and put it in the md file so it can be used in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/discount/frontend-integration.md))
 
 ---
 
 ## 6. Order Void Logs & Audits (`OrderVoidLog`)
 
-- [ ] Define schemas for void overrides (`void.types.ts`)
-- [ ] Build supervisor auditing database logic (`void.repository.ts`)
-- [ ] Implement Manager/Supervisor authorization validation checks (`void.service.ts`)
-- [ ] Declare void logs retrieval and post routes (`void.route.ts`)
-- [ ] Write loss prevention audit tests (`void.test.ts`)
+- [x] Define schemas for void overrides (`void.types.ts`)
+- [x] Build supervisor auditing database logic (`void.repository.ts`)
+- [x] Implement Manager/Supervisor authorization validation checks (`void.service.ts`)
+- [x] Declare void logs retrieval and post routes (`void.route.ts`)
+- [x] Write loss prevention audit tests (`void.test.ts`)
+- [x] Create detailed summary and put it in the md file so it can be used in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/void/frontend-integration.md))
