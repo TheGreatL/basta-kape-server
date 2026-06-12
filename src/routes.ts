@@ -23,6 +23,7 @@ import registerShiftRouter from './feature/register-shift/register-shift.route';
 import orderRouter from './feature/order/order.route';
 import modifierRouter from './feature/modifier/modifier.route';
 import paymentRouter from './feature/payment/payment.route';
+import { discountConfigRouter, orderDiscountRouter } from './feature/discount/discount.route';
 
 const router = Router();
 
@@ -65,6 +66,8 @@ router.use('/store-settings', storeSettingsRouter);
 router.use('/register-shifts', registerShiftRouter);
 router.use('/orders', orderRouter);
 router.use('/orders', paymentRouter);
+router.use('/orders', orderDiscountRouter);
+router.use('/discounts', discountConfigRouter);
 router.use('/modifiers', modifierRouter);
 
 registry.registerPath({

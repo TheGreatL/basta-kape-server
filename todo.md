@@ -42,6 +42,8 @@
 
 ---
 
+Not implemented in frontend yet
+
 ## 4. Digital & Cash Payments (`OrderPayment`)
 
 - [x] Define validation schemas for Cash/GCash details (`payment.types.ts`)
