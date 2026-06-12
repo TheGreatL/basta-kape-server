@@ -93,8 +93,21 @@ All endpoints in this module require JWT authentication via the `Authorization: 
                         "modifierOption": {
                             "name": "Oat Milk Add-on"
                         }
-                    }
                 ]
+            }
+        ],
+        "payments": [
+            {
+                "id": "payment-uuid-1",
+                "paymentMethod": "CASH",
+                "paymentStatus": "PAID",
+                "amount": 184.8,
+                "gcashReferenceNumber": null,
+                "paymentProofPhoto": null,
+                "amountTendered": 200.0,
+                "amountChange": 15.2,
+                "createdAt": "2026-06-11T12:06:00.000Z",
+                "updatedAt": "2026-06-11T12:06:00.000Z"
             }
         ]
     }

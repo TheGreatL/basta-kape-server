@@ -44,11 +44,12 @@
 
 ## 4. Digital & Cash Payments (`OrderPayment`)
 
-- [ ] Define validation schemas for Cash/GCash details (`payment.types.ts`)
-- [ ] Build payment processing database queries (`payment.repository.ts`)
-- [ ] Implement cash change and payment proof verification service logic (`payment.service.ts`)
-- [ ] Declare payment routes & Swagger docs (`payment.route.ts`)
-- [ ] Write payment verification integration tests (`payment.test.ts`)
+- [x] Define validation schemas for Cash/GCash details (`payment.types.ts`)
+- [x] Build payment processing database queries (`payment.repository.ts`)
+- [x] Implement cash change and payment proof verification service logic (`payment.service.ts`)
+- [x] Declare payment routes & Swagger docs (`payment.route.ts`)
+- [x] Write payment verification integration tests (`payment.test.ts`)
+- [x] Create detailed summary and put it in the md file so it can be used in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/payment/frontend-integration.md))
 
 ---
 
