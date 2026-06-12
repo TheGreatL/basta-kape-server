@@ -254,6 +254,11 @@ export class CustomerRepository extends BaseRepository {
             include: {
                 productVariant: {
                     include: productVariantInclude
+                },
+                cartModifiers: {
+                    include: {
+                        modifierOption: true
+                    }
                 }
             },
             orderBy: { createdAt: 'desc' }
@@ -263,57 +268,73 @@ export class CustomerRepository extends BaseRepository {
     /**
      * Adds an item to the customer's cart. Upserts quantity if already exists.
      */
-    async addCartItem(customerId: string, productVariantId: string, quantity: number, unitPrice: number) {
+    async addCartItem(customerId: string, productVariantId: string, quantity: number, unitPrice: number, modifierOptionIds: string[] = []) {
         const existing = await prisma.customerCart.findUnique({
             where: {
                 customerId_productVariantId: { customerId, productVariantId }
             }
         });
 
+        let cartItem: { id: string };
         if (existing) {
             if (existing.deletedAt !== null) {
                 // If soft-deleted previously, reset deletedAt and set quantity directly
-                return prisma.customerCart.update({
+                cartItem = await prisma.customerCart.update({
                     where: { id: existing.id },
                     data: {
                         deletedAt: null,
                         quantity,
                         unitPrice
-                    },
-                    include: {
-                        productVariant: {
-                            include: productVariantInclude
-                        }
                     }
                 });
             } else {
                 // Increment quantity
-                return prisma.customerCart.update({
+                cartItem = await prisma.customerCart.update({
                     where: { id: existing.id },
                     data: {
                         quantity: existing.quantity + quantity,
                         unitPrice
-                    },
-                    include: {
-                        productVariant: {
-                            include: productVariantInclude
-                        }
                     }
                 });
             }
+        } else {
+            // Create fresh
+            cartItem = await prisma.customerCart.create({
+                data: {
+                    customerId,
+                    productVariantId,
+                    quantity,
+                    unitPrice
+                }
+            });
         }
 
-        // Create fresh
-        return prisma.customerCart.create({
-            data: {
-                customerId,
-                productVariantId,
-                quantity,
-                unitPrice
-            },
+        // Clean up previous cart modifiers if any
+        await prisma.customerCartModifier.deleteMany({
+            where: { customerCartId: cartItem.id }
+        });
+
+        // Create new ones
+        if (modifierOptionIds.length > 0) {
+            await prisma.customerCartModifier.createMany({
+                data: modifierOptionIds.map((optId) => ({
+                    customerCartId: cartItem.id,
+                    modifierOptionId: optId
+                }))
+            });
+        }
+
+        // Fetch the final record with all includes
+        return prisma.customerCart.findUnique({
+            where: { id: cartItem.id },
             include: {
                 productVariant: {
                     include: productVariantInclude
+                },
+                cartModifiers: {
+                    include: {
+                        modifierOption: true
+                    }
                 }
             }
         });
@@ -333,6 +354,11 @@ export class CustomerRepository extends BaseRepository {
             include: {
                 productVariant: {
                     include: productVariantInclude
+                },
+                cartModifiers: {
+                    include: {
+                        modifierOption: true
+                    }
                 }
             }
         });
@@ -408,6 +434,15 @@ export class CustomerRepository extends BaseRepository {
                             variant: {
                                 include: {
                                     product: true
+                                }
+                            },
+                            modifiers: {
+                                include: {
+                                    modifierOption: {
+                                        select: {
+                                            name: true
+                                        }
+                                    }
                                 }
                             }
                         }

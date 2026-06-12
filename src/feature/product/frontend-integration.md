@@ -52,6 +52,10 @@ All endpoints in this module require JWT authentication via the `Authorization: 
           "productId": "string (UUID)",
           "sku": "string | null",
           "price": "number",
+          "recipe": {
+            "id": "string (UUID)",
+            "name": "string"
+          } | null,
           "attributes": [
             {
               "id": "string (UUID)",
@@ -102,6 +106,10 @@ All endpoints in this module require JWT authentication via the `Authorization: 
           "productId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
           "sku": "MAC-LRG-OAT",
           "price": 180,
+          "recipe": {
+            "id": "r1e2c3i4-p5e6-7c8d-9e0f-1a2b3c4d5e6f",
+            "name": "Caramel Macchiato Large Oatmeal Recipe"
+          },
           "attributes": [
             {
               "id": "pva1b2c3-d4e5-6f7a-8b9c-0d1e2f3a4b5c",

@@ -12,7 +12,8 @@ export type TOrderSource = z.infer<typeof OrderSourceEnum>;
 export const CreateOrderItemSchema = z.object({
     productVariantId: z.string().uuid(),
     quantity: z.number().int().positive().default(1),
-    notes: z.string().max(500).optional().nullable()
+    notes: z.string().max(500).optional().nullable(),
+    modifierOptionIds: z.array(z.string().uuid()).default([])
 });
 
 export type TCreateOrderItem = z.infer<typeof CreateOrderItemSchema>;
@@ -52,7 +53,19 @@ export const OrderItemResponseSchema = z.object({
     quantity: z.number(),
     unitPrice: z.number(),
     totalPrice: z.number(),
-    notes: z.string().nullable()
+    notes: z.string().nullable(),
+    modifiers: z
+        .array(
+            z.object({
+                id: z.string(),
+                modifierOptionId: z.string(),
+                price: z.number(),
+                modifierOption: z.object({
+                    name: z.string()
+                })
+            })
+        )
+        .optional()
 });
 
 export const OrderResponseSchema = z.object({

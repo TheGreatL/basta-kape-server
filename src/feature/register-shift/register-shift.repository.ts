@@ -3,11 +3,23 @@ import { BaseRepository } from '@/repository/base.repository';
 import type { TOpenShift, TCloseShift } from './register-shift.types';
 
 export class RegisterShiftRepository extends BaseRepository {
+    private cashierSelect = {
+        select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true
+        }
+    };
+
     async findActiveShift(cashierId: string) {
         return prisma.registerShift.findFirst({
             where: {
                 cashierId,
                 closedAt: null
+            },
+            include: {
+                cashier: this.cashierSelect
             }
         });
     }
@@ -18,6 +30,9 @@ export class RegisterShiftRepository extends BaseRepository {
                 cashierId,
                 startBalance: data.startBalance,
                 notes: data.notes ?? null
+            },
+            include: {
+                cashier: this.cashierSelect
             }
         });
     }
@@ -30,6 +45,9 @@ export class RegisterShiftRepository extends BaseRepository {
                 endBalance,
                 actualBalance: data.actualBalance,
                 notes: data.notes ?? null
+            },
+            include: {
+                cashier: this.cashierSelect
             }
         });
     }

@@ -22,6 +22,10 @@ type TCreateOrderRepoData = {
         unitPrice: number;
         totalPrice: number;
         notes?: string | null;
+        modifiers?: {
+            modifierOptionId: string;
+            price: number;
+        }[];
     }[];
 };
 
@@ -63,12 +67,24 @@ export class OrderRepository extends BaseRepository {
                             quantity: item.quantity,
                             unitPrice: item.unitPrice,
                             totalPrice: item.totalPrice,
-                            notes: item.notes ?? null
+                            notes: item.notes ?? null,
+                            modifiers: item.modifiers
+                                ? {
+                                      create: item.modifiers.map((m) => ({
+                                          modifierOptionId: m.modifierOptionId,
+                                          price: m.price
+                                      }))
+                                  }
+                                : undefined
                         }))
                     }
                 },
                 include: {
-                    items: true
+                    items: {
+                        include: {
+                            modifiers: true
+                        }
+                    }
                 }
             });
 
@@ -94,6 +110,15 @@ export class OrderRepository extends BaseRepository {
                         variant: {
                             include: {
                                 product: true
+                            }
+                        },
+                        modifiers: {
+                            include: {
+                                modifierOption: {
+                                    select: {
+                                        name: true
+                                    }
+                                }
                             }
                         }
                     }
@@ -144,6 +169,15 @@ export class OrderRepository extends BaseRepository {
                                 include: {
                                     product: true
                                 }
+                            },
+                            modifiers: {
+                                include: {
+                                    modifierOption: {
+                                        select: {
+                                            name: true
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -157,11 +191,24 @@ export class OrderRepository extends BaseRepository {
 
     async updateOrderStatus(orderId: string, status: OrderStatus, notes: string | null, actorId: string) {
         return prisma.$transaction(async (tx) => {
+            const currentOrder = await tx.order.findUnique({
+                where: { id: orderId },
+                select: { status: true }
+            });
+
+            if (!currentOrder) {
+                throw new Error('Order not found');
+            }
+
             const order = await tx.order.update({
                 where: { id: orderId },
                 data: { status },
                 include: {
-                    items: true
+                    items: {
+                        include: {
+                            modifiers: true
+                        }
+                    }
                 }
             });
 
@@ -174,7 +221,99 @@ export class OrderRepository extends BaseRepository {
                 }
             });
 
+            if (currentOrder.status !== OrderStatus.COMPLETED && status === OrderStatus.COMPLETED) {
+                await this.deductInventoryForOrder(tx, order, actorId);
+            }
+
             return order;
+        });
+    }
+
+    private async deductInventoryForOrder(
+        tx: Prisma.TransactionClient,
+        order: Prisma.OrderGetPayload<{ include: { items: { include: { modifiers: true } } } }>,
+        actorId: string
+    ) {
+        for (const item of order.items) {
+            // 1. Variant recipe ingredients
+            const variantRecipe = await tx.recipe.findFirst({
+                where: { productVariantId: item.productVariantId, deletedAt: null },
+                include: {
+                    ingredients: {
+                        where: { deletedAt: null }
+                    }
+                }
+            });
+
+            if (variantRecipe) {
+                for (const ri of variantRecipe.ingredients) {
+                    const deduction = ri.quantity * item.quantity;
+                    await this.adjustStockAndStatusInTx(tx, ri.ingredientId, -deduction, actorId);
+                }
+            }
+
+            // 2. Selected modifiers recipes ingredients
+            for (const itemMod of item.modifiers) {
+                const modRecipe = await tx.recipe.findFirst({
+                    where: { modifierOptionId: itemMod.modifierOptionId, deletedAt: null },
+                    include: {
+                        ingredients: {
+                            where: { deletedAt: null }
+                        }
+                    }
+                });
+
+                if (modRecipe) {
+                    for (const ri of modRecipe.ingredients) {
+                        const deduction = ri.quantity * item.quantity;
+                        await this.adjustStockAndStatusInTx(tx, ri.ingredientId, -deduction, actorId);
+                    }
+                }
+            }
+        }
+    }
+
+    private async adjustStockAndStatusInTx(tx: Prisma.TransactionClient, ingredientId: string, quantityDiff: number, actorId: string) {
+        const ingredient = await tx.ingredient.findFirst({
+            where: { id: ingredientId, deletedAt: null }
+        });
+        if (!ingredient) return;
+
+        let inventory = await tx.ingredientInventory.findFirst({
+            where: { ingredientId, deletedAt: null }
+        });
+
+        if (!inventory) {
+            inventory = await tx.ingredientInventory.create({
+                data: {
+                    ingredientId,
+                    currentQuantity: 0,
+                    status: 'OUT_OF_STOCK',
+                    createdById: actorId,
+                    updatedById: actorId
+                }
+            });
+        }
+
+        let newQuantity = inventory.currentQuantity + quantityDiff;
+        if (newQuantity < 0) {
+            newQuantity = 0;
+        }
+
+        let newStatus: 'SAFE' | 'CRITICAL' | 'OUT_OF_STOCK' = 'SAFE';
+        if (newQuantity <= 0) {
+            newStatus = 'OUT_OF_STOCK';
+        } else if (newQuantity <= ingredient.reorderPoint) {
+            newStatus = 'CRITICAL';
+        }
+
+        await tx.ingredientInventory.update({
+            where: { id: inventory.id },
+            data: {
+                currentQuantity: newQuantity,
+                status: newStatus,
+                updatedById: actorId
+            }
         });
     }
 }

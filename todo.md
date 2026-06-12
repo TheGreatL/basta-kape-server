@@ -7,6 +7,7 @@
 - [x] Create shift service business logic (`register-shift.service.ts`)
 - [x] Declare API endpoints (`GET /active`, `POST /open`, `POST /close`) & Swagger docs (`register-shift.route.ts`)
 - [x] Write integration and validation tests (`register-shift.test.ts`)
+- [x] Create detailed summary and put it in the md file so it can be used in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/register-shift/frontend-integration.md))
 
 ---
 
@@ -17,18 +18,27 @@
 - [x] Implement ordering and status management business logic (`order.service.ts`)
 - [x] Declare API routes (`GET /`, `GET /:id`, `POST /`, `PATCH /:id/status`) & Swagger docs (`order.route.ts`)
 - [x] Write ordering flow integration tests (`order.test.ts`)
+- [x] Create detailed summary and put it in the md file so it can be used in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/order/frontend-integration.md))
 
 ---
 
 - [x] Create an endpoint in customer to get their orders (order history)
 
+- [x] Create detailed summary and put it in the md file so it can be use in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/customer/frontend-integration.md))
+
 ## 3. Product Modifiers & Customizations (`ModifierGroup`, `ModifierOption`, `OrderItemModifier`)
 
-- [ ] Define schemas & Zod validation types (`modifier.types.ts`)
-- [ ] Implement group/option configuration database logic (`modifier.repository.ts`)
-- [ ] Implement customizations service validation (`modifier.service.ts`)
-- [ ] Declare configuration API routes & Swagger docs (`modifier.route.ts`)
-- [ ] Write modifier configuration integration tests (`modifier.test.ts`)
+- [x] Define schemas & Zod validation types (`modifier.types.ts`)
+- [x] Implement group/option configuration database logic (`modifier.repository.ts`)
+- [x] Implement customizations service validation (`modifier.service.ts`)
+- [x] Declare configuration API routes & Swagger docs (`modifier.route.ts`)
+- [x] Write modifier configuration integration tests (`modifier.test.ts`)
+- [x] Create detailed summary and put it in the md file so it can be used in frontend, no frontend code (documented in [frontend-integration.md](file:///c:/Users/Christian%20Nicolas/Desktop/basta-kape/basta-kape-server/src/feature/modifier/frontend-integration.md))
+- [x] Connect modifier options to the inventory system via modifier option recipes (`/modifiers/options/:optionId/recipe` endpoints)
+- [x] Implement transaction-level automatic inventory ingredient stock deduction for completed orders (variant + modifiers)
+- [x] Integrate modifier option produceable capacities and bottlenecks into production forecast projection outputs
+- [ ] Refactor POS order creation (`create-order-dialog.tsx`) to enforce modifier selection constraints (`maxSelect`, `isRequired`, warning alerts) similarly to the customer details page.
+- [ ] Add visual warning/out-of-stock indicators for modifier options based on active inventory forecast bottlenecks.
 
 ---
 

@@ -205,3 +205,99 @@ These endpoints allow the customer to manage items in their shopping cart. All c
         "message": "Cart cleared successfully"
     }
     ```
+
+### 11. `GET /customers/:id/orders`
+*   **Description**: Retrieves the order history (past orders) for a specific customer.
+*   **RBAC Permission Required**: `read` (module: `Customers Management`)
+*   **Query Parameters**:
+    *   `page` (number, optional, default: `1`): Current page of the paginated list.
+    *   `limit` (number, optional, default: `10`, max: `100`): Number of orders per page.
+    *   `search` (string, optional): Matches against the order's queue number or notes.
+    *   `status` (enum: `"PENDING" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED"`, optional): Filter orders by status.
+*   **Response (200 OK)**:
+    ```json
+    {
+        "data": [
+            {
+                "id": "order-uuid-1",
+                "queueNumber": "#099",
+                "buzzerId": null,
+                "status": "PENDING",
+                "orderType": "DINE_IN",
+                "orderSource": "MOBILE_APP",
+                "notes": "Extra sugar test customer orders",
+                "subtotal": 150.0,
+                "taxAmount": 18.0,
+                "discountAmount": 0.0,
+                "netTotal": 168.0,
+                "customerId": "customer-uuid-1",
+                "customerName": null,
+                "cashierSessionId": null,
+                "createdAt": "2026-06-11T00:41:00.000Z",
+                "updatedAt": "2026-06-11T00:41:00.000Z",
+                "deletedAt": null,
+                "items": [
+                    {
+                        "id": "order-item-uuid-1",
+                        "orderId": "order-uuid-1",
+                        "productVariantId": "variant-uuid-1",
+                        "quantity": 1,
+                        "unitPrice": 150.0,
+                        "totalPrice": 150.0,
+                        "notes": null,
+                        "createdAt": "2026-06-11T00:41:00.000Z",
+                        "updatedAt": "2026-06-11T00:41:00.000Z",
+                        "deletedAt": null,
+                        "variant": {
+                            "id": "variant-uuid-1",
+                            "sku": "TEST-SKU",
+                            "price": 150.0,
+                            "product": {
+                                "id": "product-uuid-1",
+                                "name": "Customer Test Coffee",
+                                "photo": null,
+                                "description": null
+                            }
+                        },
+                        "modifiers": [
+                            {
+                                "id": "order-item-mod-uuid-1",
+                                "orderItemId": "order-item-uuid-1",
+                                "modifierOptionId": "modo-oat-milk-uuid",
+                                "price": 30.0,
+                                "createdAt": "2026-06-11T00:41:00.000Z",
+                                "updatedAt": "2026-06-11T00:41:00.000Z",
+                                "modifierOption": {
+                                    "name": "Oat Milk Add-on"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "statusHistory": [
+                    {
+                        "id": "history-uuid-1",
+                        "orderId": "order-uuid-1",
+                        "status": "PENDING",
+                        "notes": "Order placed",
+                        "changedById": "user-uuid-1",
+                        "createdAt": "2026-06-11T00:41:00.000Z",
+                        "changedBy": {
+                            "username": "cashier",
+                            "firstName": "John",
+                            "lastName": "Doe"
+                        }
+                    }
+                ],
+                "payments": []
+            }
+        ],
+        "meta": {
+            "total": 1,
+            "pageCount": 1,
+            "count": 1,
+            "currentPage": 1,
+            "hasMore": false
+        }
+    }
+    ```

@@ -86,7 +86,8 @@ export type TPaginatedCustomerResponse = z.infer<typeof PaginatedCustomerRespons
 
 export const AddCartItemSchema = z.object({
     productVariantId: z.string(),
-    quantity: z.number().int().min(1)
+    quantity: z.number().int().min(1),
+    modifierOptionIds: z.array(z.string().uuid()).optional()
 });
 
 export type TAddCartItem = z.infer<typeof AddCartItemSchema>;
@@ -141,6 +142,21 @@ export const ProductVariantInfoSchema = z.object({
     attributes: z.array(ProductVariantAttributeInfoSchema)
 });
 
+export const CartModifierResponseSchema = z.object({
+    id: z.string(),
+    customerCartId: z.string(),
+    modifierOptionId: z.string(),
+    modifierOption: z.object({
+        id: z.string(),
+        modifierGroupId: z.string(),
+        name: z.string(),
+        price: z.number(),
+        createdAt: z.date().or(z.string()),
+        updatedAt: z.date().or(z.string()),
+        deletedAt: z.date().nullable().or(z.string().nullable())
+    })
+});
+
 export const CartItemResponseSchema = z.object({
     id: z.string(),
     customerId: z.string(),
@@ -148,6 +164,7 @@ export const CartItemResponseSchema = z.object({
     unitPrice: z.number(),
     productVariantId: z.string(),
     productVariant: ProductVariantInfoSchema,
+    cartModifiers: z.array(CartModifierResponseSchema).optional().default([]),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     deletedAt: z.date().nullable().or(z.string().nullable())

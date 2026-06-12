@@ -51,6 +51,8 @@ describe('Order Feature CRUD', () => {
     let testVariantId: string;
     let activeShiftId: string;
     let createdOrderId: string;
+    let testModifierGroupId: string;
+    let testModifierOptionId: string;
 
     beforeAll(async () => {
         prisma = new PrismaClient();
@@ -129,6 +131,29 @@ describe('Order Feature CRUD', () => {
         });
         testVariantId = variant.id;
 
+        // Create modifier group and options linked to product
+        const group = await prisma.modifierGroup.create({
+            data: {
+                name: 'Test Setup Sweetness',
+                isRequired: false,
+                minSelect: 0,
+                maxSelect: 1,
+                products: {
+                    connect: { id: testProductId }
+                }
+            }
+        });
+        testModifierGroupId = group.id;
+
+        const option = await prisma.modifierOption.create({
+            data: {
+                modifierGroupId: testModifierGroupId,
+                name: 'Test Setup Extra Sugar Option',
+                price: 10.0
+            }
+        });
+        testModifierOptionId = option.id;
+
         // 4. Ensure store settings exist
         await prisma.storeSetting.upsert({
             where: { id: 'test-store-setting-seed-id' },
@@ -152,6 +177,27 @@ describe('Order Feature CRUD', () => {
     });
 
     afterAll(async () => {
+        // Cleanup order item modifiers, options, and groups
+        await prisma.orderItemModifier.deleteMany({
+            where: {
+                orderItem: {
+                    productVariantId: testVariantId
+                }
+            }
+        });
+        await prisma.modifierOption.deleteMany({
+            where: {
+                group: {
+                    name: { contains: 'Test Setup' }
+                }
+            }
+        });
+        await prisma.modifierGroup.deleteMany({
+            where: {
+                name: { contains: 'Test Setup' }
+            }
+        });
+
         // Cleanup order histories, payments, voids, items, shifts, variants, products, categories, types, store settings, and users in correct dependency order
         await prisma.orderStatusHistory.deleteMany({
             where: {
@@ -217,6 +263,96 @@ describe('Order Feature CRUD', () => {
             expect(res.body.netTotal).toBe(336.0);
 
             createdOrderId = res.body.id;
+        });
+
+        it('should successfully place an order with modifier options and calculate the correct price', async () => {
+            const payload = {
+                orderType: 'DINE_IN',
+                orderSource: 'POS',
+                notes: 'Extra hot latte with extra sugar please',
+                customerName: 'Customer John',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 2,
+                        notes: 'no sugar',
+                        modifierOptionIds: [testModifierOptionId]
+                    }
+                ]
+            };
+
+            const res = await request(app).post('/orders').send(payload);
+            expect(res.status).toBe(201);
+            expect(res.body).toHaveProperty('id');
+            expect(res.body.queueNumber).not.toBeNull();
+
+            // Price verification
+            // variant price: 150.00 + modifier price: 10.00 = 160.00
+            // subtotal: 160.00 * 2 = 320.00
+            // taxAmount: 320.00 * 12% = 38.40
+            // netTotal: 320.00 + 38.40 = 358.40
+            expect(res.body.subtotal).toBe(320.0);
+            expect(res.body.taxAmount).toBe(38.4);
+            expect(res.body.netTotal).toBe(358.4);
+
+            // Verify modifiers returned in response or persisted in DB
+            expect(res.body.items[0].modifiers).toHaveLength(1);
+            expect(res.body.items[0].modifiers[0].modifierOptionId).toBe(testModifierOptionId);
+            expect(res.body.items[0].modifiers[0].price).toBe(10.0);
+        });
+
+        it('should fail to place an order if modifier option ID is invalid', async () => {
+            const payload = {
+                orderType: 'DINE_IN',
+                orderSource: 'POS',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1,
+                        modifierOptionIds: ['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a99']
+                    }
+                ]
+            };
+
+            const res = await request(app).post('/orders').send(payload);
+            expect(res.status).toBe(404);
+            expect(res.body.error).toContain('do not exist or are disabled');
+        });
+
+        it('should fail to place an order if modifier group constraints are violated', async () => {
+            // Create a group that has isRequired = true, minSelect = 1
+            const requiredGroup = await prisma.modifierGroup.create({
+                data: {
+                    name: 'Test Setup Required Group',
+                    isRequired: true,
+                    minSelect: 1,
+                    maxSelect: 1,
+                    products: {
+                        connect: { id: testProductId }
+                    }
+                }
+            });
+
+            const payload = {
+                orderType: 'DINE_IN',
+                orderSource: 'POS',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1,
+                        modifierOptionIds: [] // No modifiers selected, but requiredGroup is required!
+                    }
+                ]
+            };
+
+            try {
+                const res = await request(app).post('/orders').send(payload);
+                expect(res.status).toBe(400);
+                expect(res.body.error).toContain('is required');
+            } finally {
+                // Clean up required group
+                await prisma.modifierGroup.delete({ where: { id: requiredGroup.id } });
+            }
         });
 
         it('should fetch the list of orders', async () => {

@@ -128,6 +128,8 @@ model ModifierOption {
   name            String
   price           Float                @default(0)
   
+  recipe          Recipe?
+  
   orderItemModifiers OrderItemModifier[]
   cartModifiers      CustomerCartModifier[]
   

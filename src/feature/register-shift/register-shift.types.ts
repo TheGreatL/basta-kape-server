@@ -22,7 +22,15 @@ export const RegisterShiftResponseSchema = z.object({
     startBalance: z.number(),
     endBalance: z.number().nullable(),
     actualBalance: z.number().nullable(),
-    notes: z.string().nullable()
+    notes: z.string().nullable(),
+    cashier: z
+        .object({
+            id: z.string(),
+            username: z.string(),
+            firstName: z.string(),
+            lastName: z.string()
+        })
+        .optional()
 });
 
 export type TRegisterShiftResponse = z.infer<typeof RegisterShiftResponseSchema>;

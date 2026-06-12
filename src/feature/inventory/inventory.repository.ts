@@ -632,4 +632,34 @@ export class InventoryRepository extends BaseRepository {
             }
         });
     }
+
+    async getModifierOptionsWithRecipes() {
+        return prisma.modifierOption.findMany({
+            where: { deletedAt: null },
+            include: {
+                group: {
+                    select: { id: true, name: true }
+                },
+                recipe: {
+                    where: { deletedAt: null },
+                    include: {
+                        ingredients: {
+                            where: { deletedAt: null },
+                            include: {
+                                ingredient: {
+                                    include: {
+                                        inventories: {
+                                            where: { deletedAt: null }
+                                        },
+                                        defaultUnit: true
+                                    }
+                                },
+                                unit: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 }

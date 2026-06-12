@@ -116,8 +116,8 @@ Used to manage raw pantry materials (e.g. Espresso Beans, Fresh Milk).
 ### 6. Production Forecasts & Projections (`/inventory/forecast`)
 
 #### `GET /inventory/forecast`
-*   **Description**: Computes real-time production predictions. Scans active products, recipes, required ingredients, and live inventories to determine:
-    - **`maxProduceable`**: The maximum number of drink/pastry units we can prepare with the current pantry levels.
+*   **Description**: Computes real-time production predictions. Scans active products, recipes, modifier options, required ingredients, and live inventories to determine:
+    - **`maxProduceable`**: The maximum number of drink/pastry/modifier units we can prepare with the current pantry levels (either an integer or `"Unlimited"` if no ingredients are mapped).
     - **`bottleneck`**: The limiting ingredient that is capping production (lowest produceable count).
 *   **RBAC**: `read`
 *   **Response (200 OK)**:
@@ -146,6 +146,32 @@ Used to manage raw pantry materials (e.g. Espresso Beans, Fresh Milk).
                     "requiredQuantity": 15,
                     "unit": "g",
                     "canProduce": 12
+                }
+            ]
+        },
+        {
+            "variantId": "modo-oat-milk-uuid",
+            "productId": "modg-milk-uuid",
+            "name": "[Modifier] Oat Milk Add-on",
+            "sku": null,
+            "price": 30.0,
+            "hasRecipe": true,
+            "maxProduceable": 9,
+            "bottleneck": {
+                "ingredientId": "ing-oat-milk",
+                "name": "Barista Oat Milk",
+                "currentQuantity": 2000,
+                "requiredQuantity": 220,
+                "unit": "ml"
+            },
+            "ingredients": [
+                {
+                    "ingredientId": "ing-oat-milk",
+                    "name": "Barista Oat Milk",
+                    "currentQuantity": 2000,
+                    "requiredQuantity": 220,
+                    "unit": "ml",
+                    "canProduce": 9
                 }
             ]
         }

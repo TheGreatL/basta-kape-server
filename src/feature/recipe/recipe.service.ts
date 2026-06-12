@@ -146,4 +146,116 @@ export class RecipeService {
         const attrNames = variant.attributes.map((a) => a.attributeValue.value).join(', ');
         return attrNames ? `${variant.product.name} (${attrNames})` : variant.product.name;
     }
+
+    async getRecipeByModifierOptionId(optionId: string) {
+        const option = await this.repository.findModifierOptionById(optionId);
+        if (!option) {
+            throw new NotFoundException(`Modifier option with ID "${optionId}" not found`);
+        }
+
+        const recipe = await this.repository.findRecipeByModifierOptionId(optionId);
+        if (!recipe) {
+            throw new NotFoundException(`Recipe not found for modifier option ID "${optionId}"`);
+        }
+
+        return recipe;
+    }
+
+    async createRecipeForModifierOption(optionId: string, data: TCreateRecipe, actorId: string) {
+        const option = await this.repository.findModifierOptionById(optionId);
+        if (!option) {
+            throw new NotFoundException(`Modifier option with ID "${optionId}" not found`);
+        }
+
+        const existingRecipe = await this.repository.findRecipeByModifierOptionId(optionId);
+        if (existingRecipe) {
+            throw new ConflictException(`Recipe already exists for modifier option ID "${optionId}"`);
+        }
+
+        for (const ing of data.ingredients) {
+            const ingredient = await this.repository.findIngredientById(ing.ingredientId);
+            if (!ingredient) {
+                throw new NotFoundException(`Ingredient with ID "${ing.ingredientId}" not found`);
+            }
+
+            const unit = await this.repository.findUnitById(ing.ingredientUnitId);
+            if (!unit) {
+                throw new NotFoundException(`Ingredient unit with ID "${ing.ingredientUnitId}" not found`);
+            }
+        }
+
+        const recipe = await this.repository.createRecipeForModifierOption(optionId, data, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Create Modifier Option Recipe',
+            details: `Successfully created recipe: ${recipe.name} for modifier option "${option.name}".`
+        });
+
+        return recipe;
+    }
+
+    async updateRecipeForModifierOption(optionId: string, data: TUpdateRecipe, actorId: string) {
+        const recipe = await this.getRecipeByModifierOptionId(optionId);
+
+        if (data.ingredients) {
+            for (const ing of data.ingredients) {
+                const ingredient = await this.repository.findIngredientById(ing.ingredientId);
+                if (!ingredient) {
+                    throw new NotFoundException(`Ingredient with ID "${ing.ingredientId}" not found`);
+                }
+
+                const unit = await this.repository.findUnitById(ing.ingredientUnitId);
+                if (!unit) {
+                    throw new NotFoundException(`Ingredient unit with ID "${ing.ingredientUnitId}" not found`);
+                }
+            }
+        }
+
+        const updated = await this.repository.updateRecipe(recipe.id, data, actorId);
+
+        const option = await this.repository.findModifierOptionById(optionId);
+        const optionLabel = option ? option.name : optionId;
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Update Modifier Option Recipe',
+            details: `Successfully updated recipe: ${updated.name} for modifier option "${optionLabel}".`
+        });
+
+        return updated;
+    }
+
+    async deleteRecipeForModifierOption(optionId: string, actorId: string) {
+        const recipe = await this.getRecipeByModifierOptionId(optionId);
+
+        await this.repository.softDeleteRecipe(recipe.id, actorId);
+
+        const option = await this.repository.findModifierOptionById(optionId);
+        const optionLabel = option ? option.name : optionId;
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Delete Modifier Option Recipe',
+            details: `Successfully deleted recipe: ${recipe.name} for modifier option "${optionLabel}".`
+        });
+    }
+
+    async restoreRecipeForModifierOption(optionId: string, actorId: string) {
+        const recipe = await this.repository.findRecipeByModifierOptionIdIncludingDeleted(optionId);
+        if (!recipe) {
+            throw new NotFoundException(`Recipe not found for modifier option ID "${optionId}"`);
+        }
+
+        const restored = await this.repository.restoreRecipeForModifierOption(optionId, actorId);
+
+        const option = await this.repository.findModifierOptionByIdIncludingDeleted(optionId);
+        const optionLabel = option ? option.name : optionId;
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Restore Modifier Option Recipe',
+            details: `Successfully restored recipe: ${recipe.name} for modifier option "${optionLabel}".`
+        });
+
+        return restored;
+    }
 }

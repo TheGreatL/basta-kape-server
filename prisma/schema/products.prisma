@@ -220,8 +220,10 @@ model Recipe {
   id               String             @id @default(uuid())
   name             String
   description      String?
-  productVariantId String             @unique
-  productVariant   ProductVariant     @relation(fields: [productVariantId], references: [id])
+  productVariantId String?            @unique
+  productVariant   ProductVariant?    @relation(fields: [productVariantId], references: [id])
+  modifierOptionId String?            @unique
+  modifierOption   ModifierOption?    @relation(fields: [modifierOptionId], references: [id])
   ingredients      RecipeIngredient[]
 
   createdById String?

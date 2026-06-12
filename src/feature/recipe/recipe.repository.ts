@@ -279,4 +279,150 @@ export class RecipeRepository extends BaseRepository {
             return restoredRecipe;
         });
     }
+
+    async findRecipeByModifierOptionId(optionId: string) {
+        return prisma.recipe.findFirst({
+            where: { modifierOptionId: optionId, deletedAt: null },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect },
+                ingredients: {
+                    where: { deletedAt: null },
+                    include: {
+                        ingredient: {
+                            select: { id: true, name: true }
+                        },
+                        unit: {
+                            select: { id: true, name: true, abbreviation: true }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async findRecipeByModifierOptionIdIncludingDeleted(optionId: string) {
+        return prisma.recipe.findFirst({
+            where: { modifierOptionId: optionId },
+            include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect },
+                ingredients: {
+                    include: {
+                        ingredient: {
+                            select: { id: true, name: true }
+                        },
+                        unit: {
+                            select: { id: true, name: true, abbreviation: true }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async findModifierOptionById(optionId: string) {
+        return prisma.modifierOption.findFirst({
+            where: { id: optionId, deletedAt: null },
+            include: {
+                group: { select: { name: true } }
+            }
+        });
+    }
+
+    async findModifierOptionByIdIncludingDeleted(optionId: string) {
+        return prisma.modifierOption.findFirst({
+            where: { id: optionId }
+        });
+    }
+
+    async createRecipeForModifierOption(optionId: string, data: TCreateRecipe, actorId: string) {
+        return prisma.$transaction(async (tx) => {
+            const recipe = await tx.recipe.create({
+                data: {
+                    name: data.name,
+                    description: data.description,
+                    modifierOptionId: optionId,
+                    createdById: actorId,
+                    updatedById: actorId
+                }
+            });
+
+            if (data.ingredients && data.ingredients.length > 0) {
+                const recipeIngredients = data.ingredients.map((ing) => ({
+                    recipeId: recipe.id,
+                    ingredientId: ing.ingredientId,
+                    quantity: ing.quantity,
+                    ingredientUnitId: ing.ingredientUnitId,
+                    createdById: actorId,
+                    updatedById: actorId
+                }));
+
+                await tx.recipeIngredient.createMany({
+                    data: recipeIngredients
+                });
+            }
+
+            const result = await tx.recipe.findUnique({
+                where: { id: recipe.id },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect },
+                    ingredients: {
+                        where: { deletedAt: null },
+                        include: {
+                            ingredient: {
+                                select: { id: true, name: true }
+                            },
+                            unit: {
+                                select: { id: true, name: true, abbreviation: true }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return result!;
+        });
+    }
+
+    async restoreRecipeForModifierOption(optionId: string, actorId: string) {
+        const recipe = await prisma.recipe.findFirst({
+            where: { modifierOptionId: optionId }
+        });
+
+        if (!recipe || !recipe.deletedAt) {
+            return recipe;
+        }
+
+        const deleteTime = recipe.deletedAt;
+        const timeWindowStart = new Date(deleteTime.getTime() - 5000);
+        const timeWindowEnd = new Date(deleteTime.getTime() + 5000);
+
+        return prisma.$transaction(async (tx) => {
+            const restoredRecipe = await tx.recipe.update({
+                where: { id: recipe.id },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.recipeIngredient.updateMany({
+                where: {
+                    recipeId: recipe.id,
+                    deletedAt: {
+                        gte: timeWindowStart,
+                        lte: timeWindowEnd
+                    }
+                },
+                data: {
+                    deletedAt: null,
+                    updatedById: actorId
+                }
+            });
+
+            return restoredRecipe;
+        });
+    }
 }

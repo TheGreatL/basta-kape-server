@@ -19,10 +19,10 @@ export async function seedProduct(prisma: PrismaClient) {
     // 2. SEED PRODUCT CATEGORIES & TYPES
     // ==========================================
     const categoryCoffee = await prisma.productCategory.upsert({
-        where: { id: 'cat-coffee' },
+        where: { id: '11111111-1111-4111-a111-111111111111' },
         update: {},
         create: {
-            id: 'cat-coffee',
+            id: '11111111-1111-4111-a111-111111111111',
             name: 'Coffee',
             description: 'Espresso-based hot and cold beverage creations',
             createdById: adminId,
@@ -31,10 +31,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const categoryNonCoffee = await prisma.productCategory.upsert({
-        where: { id: 'cat-non-coffee' },
+        where: { id: '11111111-1111-4111-a111-111111111112' },
         update: {},
         create: {
-            id: 'cat-non-coffee',
+            id: '11111111-1111-4111-a111-111111111112',
             name: 'Non-Coffee',
             description: 'Delicious hot and cold non-caffeinated drinks',
             createdById: adminId,
@@ -43,10 +43,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const categoryPastries = await prisma.productCategory.upsert({
-        where: { id: 'cat-pastries' },
+        where: { id: '11111111-1111-4111-a111-111111111113' },
         update: {},
         create: {
-            id: 'cat-pastries',
+            id: '11111111-1111-4111-a111-111111111113',
             name: 'Pastries',
             description: 'Freshly baked croissants, cookies, and cakes',
             createdById: adminId,
@@ -55,10 +55,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const typeIced = await prisma.productType.upsert({
-        where: { id: 'type-iced' },
+        where: { id: '22222222-2222-4222-a222-222222222221' },
         update: {},
         create: {
-            id: 'type-iced',
+            id: '22222222-2222-4222-a222-222222222221',
             name: 'Iced Drinks',
             description: 'Chilled beverages served over ice',
             createdById: adminId,
@@ -67,10 +67,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const typeHot = await prisma.productType.upsert({
-        where: { id: 'type-hot' },
+        where: { id: '22222222-2222-4222-a222-222222222222' },
         update: {},
         create: {
-            id: 'type-hot',
+            id: '22222222-2222-4222-a222-222222222222',
             name: 'Hot Drinks',
             description: 'Warm beverages brewed to perfection',
             createdById: adminId,
@@ -79,10 +79,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const typeBaked = await prisma.productType.upsert({
-        where: { id: 'type-baked' },
+        where: { id: '22222222-2222-4222-a222-222222222223' },
         update: {},
         create: {
-            id: 'type-baked',
+            id: '22222222-2222-4222-a222-222222222223',
             name: 'Baked Goods',
             description: 'Oven-fresh pastries and bread',
             createdById: adminId,
@@ -94,10 +94,10 @@ export async function seedProduct(prisma: PrismaClient) {
     // 3. SEED INGREDIENT UNITS
     // ==========================================
     const unitGrams = await prisma.ingredientUnit.upsert({
-        where: { id: 'unit-grams' },
+        where: { id: '33333333-3333-4333-a333-333333333331' },
         update: {},
         create: {
-            id: 'unit-grams',
+            id: '33333333-3333-4333-a333-333333333331',
             name: 'Grams',
             abbreviation: 'g',
             createdById: adminId,
@@ -106,10 +106,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const unitMilliliters = await prisma.ingredientUnit.upsert({
-        where: { id: 'unit-milliliters' },
+        where: { id: '33333333-3333-4333-a333-333333333332' },
         update: {},
         create: {
-            id: 'unit-milliliters',
+            id: '33333333-3333-4333-a333-333333333332',
             name: 'Milliliters',
             abbreviation: 'ml',
             createdById: adminId,
@@ -118,10 +118,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const unitPieces = await prisma.ingredientUnit.upsert({
-        where: { id: 'unit-pieces' },
+        where: { id: '33333333-3333-4333-a333-333333333333' },
         update: {},
         create: {
-            id: 'unit-pieces',
+            id: '33333333-3333-4333-a333-333333333333',
             name: 'Pieces',
             abbreviation: 'pcs',
             createdById: adminId,
@@ -133,10 +133,10 @@ export async function seedProduct(prisma: PrismaClient) {
     // 4. SEED SUPPLIERS
     // ==========================================
     const supplierRoastery = await prisma.supplier.upsert({
-        where: { id: 'sup-roastery' },
+        where: { id: '44444444-4444-4444-a444-444444444441' },
         update: {},
         create: {
-            id: 'sup-roastery',
+            id: '44444444-4444-4444-a444-444444444441',
             name: 'Basta Kape Roastery',
             address: '50 K-1st, Quezon City, Metro Manila',
             notes: 'Primary supplier of direct-trade premium coffee beans',
@@ -148,10 +148,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const supplierDairy = await prisma.supplier.upsert({
-        where: { id: 'sup-dairy' },
+        where: { id: '44444444-4444-4444-a444-444444444442' },
         update: {},
         create: {
-            id: 'sup-dairy',
+            id: '44444444-4444-4444-a444-444444444442',
             name: 'Manila Dairy Distributors',
             address: 'Balintawak, Quezon City',
             notes: 'Delivers fresh dairy milk and alternative oat/almond milks daily',
@@ -163,10 +163,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const supplierGrocery = await prisma.supplier.upsert({
-        where: { id: 'sup-grocery' },
+        where: { id: '44444444-4444-4444-a444-444444444443' },
         update: {},
         create: {
-            id: 'sup-grocery',
+            id: '44444444-4444-4444-a444-444444444443',
             name: 'Global Pantry Supplies',
             address: 'Pasig City, Metro Manila',
             notes: 'Supplier of syrups, chocolate sauces, and premium matcha powders',
@@ -204,11 +204,12 @@ export async function seedProduct(prisma: PrismaClient) {
             }
         });
 
+        const invId = id.replace(/^5/, 'f');
         await prisma.ingredientInventory.upsert({
-            where: { id: `inv-${id}` },
+            where: { id: invId },
             update: {},
             create: {
-                id: `inv-${id}`,
+                id: invId,
                 ingredientId: ing.id,
                 currentQuantity: qty,
                 lastPhysicalCount: new Date(),
@@ -222,7 +223,7 @@ export async function seedProduct(prisma: PrismaClient) {
     }
 
     const ingBeans = await createIngredientWithInventory(
-        'ing-beans',
+        '55555555-5555-4555-a555-555555555551',
         'Espresso Blend Beans',
         'Premium arabica-robusta house blend',
         unitGrams.id,
@@ -231,7 +232,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingWholeMilk = await createIngredientWithInventory(
-        'ing-whole-milk',
+        '55555555-5555-4555-a555-555555555552',
         'Barista Whole Milk',
         'High-foaming dairy milk',
         unitMilliliters.id,
@@ -240,7 +241,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingOatMilk = await createIngredientWithInventory(
-        'ing-oat-milk',
+        '55555555-5555-4555-a555-555555555553',
         'Barista Oat Milk',
         'Premium plant-based milk alternative',
         unitMilliliters.id,
@@ -249,7 +250,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.CRITICAL
     );
     const ingAlmondMilk = await createIngredientWithInventory(
-        'ing-almond-milk',
+        '55555555-5555-4555-a555-555555555554',
         'Barista Almond Milk',
         'Unsweetened plant-based milk alternative',
         unitMilliliters.id,
@@ -258,7 +259,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingCondensed = await createIngredientWithInventory(
-        'ing-condensed-milk',
+        '55555555-5555-4555-a555-555555555555',
         'Sweet Condensed Milk',
         'Thick sweetened milk for Spanish Latte',
         unitGrams.id,
@@ -267,7 +268,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingMatcha = await createIngredientWithInventory(
-        'ing-matcha-powder',
+        '55555555-5555-4555-a555-555555555556',
         'Premium Uji Matcha Powder',
         'Authentic Japanese stone-ground green tea',
         unitGrams.id,
@@ -276,7 +277,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingChocolate = await createIngredientWithInventory(
-        'ing-chocolate-sauce',
+        '55555555-5555-4555-a555-555555555557',
         'Gourmet Chocolate Sauce',
         'Rich dark cocoa sauce for mochas and chocolates',
         unitGrams.id,
@@ -285,7 +286,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingVanilla = await createIngredientWithInventory(
-        'ing-vanilla-syrup',
+        '55555555-5555-4555-a555-555555555558',
         'Sweet Vanilla Syrup',
         'Classic vanilla flavoring syrup',
         unitMilliliters.id,
@@ -294,7 +295,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingCaramel = await createIngredientWithInventory(
-        'ing-caramel-drizzle',
+        '55555555-5555-4555-a555-555555555559',
         'Caramel Drizzle Sauce',
         'Buttery caramel sauce for topping macchiatos',
         unitMilliliters.id,
@@ -303,7 +304,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingCroissant = await createIngredientWithInventory(
-        'ing-croissant-dough',
+        '55555555-5555-4555-a555-555555555510',
         'Frozen Croissant Dough',
         'Pre-portioned uncooked butter croissants',
         unitPieces.id,
@@ -312,7 +313,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.OUT_OF_STOCK
     );
     const ingChocCroissant = await createIngredientWithInventory(
-        'ing-choc-croissant-dough',
+        '55555555-5555-4555-a555-555555555511',
         'Frozen Chocolate Croissant Dough',
         'Pre-portioned uncooked pain au chocolat',
         unitPieces.id,
@@ -321,7 +322,7 @@ export async function seedProduct(prisma: PrismaClient) {
         InventoryStatus.SAFE
     );
     const ingCookie = await createIngredientWithInventory(
-        'ing-cookie-dough',
+        '55555555-5555-4555-a555-555555555512',
         'Chocolate Chip Cookie Dough',
         'Pre-portioned soft cookie dough chunks',
         unitPieces.id,
@@ -334,10 +335,10 @@ export async function seedProduct(prisma: PrismaClient) {
     // 6. SEED INGREDIENT DELIVERIES & BATCHES
     // ==========================================
     await prisma.ingredientDelivery.upsert({
-        where: { id: 'del-beans-1' },
+        where: { id: '66666666-6666-4666-a666-666666666661' },
         update: {},
         create: {
-            id: 'del-beans-1',
+            id: '66666666-6666-4666-a666-666666666661',
             ingredientId: ingBeans.id,
             supplierId: supplierRoastery.id,
             quantityReceived: 10000,
@@ -351,10 +352,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     await prisma.ingredientDelivery.upsert({
-        where: { id: 'del-milk-1' },
+        where: { id: '66666666-6666-4666-a666-666666666662' },
         update: {},
         create: {
-            id: 'del-milk-1',
+            id: '66666666-6666-4666-a666-666666666662',
             ingredientId: ingWholeMilk.id,
             supplierId: supplierDairy.id,
             quantityReceived: 24000,
@@ -368,10 +369,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     await prisma.ingredientDelivery.upsert({
-        where: { id: 'del-matcha-1' },
+        where: { id: '66666666-6666-4666-a666-666666666663' },
         update: {},
         create: {
-            id: 'del-matcha-1',
+            id: '66666666-6666-4666-a666-666666666663',
             ingredientId: ingMatcha.id,
             supplierId: supplierGrocery.id,
             quantityReceived: 1000,
@@ -388,10 +389,10 @@ export async function seedProduct(prisma: PrismaClient) {
     // 7. SEED INVENTORY ADJUSTMENTS (Waste logs)
     // ==========================================
     await prisma.inventoryAdjustment.upsert({
-        where: { id: 'adj-beans-spill' },
+        where: { id: '77777777-7777-4777-a777-777777777771' },
         update: {},
         create: {
-            id: 'adj-beans-spill',
+            id: '77777777-7777-4777-a777-777777777771',
             ingredientId: ingBeans.id,
             quantity: -250,
             type: AdjustmentType.WASTE,
@@ -402,10 +403,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     await prisma.inventoryAdjustment.upsert({
-        where: { id: 'adj-milk-expired' },
+        where: { id: '77777777-7777-4777-a777-777777777772' },
         update: {},
         create: {
-            id: 'adj-milk-expired',
+            id: '77777777-7777-4777-a777-777777777772',
             ingredientId: ingWholeMilk.id,
             quantity: -1000,
             type: AdjustmentType.SPOILED,
@@ -419,13 +420,13 @@ export async function seedProduct(prisma: PrismaClient) {
     // 8. SEED PRODUCTS
     // ==========================================
     const prodAmericano = await prisma.product.upsert({
-        where: { id: 'prod-americano' },
+        where: { id: '88888888-8888-4888-a888-888888888881' },
         update: {},
         create: {
-            id: 'prod-americano',
+            id: '88888888-8888-4888-a888-888888888881',
             name: 'Café Americano',
-            photo: 'https://images.unsplash.com/photo-1551046710-7e57f48521c5',
             description: 'Rich, full-bodied signature espresso shot combined with filtered hot/iced water',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryCoffee.id,
             productTypeId: typeIced.id,
             createdById: adminId,
@@ -434,13 +435,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodLatte = await prisma.product.upsert({
-        where: { id: 'prod-latte' },
+        where: { id: '88888888-8888-4888-a888-888888888882' },
         update: {},
         create: {
-            id: 'prod-latte',
+            id: '88888888-8888-4888-a888-888888888882',
             name: 'Café Latte',
-            photo: 'https://images.unsplash.com/photo-1541167760496-1628856ab772',
             description: 'Velvety espresso combined with perfectly steamed milk and a thin microfoam layer',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryCoffee.id,
             productTypeId: typeIced.id,
             createdById: adminId,
@@ -449,13 +450,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodSpanishLatte = await prisma.product.upsert({
-        where: { id: 'prod-spanish-latte' },
+        where: { id: '88888888-8888-4888-a888-888888888883' },
         update: {},
         create: {
-            id: 'prod-spanish-latte',
+            id: '88888888-8888-4888-a888-888888888883',
             name: 'Spanish Latte',
-            photo: 'https://images.unsplash.com/photo-1594911774802-8822a707c9f5',
             description: 'Sweet, creamy, espresso-forward latte sweetened with rich condensed milk',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryCoffee.id,
             productTypeId: typeIced.id,
             createdById: adminId,
@@ -464,13 +465,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodCaramelMacchiato = await prisma.product.upsert({
-        where: { id: 'prod-caramel-macchiato' },
+        where: { id: '88888888-8888-4888-a888-888888888884' },
         update: {},
         create: {
-            id: 'prod-caramel-macchiato',
+            id: '88888888-8888-4888-a888-888888888884',
             name: 'Caramel Macchiato',
-            photo: 'https://images.unsplash.com/photo-1485808191679-5f86510681a2',
             description: 'Vanilla-flavored syrup marked with espresso, milk, and topped with buttery caramel drizzle',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryCoffee.id,
             productTypeId: typeIced.id,
             createdById: adminId,
@@ -479,13 +480,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodMatchaLatte = await prisma.product.upsert({
-        where: { id: 'prod-matcha-latte' },
+        where: { id: '88888888-8888-4888-a888-888888888885' },
         update: {},
         create: {
-            id: 'prod-matcha-latte',
+            id: '88888888-8888-4888-a888-888888888885',
             name: 'Uji Matcha Latte',
-            photo: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a',
             description: 'Premium Japanese stone-ground matcha tea whisked and sweetened over creamy milk',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryNonCoffee.id,
             productTypeId: typeIced.id,
             createdById: adminId,
@@ -494,13 +495,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodChocolate = await prisma.product.upsert({
-        where: { id: 'prod-chocolate' },
+        where: { id: '88888888-8888-4888-a888-888888888886' },
         update: {},
         create: {
-            id: 'prod-chocolate',
+            id: '88888888-8888-4888-a888-888888888886',
             name: 'Signature Hot Chocolate',
-            photo: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574',
             description: 'Decadent dark cocoa melted into steamed whole milk for the ultimate comfort drink',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryNonCoffee.id,
             productTypeId: typeHot.id,
             createdById: adminId,
@@ -509,13 +510,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodCroissant = await prisma.product.upsert({
-        where: { id: 'prod-croissant' },
+        where: { id: '88888888-8888-4888-a888-888888888887' },
         update: {},
         create: {
-            id: 'prod-croissant',
+            id: '88888888-8888-4888-a888-888888888887',
             name: 'Classic Butter Croissant',
-            photo: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a',
             description: 'Flaky, buttery, oven-fresh laminated pastry baked fresh daily',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryPastries.id,
             productTypeId: typeBaked.id,
             createdById: adminId,
@@ -524,13 +525,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodChocCroissant = await prisma.product.upsert({
-        where: { id: 'prod-choc-croissant' },
+        where: { id: '88888888-8888-4888-a888-888888888888' },
         update: {},
         create: {
-            id: 'prod-choc-croissant',
+            id: '88888888-8888-4888-a888-888888888888',
             name: 'Pain au Chocolat',
-            photo: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca',
             description: 'Rich dark chocolate baton wrapped in buttery, flaky golden layers',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryPastries.id,
             productTypeId: typeBaked.id,
             createdById: adminId,
@@ -539,13 +540,13 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const prodCookie = await prisma.product.upsert({
-        where: { id: 'prod-cookie' },
+        where: { id: '88888888-8888-4888-a888-888888888889' },
         update: {},
         create: {
-            id: 'prod-cookie',
+            id: '88888888-8888-4888-a888-888888888889',
             name: 'Chocolate Chip Cookie',
-            photo: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e',
             description: 'Soft-baked, chewy cookie loaded with premium milk and dark chocolate chunks',
+            photo: '/uploads/images/coffee-test.jpg',
             productCategoryId: categoryPastries.id,
             productTypeId: typeBaked.id,
             createdById: adminId,
@@ -557,10 +558,10 @@ export async function seedProduct(prisma: PrismaClient) {
     // 9. SEED PRODUCT ATTRIBUTES & VALUES
     // ==========================================
     const attrSize = await prisma.productAttribute.upsert({
-        where: { id: 'attr-size' },
+        where: { id: '99999999-9999-4999-a999-999999999991' },
         update: {},
         create: {
-            id: 'attr-size',
+            id: '99999999-9999-4999-a999-999999999991',
             name: 'Size',
             description: 'Beverage serving size option',
             createdById: adminId,
@@ -569,10 +570,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const attrMilk = await prisma.productAttribute.upsert({
-        where: { id: 'attr-milk' },
+        where: { id: '99999999-9999-4999-a999-999999999992' },
         update: {},
         create: {
-            id: 'attr-milk',
+            id: '99999999-9999-4999-a999-999999999992',
             name: 'Milk Type',
             description: 'Dairy or dairy-free alternative milk choices',
             createdById: adminId,
@@ -582,10 +583,10 @@ export async function seedProduct(prisma: PrismaClient) {
 
     // Attribute Values (Sizes)
     const valSize12 = await prisma.productAttributeValue.upsert({
-        where: { id: 'val-size-12oz' },
+        where: { id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa1' },
         update: {},
         create: {
-            id: 'val-size-12oz',
+            id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa1',
             productAttributeId: attrSize.id,
             value: '12oz (Regular)',
             createdById: adminId,
@@ -594,10 +595,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const valSize16 = await prisma.productAttributeValue.upsert({
-        where: { id: 'val-size-16oz' },
+        where: { id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa2' },
         update: {},
         create: {
-            id: 'val-size-16oz',
+            id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa2',
             productAttributeId: attrSize.id,
             value: '16oz (Large)',
             createdById: adminId,
@@ -607,10 +608,10 @@ export async function seedProduct(prisma: PrismaClient) {
 
     // Attribute Values (Milk Options)
     const valMilkWhole = await prisma.productAttributeValue.upsert({
-        where: { id: 'val-milk-whole' },
+        where: { id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa3' },
         update: {},
         create: {
-            id: 'val-milk-whole',
+            id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa3',
             productAttributeId: attrMilk.id,
             value: 'Whole Milk',
             createdById: adminId,
@@ -619,10 +620,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const valMilkOat = await prisma.productAttributeValue.upsert({
-        where: { id: 'val-milk-oat' },
+        where: { id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa4' },
         update: {},
         create: {
-            id: 'val-milk-oat',
+            id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa4',
             productAttributeId: attrMilk.id,
             value: 'Oat Milk Alternative',
             createdById: adminId,
@@ -631,10 +632,10 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     const valMilkAlmond = await prisma.productAttributeValue.upsert({
-        where: { id: 'val-milk-almond' },
+        where: { id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa5' },
         update: {},
         create: {
-            id: 'val-milk-almond',
+            id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaa5',
             productAttributeId: attrMilk.id,
             value: 'Almond Milk Alternative',
             createdById: adminId,
@@ -672,13 +673,14 @@ export async function seedProduct(prisma: PrismaClient) {
         });
 
         // Map Attributes
+        await prisma.productVariantAttribute.deleteMany({
+            where: { productVariantId: variant.id }
+        });
+
         for (let i = 0; i < attributeIds.length; i++) {
             const valId = attributeIds[i];
-            await prisma.productVariantAttribute.upsert({
-                where: { id: `map-${id}-${i}` },
-                update: {},
-                create: {
-                    id: `map-${id}-${i}`,
+            await prisma.productVariantAttribute.create({
+                data: {
                     productVariantId: variant.id,
                     productAttributeValueId: valId,
                     createdById: adminId,
@@ -710,7 +712,6 @@ export async function seedProduct(prisma: PrismaClient) {
             const ing = ingredients[j];
             await prisma.recipeIngredient.create({
                 data: {
-                    id: `recing-${id}-${j}`,
                     recipeId: recipe.id,
                     ingredientId: ing.ingredientId,
                     quantity: ing.qty,
@@ -725,7 +726,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // A. CAFÉ AMERICANO
     // Variant: 12oz
     await seedVariantWithRecipe(
-        'var-americano-12',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb1',
         prodAmericano.id,
         'BK-AME-12',
         110.0,
@@ -736,7 +737,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz
     await seedVariantWithRecipe(
-        'var-americano-16',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb2',
         prodAmericano.id,
         'BK-AME-16',
         125.0,
@@ -749,7 +750,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // B. CAFÉ LATTE
     // Variant: 12oz Whole Milk
     await seedVariantWithRecipe(
-        'var-latte-12-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb3',
         prodLatte.id,
         'BK-LAT-12-WM',
         135.0,
@@ -763,7 +764,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Whole Milk
     await seedVariantWithRecipe(
-        'var-latte-16-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb4',
         prodLatte.id,
         'BK-LAT-16-WM',
         150.0,
@@ -777,7 +778,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 12oz Oat Milk
     await seedVariantWithRecipe(
-        'var-latte-12-oat',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb5',
         prodLatte.id,
         'BK-LAT-12-OM',
         165.0,
@@ -791,7 +792,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Oat Milk
     await seedVariantWithRecipe(
-        'var-latte-16-oat',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb6',
         prodLatte.id,
         'BK-LAT-16-OM',
         180.0,
@@ -805,7 +806,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 12oz Almond Milk
     await seedVariantWithRecipe(
-        'var-latte-12-almond',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb7',
         prodLatte.id,
         'BK-LAT-12-AM',
         165.0,
@@ -819,7 +820,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Almond Milk
     await seedVariantWithRecipe(
-        'var-latte-16-almond',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb8',
         prodLatte.id,
         'BK-LAT-16-AM',
         180.0,
@@ -835,7 +836,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // C. SPANISH LATTE
     // Variant: 12oz Whole Milk
     await seedVariantWithRecipe(
-        'var-spanish-12-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb9',
         prodSpanishLatte.id,
         'BK-SL-12-WM',
         145.0,
@@ -850,7 +851,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Whole Milk
     await seedVariantWithRecipe(
-        'var-spanish-16-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb10',
         prodSpanishLatte.id,
         'BK-SL-16-WM',
         160.0,
@@ -865,7 +866,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Oat Milk
     await seedVariantWithRecipe(
-        'var-spanish-16-oat',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb11',
         prodSpanishLatte.id,
         'BK-SL-16-OM',
         190.0,
@@ -882,7 +883,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // D. CARAMEL MACCHIATO
     // Variant: 12oz Whole Milk
     await seedVariantWithRecipe(
-        'var-macchiato-12-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb12',
         prodCaramelMacchiato.id,
         'BK-CM-12-WM',
         155.0,
@@ -898,7 +899,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Whole Milk
     await seedVariantWithRecipe(
-        'var-macchiato-16-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb13',
         prodCaramelMacchiato.id,
         'BK-CM-16-WM',
         170.0,
@@ -914,7 +915,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Oat Milk
     await seedVariantWithRecipe(
-        'var-macchiato-16-oat',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb14',
         prodCaramelMacchiato.id,
         'BK-CM-16-OM',
         200.0,
@@ -932,7 +933,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // E. UJI MATCHA LATTE
     // Variant: 12oz Whole Milk
     await seedVariantWithRecipe(
-        'var-matcha-12-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb15',
         prodMatchaLatte.id,
         'BK-MAT-12-WM',
         150.0,
@@ -947,7 +948,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Whole Milk
     await seedVariantWithRecipe(
-        'var-matcha-16-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb16',
         prodMatchaLatte.id,
         'BK-MAT-16-WM',
         165.0,
@@ -962,7 +963,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Oat Milk
     await seedVariantWithRecipe(
-        'var-matcha-16-oat',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb17',
         prodMatchaLatte.id,
         'BK-MAT-16-OM',
         195.0,
@@ -979,7 +980,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // F. SIGNATURE HOT CHOCOLATE
     // Variant: 12oz Whole Milk
     await seedVariantWithRecipe(
-        'var-chocolate-12-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb18',
         prodChocolate.id,
         'BK-CHO-12-WM',
         140.0,
@@ -993,7 +994,7 @@ export async function seedProduct(prisma: PrismaClient) {
     );
     // Variant: 16oz Whole Milk
     await seedVariantWithRecipe(
-        'var-chocolate-16-whole',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb19',
         prodChocolate.id,
         'BK-CHO-16-WM',
         155.0,
@@ -1009,7 +1010,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // G. CLASSIC BUTTER CROISSANT
     // Variant: Standard
     await seedVariantWithRecipe(
-        'var-croissant-standard',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb20',
         prodCroissant.id,
         'BK-CR-STD',
         110.0,
@@ -1022,7 +1023,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // H. PAIN AU CHOCOLAT (CHOCOLATE CROISSANT)
     // Variant: Standard
     await seedVariantWithRecipe(
-        'var-choc-croissant-standard',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb21',
         prodChocCroissant.id,
         'BK-PAC-STD',
         125.0,
@@ -1035,7 +1036,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // I. CHOCOLATE CHIP COOKIE
     // Variant: Standard
     await seedVariantWithRecipe(
-        'var-cookie-standard',
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb22',
         prodCookie.id,
         'BK-CK-STD',
         85.0,
@@ -1044,6 +1045,156 @@ export async function seedProduct(prisma: PrismaClient) {
         '1 piece frozen cookie dough baked soft in oven',
         [{ ingredientId: ingCookie.id, qty: 1.0, unitId: unitPieces.id }]
     );
+
+    // ==========================================
+    // 11. SEED MODIFIERS AND MODIFIER RECIPES
+    // ==========================================
+    console.log('Seeding Modifiers and Modifier Recipes...');
+
+    const modgMilk = await prisma.modifierGroup.upsert({
+        where: { id: 'cccccccc-cccc-4ccc-accc-cccccccccccc' },
+        update: {},
+        create: {
+            id: 'cccccccc-cccc-4ccc-accc-cccccccccccc',
+            name: 'Milk Alternatives',
+            isRequired: false,
+            minSelect: 0,
+            maxSelect: 1,
+            products: {
+                connect: [
+                    { id: prodLatte.id },
+                    { id: prodSpanishLatte.id },
+                    { id: prodCaramelMacchiato.id },
+                    { id: prodMatchaLatte.id },
+                    { id: prodChocolate.id }
+                ]
+            }
+        }
+    });
+
+    const modgSyrups = await prisma.modifierGroup.upsert({
+        where: { id: 'cccccccc-cccc-4ccc-accc-cccccccccccd' },
+        update: {},
+        create: {
+            id: 'cccccccc-cccc-4ccc-accc-cccccccccccd',
+            name: 'Add-on Syrups',
+            isRequired: false,
+            minSelect: 0,
+            maxSelect: 3,
+            products: {
+                connect: [{ id: prodAmericano.id }, { id: prodLatte.id }, { id: prodSpanishLatte.id }, { id: prodCaramelMacchiato.id }]
+            }
+        }
+    });
+
+    // Modifier options
+    const modoOatMilk = await prisma.modifierOption.upsert({
+        where: { id: 'dddddddd-dddd-4ddd-addd-dddddddddddd' },
+        update: {},
+        create: {
+            id: 'dddddddd-dddd-4ddd-addd-dddddddddddd',
+            modifierGroupId: modgMilk.id,
+            name: 'Oat Milk Add-on',
+            price: 30.0
+        }
+    });
+
+    const modoAlmondMilk = await prisma.modifierOption.upsert({
+        where: { id: 'dddddddd-dddd-4ddd-addd-ddddddddddde' },
+        update: {},
+        create: {
+            id: 'dddddddd-dddd-4ddd-addd-ddddddddddde',
+            modifierGroupId: modgMilk.id,
+            name: 'Almond Milk Add-on',
+            price: 30.0
+        }
+    });
+
+    const modoVanilla = await prisma.modifierOption.upsert({
+        where: { id: 'dddddddd-dddd-4ddd-addd-dddddddddddf' },
+        update: {},
+        create: {
+            id: 'dddddddd-dddd-4ddd-addd-dddddddddddf',
+            modifierGroupId: modgSyrups.id,
+            name: 'Vanilla Syrup Shot',
+            price: 20.0
+        }
+    });
+
+    const modoCaramel = await prisma.modifierOption.upsert({
+        where: { id: 'dddddddd-dddd-4ddd-addd-dddddddddd01' },
+        update: {},
+        create: {
+            id: 'dddddddd-dddd-4ddd-addd-dddddddddd01',
+            modifierGroupId: modgSyrups.id,
+            name: 'Extra Caramel Drizzle',
+            price: 20.0
+        }
+    });
+
+    // Recipes for modifier options
+    async function seedModifierRecipe(
+        id: string,
+        optionId: string,
+        recipeName: string,
+        recipeDesc: string,
+        ingredients: { ingredientId: string; qty: number; unitId: string }[]
+    ) {
+        const recipe = await prisma.recipe.upsert({
+            where: { modifierOptionId: optionId },
+            update: { name: recipeName, description: recipeDesc },
+            create: {
+                id,
+                name: recipeName,
+                description: recipeDesc,
+                modifierOptionId: optionId,
+                createdById: adminId,
+                updatedById: adminId
+            }
+        });
+
+        await prisma.recipeIngredient.deleteMany({
+            where: { recipeId: recipe.id }
+        });
+
+        for (let j = 0; j < ingredients.length; j++) {
+            const ing = ingredients[j];
+            await prisma.recipeIngredient.create({
+                data: {
+                    recipeId: recipe.id,
+                    ingredientId: ing.ingredientId,
+                    quantity: ing.qty,
+                    ingredientUnitId: ing.unitId,
+                    createdById: adminId,
+                    updatedById: adminId
+                }
+            });
+        }
+    }
+
+    await seedModifierRecipe(
+        'eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee',
+        modoOatMilk.id,
+        'Oat Milk Modifier Recipe',
+        '220ml of oat milk for customization',
+        [{ ingredientId: ingOatMilk.id, qty: 220.0, unitId: unitMilliliters.id }]
+    );
+
+    await seedModifierRecipe(
+        'eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeea',
+        modoAlmondMilk.id,
+        'Almond Milk Modifier Recipe',
+        '220ml of almond milk for customization',
+        [{ ingredientId: ingAlmondMilk.id, qty: 220.0, unitId: unitMilliliters.id }]
+    );
+
+    await seedModifierRecipe('eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeeb', modoVanilla.id, 'Vanilla Syrup Modifier Recipe', '15ml of vanilla syrup shot', [
+        { ingredientId: ingVanilla.id, qty: 15.0, unitId: unitMilliliters.id }
+    ]);
+
+    await seedModifierRecipe('eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeec', modoCaramel.id, 'Caramel Drizzle Modifier Recipe', '15ml of caramel drizzle', [
+        { ingredientId: ingCaramel.id, qty: 15.0, unitId: unitMilliliters.id }
+    ]);
 
     console.log('Explicit Products, Recipes, Inventory, and Suppliers Seeded successfully!');
 }

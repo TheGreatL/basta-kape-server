@@ -311,9 +311,9 @@ export class InventoryService {
     }
 
     async getInventoryForecast() {
-        const variants = await this.repository.getVariantsWithRecipes();
+        const [variants, modifiers] = await Promise.all([this.repository.getVariantsWithRecipes(), this.repository.getModifierOptionsWithRecipes()]);
 
-        const forecast = variants.map((variant) => {
+        const variantForecasts = variants.map((variant) => {
             // Get variant descriptive name
             const attrNames = variant.attributes.map((attr) => attr.attributeValue.value).join(', ');
             const name = attrNames ? `${variant.product.name} (${attrNames})` : variant.product.name;
@@ -388,6 +388,78 @@ export class InventoryService {
             };
         });
 
-        return forecast;
+        const modifierForecasts = modifiers.map((option) => {
+            const name = `[Modifier] ${option.name}`;
+
+            // If no recipe is configured
+            if (!option.recipe) {
+                return {
+                    variantId: option.id,
+                    productId: option.modifierGroupId,
+                    name,
+                    sku: null,
+                    price: option.price,
+                    hasRecipe: false,
+                    maxProduceable: null,
+                    bottleneck: null,
+                    ingredients: []
+                };
+            }
+
+            let maxProduceable = Infinity;
+            let bottleneck: {
+                ingredientId: string;
+                name: string;
+                currentQuantity: number;
+                requiredQuantity: number;
+                unit: string;
+            } | null = null;
+
+            const ingredientDetails = option.recipe.ingredients.map((ri) => {
+                const inventory = ri.ingredient.inventories[0];
+                const currentQty = inventory ? inventory.currentQuantity : 0;
+                const requiredQty = ri.quantity;
+
+                const canProduce = requiredQty > 0 ? Math.floor(currentQty / requiredQty) : Infinity;
+
+                if (canProduce < maxProduceable) {
+                    maxProduceable = canProduce;
+                    bottleneck = {
+                        ingredientId: ri.ingredientId,
+                        name: ri.ingredient.name,
+                        currentQuantity: currentQty,
+                        requiredQuantity: requiredQty,
+                        unit: ri.unit.abbreviation || ri.unit.name
+                    };
+                }
+
+                return {
+                    ingredientId: ri.ingredientId,
+                    name: ri.ingredient.name,
+                    currentQuantity: currentQty,
+                    requiredQuantity: requiredQty,
+                    unit: ri.unit.abbreviation || ri.unit.name,
+                    canProduce: canProduce === Infinity ? 'Unlimited' : canProduce
+                };
+            });
+
+            if (ingredientDetails.length === 0) {
+                maxProduceable = Infinity;
+            }
+
+            return {
+                variantId: option.id,
+                productId: option.modifierGroupId,
+                name,
+                sku: null,
+                price: option.price,
+                hasRecipe: true,
+                maxProduceable: maxProduceable === Infinity ? 'Unlimited' : maxProduceable,
+                bottleneck,
+                ingredients: ingredientDetails
+            };
+        });
+
+        return [...variantForecasts, ...modifierForecasts];
     }
 }

@@ -146,6 +146,9 @@ export class ProductRepository extends BaseRepository {
                     include: {
                         createdBy: { select: auditSelect },
                         updatedBy: { select: auditSelect },
+                        recipe: {
+                            select: { id: true, name: true }
+                        },
                         attributes: {
                             where: { deletedAt: null },
                             include: {
@@ -212,6 +215,9 @@ export class ProductRepository extends BaseRepository {
                         include: {
                             createdBy: { select: auditSelect },
                             updatedBy: { select: auditSelect },
+                            recipe: {
+                                select: { id: true, name: true }
+                            },
                             attributes: {
                                 where: { deletedAt: null },
                                 include: {

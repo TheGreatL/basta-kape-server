@@ -147,7 +147,13 @@ export class CustomerService {
             throw new NotFoundException('Product variant not found');
         }
 
-        const cartItem = await this.customerRepository.addCartItem(customerId, data.productVariantId, data.quantity, variant.price);
+        const cartItem = await this.customerRepository.addCartItem(
+            customerId,
+            data.productVariantId,
+            data.quantity,
+            variant.price,
+            data.modifierOptionIds || []
+        );
 
         await this.activityLogService.logActivity({
             actorId,
