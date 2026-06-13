@@ -135,7 +135,24 @@ export class OrderRepository extends BaseRepository {
                     },
                     orderBy: { createdAt: 'asc' }
                 },
-                payments: true
+                payments: true,
+                discounts: {
+                    include: {
+                        discount: true
+                    }
+                },
+                voidLogs: {
+                    include: {
+                        voidedBy: {
+                            select: {
+                                id: true,
+                                username: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
             }
         });
     }

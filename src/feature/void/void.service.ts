@@ -2,6 +2,7 @@ import { VoidRepository } from './void.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, BadRequestException, ForbiddenException } from '@/exceptions';
 import { OrderStatus } from '@prisma/client';
+import { appModules, appPermissions } from '@/constant';
 
 type VoidServiceConstructor = {
     voidRepository?: VoidRepository;
@@ -29,17 +30,28 @@ export class VoidService {
             throw new BadRequestException('Cannot void an order that is already completed or cancelled.');
         }
 
-        // 3. Verify authorizing user (actorId) has role 'Manager', 'Supervisor', 'Administrator', or 'Owner'
+        // 3. Verify authorizing user (actorId) has delete permission on Point of Sale (POS) module
         const user = await this.repository.findUserWithRoles(actorId);
         if (!user) {
             throw new ForbiddenException('User not found.');
         }
 
-        const roleNames = user.userRoles.map((ur) => ur.role.name);
-        const hasRequiredRole = roleNames.some((roleName) => ['manager', 'supervisor', 'administrator', 'owner'].includes(roleName.toLowerCase()));
+        let hasDeletePermission = false;
+        for (const ur of user.userRoles) {
+            for (const rp of ur.role.rolePermissions) {
+                if (
+                    rp.modulePermission.module.name.toLowerCase() === appModules.POINT_OF_SALE.toLowerCase() &&
+                    rp.modulePermission.permission.name.toLowerCase() === appPermissions.DELETE.toLowerCase()
+                ) {
+                    hasDeletePermission = true;
+                    break;
+                }
+            }
+            if (hasDeletePermission) break;
+        }
 
-        if (!hasRequiredRole) {
-            throw new ForbiddenException('Insufficient permissions. Managers, supervisors, or administrators override required.');
+        if (!hasDeletePermission) {
+            throw new ForbiddenException('Insufficient permissions. Delete permission on Point of Sale (POS) module required.');
         }
 
         // 4. Run the transaction via repository to void the order and record logs

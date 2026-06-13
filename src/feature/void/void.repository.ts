@@ -13,8 +13,23 @@ export class VoidRepository extends BaseRepository {
             where: { id: userId },
             include: {
                 userRoles: {
+                    where: { deletedAt: null },
                     include: {
-                        role: true
+                        role: {
+                            include: {
+                                rolePermissions: {
+                                    where: { deletedAt: null },
+                                    include: {
+                                        modulePermission: {
+                                            include: {
+                                                module: true,
+                                                permission: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

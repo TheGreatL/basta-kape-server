@@ -356,7 +356,7 @@ describe('Order Feature CRUD', () => {
         });
 
         it('should fetch the list of orders', async () => {
-            const res = await request(app).get('/orders?limit=10');
+            const res = await request(app).get('/orders?search=Customer%20Jane');
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('data');
             expect(res.body).toHaveProperty('meta');

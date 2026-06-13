@@ -87,7 +87,43 @@ export const OrderResponseSchema = z.object({
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     items: z.array(OrderItemResponseSchema).optional(),
-    payments: z.array(OrderPaymentResponseSchema).optional()
+    payments: z.array(OrderPaymentResponseSchema).optional(),
+    discounts: z
+        .array(
+            z.object({
+                id: z.string(),
+                orderId: z.string(),
+                discountId: z.string(),
+                amount: z.number(),
+                referenceId: z.string().nullable(),
+                referenceName: z.string().nullable(),
+                createdAt: z.date().or(z.string()),
+                discount: z.object({
+                    id: z.string(),
+                    name: z.string(),
+                    type: z.string(),
+                    value: z.number()
+                })
+            })
+        )
+        .optional(),
+    voidLogs: z
+        .array(
+            z.object({
+                id: z.string(),
+                orderId: z.string(),
+                reason: z.string(),
+                voidedById: z.string(),
+                createdAt: z.date().or(z.string()),
+                voidedBy: z.object({
+                    id: z.string(),
+                    username: z.string(),
+                    firstName: z.string(),
+                    lastName: z.string()
+                })
+            })
+        )
+        .optional()
 });
 
 export type TOrderResponse = z.infer<typeof OrderResponseSchema>;

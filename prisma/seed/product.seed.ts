@@ -1196,5 +1196,121 @@ export async function seedProduct(prisma: PrismaClient) {
         { ingredientId: ingCaramel.id, qty: 15.0, unitId: unitMilliliters.id }
     ]);
 
+    // ==========================================
+    // SEED PURCHASE ORDERS
+    // ==========================================
+    console.log('Seeding Purchase Orders...');
+
+    // Draft Purchase Order
+    await prisma.purchaseOrder.upsert({
+        where: { poNumber: 'PO-20260613-0001' },
+        update: {},
+        create: {
+            poNumber: 'PO-20260613-0001',
+            status: 'DRAFT',
+            notes: 'Stocking up on Espresso Beans for the summer rush',
+            totalAmount: 2000.0,
+            supplierId: supplierRoastery.id,
+            createdById: adminId,
+            items: {
+                create: [
+                    {
+                        ingredientId: ingBeans.id,
+                        quantity: 5000,
+                        unitCost: 0.4,
+                        totalCost: 2000.0
+                    }
+                ]
+            }
+        }
+    });
+
+    // Sent Purchase Order
+    await prisma.purchaseOrder.upsert({
+        where: { poNumber: 'PO-20260613-0002' },
+        update: {},
+        create: {
+            poNumber: 'PO-20260613-0002',
+            status: 'SENT',
+            notes: 'Regular weekly dairy restocking',
+            totalAmount: 3960.0,
+            supplierId: supplierDairy.id,
+            createdById: adminId,
+            orderedAt: new Date(),
+            items: {
+                create: [
+                    {
+                        ingredientId: ingWholeMilk.id,
+                        quantity: 24000,
+                        unitCost: 0.09,
+                        totalCost: 2160.0
+                    },
+                    {
+                        ingredientId: ingOatMilk.id,
+                        quantity: 12000,
+                        unitCost: 0.15,
+                        totalCost: 1800.0
+                    }
+                ]
+            }
+        }
+    });
+
+    // Received Purchase Order
+    await prisma.purchaseOrder.upsert({
+        where: { poNumber: 'PO-20260612-0003' },
+        update: {},
+        create: {
+            poNumber: 'PO-20260612-0003',
+            status: 'RECEIVED',
+            notes: 'Syrups and matchas order',
+            totalAmount: 1800.0,
+            supplierId: supplierGrocery.id,
+            createdById: adminId,
+            orderedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            receivedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
+            items: {
+                create: [
+                    {
+                        ingredientId: ingMatcha.id,
+                        quantity: 1000,
+                        unitCost: 1.2,
+                        totalCost: 1200.0
+                    },
+                    {
+                        ingredientId: ingVanilla.id,
+                        quantity: 6000,
+                        unitCost: 0.1,
+                        totalCost: 600.0
+                    }
+                ]
+            }
+        }
+    });
+
+    // Cancelled Purchase Order
+    await prisma.purchaseOrder.upsert({
+        where: { poNumber: 'PO-20260610-0004' },
+        update: {},
+        create: {
+            poNumber: 'PO-20260610-0004',
+            status: 'CANCELLED',
+            notes: 'Duplicate request, cancelling',
+            totalAmount: 1750.0,
+            supplierId: supplierGrocery.id,
+            createdById: adminId,
+            items: {
+                create: [
+                    {
+                        ingredientId: ingChocolate.id,
+                        quantity: 5000,
+                        unitCost: 0.35,
+                        totalCost: 1750.0
+                    }
+                ]
+            }
+        }
+    });
+
     console.log('Explicit Products, Recipes, Inventory, and Suppliers Seeded successfully!');
 }

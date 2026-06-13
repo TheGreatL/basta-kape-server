@@ -3,7 +3,8 @@ import { RegisterShiftService } from '@/feature/register-shift/register-shift.se
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, BadRequestException, ConflictException } from '@/exceptions';
 import type { TCreatePayment } from './payment.types';
-import { PaymentStatus, OrderStatus } from '@prisma/client';
+import { PaymentStatus, OrderStatus, PaymentMethod } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 type PaymentServiceConstructor = {
     paymentRepository?: PaymentRepository;
@@ -110,5 +111,40 @@ export class PaymentService {
         });
 
         return payment;
+    }
+
+    async getPaymentList(params: {
+        page: number;
+        limit: number;
+        search?: string;
+        paymentMethod?: PaymentMethod;
+        paymentStatus?: PaymentStatus;
+        dateFrom?: string;
+        dateTo?: string;
+    }) {
+        return this.repository.getPaymentList(params);
+    }
+
+    async updatePaymentReceipt(paymentId: string, data: { paymentProofPhoto?: string; gcashReferenceNumber?: string }, actorId: string) {
+        const payment = await prisma.orderPayment.findUnique({
+            where: { id: paymentId }
+        });
+        if (!payment) {
+            throw new NotFoundException('Payment transaction not found');
+        }
+
+        if (payment.paymentMethod === 'CASH') {
+            throw new BadRequestException('Cannot upload payment receipt for cash transactions.');
+        }
+
+        const updated = await this.repository.updatePaymentReceipt(paymentId, data, actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Update Payment Receipt',
+            details: `Uploaded receipt proof/ref for payment ${paymentId} of order ${updated.orderId}. Status updated to PAID.`
+        });
+
+        return updated;
     }
 }

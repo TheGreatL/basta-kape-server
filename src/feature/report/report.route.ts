@@ -4,6 +4,7 @@ import { requireAccess } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
 import { ReportService } from './report.service';
 import { ReportExportSchema, ReportModulesResponseSchema, ReportPreviewResponseSchema, ReportPreviewSchema } from './report.types';
+import { z } from 'zod';
 
 const router = Router();
 const service = new ReportService();
@@ -108,5 +109,40 @@ router.post('/export', requireAccess(appModules.REPORTS_MANAGEMENT, appPermissio
         next(error);
     }
 });
+
+// GET /reports/sales-analytics
+registry.registerPath({
+    method: 'get',
+    path: '/reports/sales-analytics',
+    tags: ['Reports'],
+    summary: 'Retrieve compiled sales analytics data',
+    security: [{ bearerAuth: [] }],
+    request: {
+        query: z.object({
+            dateFrom: z.string().optional(),
+            dateTo: z.string().optional()
+        })
+    },
+    responses: {
+        200: {
+            description: 'Sales analytics retrieved successfully'
+        }
+    }
+});
+
+router.get(
+    '/sales-analytics',
+    requireAccess(appModules.SALES_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const dateFrom = req.query.dateFrom as string;
+            const dateTo = req.query.dateTo as string;
+            const result = await service.getSalesAnalytics(dateFrom, dateTo);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 export default router;

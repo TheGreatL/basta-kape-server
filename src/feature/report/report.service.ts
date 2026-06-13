@@ -161,4 +161,138 @@ export class ReportService {
             buffer: file.buffer
         };
     }
+
+    async getSalesAnalytics(dateFrom?: string, dateTo?: string) {
+        const now = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+        const start = dateFrom ? new Date(dateFrom) : thirtyDaysAgo;
+        const end = dateTo ? new Date(dateTo) : now;
+        if (dateTo) {
+            end.setHours(23, 59, 59, 999);
+        }
+
+        const orders = await prisma.order.findMany({
+            where: {
+                status: 'COMPLETED',
+                createdAt: {
+                    gte: start,
+                    lte: end
+                }
+            },
+            include: {
+                items: {
+                    include: {
+                        variant: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                },
+                payments: true
+            }
+        });
+
+        // 1. Core aggregates
+        let grossSales = 0;
+        let discountTotal = 0;
+        let netSales = 0;
+        const orderCount = orders.length;
+
+        for (const order of orders) {
+            grossSales += order.subtotal;
+            discountTotal += order.discountAmount;
+            netSales += order.netTotal;
+        }
+
+        const averageOrderValue = orderCount > 0 ? netSales / orderCount : 0;
+
+        // 2. Payment methods breakdown
+        const paymentBreakdown = {
+            CASH: { count: 0, revenue: 0 },
+            GCASH: { count: 0, revenue: 0 },
+            PAYMAYA: { count: 0, revenue: 0 },
+            CREDIT_CARD: { count: 0, revenue: 0 }
+        };
+
+        for (const order of orders) {
+            for (const payment of order.payments) {
+                if (payment.paymentStatus === 'PAID') {
+                    const method = payment.paymentMethod;
+                    if (paymentBreakdown[method]) {
+                        paymentBreakdown[method].count += 1;
+                        paymentBreakdown[method].revenue += payment.amount;
+                    }
+                }
+            }
+        }
+
+        // 3. Order type breakdown
+        const orderTypeBreakdown = {
+            DINE_IN: { count: 0, revenue: 0 },
+            TAKE_OUT: { count: 0, revenue: 0 },
+            DELIVERY: { count: 0, revenue: 0 }
+        };
+
+        for (const order of orders) {
+            const type = order.orderType;
+            if (orderTypeBreakdown[type]) {
+                orderTypeBreakdown[type].count += 1;
+                orderTypeBreakdown[type].revenue += order.netTotal;
+            }
+        }
+
+        // 4. Top 5 selling items
+        const productMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
+        for (const order of orders) {
+            for (const item of order.items) {
+                const name = item.variant.product.name;
+                if (!productMap[name]) {
+                    productMap[name] = { name, quantity: 0, revenue: 0 };
+                }
+                productMap[name].quantity += item.quantity;
+                productMap[name].revenue += item.totalPrice;
+            }
+        }
+
+        const topProducts = Object.values(productMap)
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, 5);
+
+        // 5. Daily sales trend
+        const dailyMap: Record<string, { date: string; sales: number; count: number }> = {};
+        const temp = new Date(start);
+        while (temp <= end) {
+            const dateStr = temp.toISOString().split('T')[0];
+            dailyMap[dateStr] = { date: dateStr, sales: 0, count: 0 };
+            temp.setDate(temp.getDate() + 1);
+        }
+
+        for (const order of orders) {
+            const dateStr = order.createdAt.toISOString().split('T')[0];
+            if (dailyMap[dateStr]) {
+                dailyMap[dateStr].sales += order.netTotal;
+                dailyMap[dateStr].count += 1;
+            }
+        }
+
+        const dailyTrend = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+
+        return {
+            summary: {
+                grossSales,
+                discountTotal,
+                netSales,
+                orderCount,
+                averageOrderValue
+            },
+            paymentBreakdown,
+            orderTypeBreakdown,
+            topProducts,
+            dailyTrend
+        };
+    }
 }

@@ -130,6 +130,70 @@ describe('Void Feature Integration Tests', () => {
             create: { name: 'Cashier', isSystem: true }
         });
 
+        // Ensure Point of Sale (POS) delete permission exists in DB
+        let posModule = await prisma.module.findFirst({
+            where: { name: 'Point of Sale (POS)' }
+        });
+        if (!posModule) {
+            posModule = await prisma.module.create({
+                data: { name: 'Point of Sale (POS)' }
+            });
+        }
+
+        let deletePermission = await prisma.permission.findFirst({
+            where: { name: 'delete' }
+        });
+        if (!deletePermission) {
+            deletePermission = await prisma.permission.create({
+                data: { name: 'delete' }
+            });
+        }
+
+        let posDeleteMP = await prisma.modulePermission.findFirst({
+            where: {
+                moduleId: posModule.id,
+                permissionId: deletePermission.id,
+                accessScope: 'ALL'
+            }
+        });
+        if (!posDeleteMP) {
+            posDeleteMP = await prisma.modulePermission.create({
+                data: {
+                    moduleId: posModule.id,
+                    permissionId: deletePermission.id,
+                    accessScope: 'ALL'
+                }
+            });
+        }
+
+        // Link POS delete permission to Administrator role if not already linked
+        const adminRolePermission = await prisma.rolePermission.findFirst({
+            where: {
+                roleId: adminRole.id,
+                modulePermissionId: posDeleteMP.id,
+                deletedAt: null
+            }
+        });
+        if (!adminRolePermission) {
+            await prisma.rolePermission.create({
+                data: {
+                    roleId: adminRole.id,
+                    modulePermissionId: posDeleteMP.id
+                }
+            });
+        }
+
+        // Remove any POS delete permission from Cashier role if it exists
+        await prisma.rolePermission.deleteMany({
+            where: {
+                roleId: cashierRole.id,
+                modulePermission: {
+                    module: { name: 'Point of Sale (POS)' },
+                    permission: { name: 'delete' }
+                }
+            }
+        });
+
         await prisma.user.create({
             data: {
                 id: 'test-void-admin-id',
@@ -364,7 +428,7 @@ describe('Void Feature Integration Tests', () => {
             expect(res.body.error).toContain('Cannot void an order that is already completed or cancelled');
         });
 
-        it('should throw ForbiddenException if actor does not have required manager/supervisor/admin role', async () => {
+        it('should throw ForbiddenException if actor does not have POS delete permission', async () => {
             const order = await createTestOrder('PENDING');
 
             // We test the service layer logic directly to bypass router RBAC middleware mocking

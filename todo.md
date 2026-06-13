@@ -37,8 +37,8 @@
 - [x] Connect modifier options to the inventory system via modifier option recipes (`/modifiers/options/:optionId/recipe` endpoints)
 - [x] Implement transaction-level automatic inventory ingredient stock deduction for completed orders (variant + modifiers)
 - [x] Integrate modifier option produceable capacities and bottlenecks into production forecast projection outputs
-- [ ] Refactor POS order creation (`create-order-dialog.tsx`) to enforce modifier selection constraints (`maxSelect`, `isRequired`, warning alerts) similarly to the customer details page.
-- [ ] Add visual warning/out-of-stock indicators for modifier options based on active inventory forecast bottlenecks.
+- [x] Refactor POS order creation (`create-order-dialog.tsx`) to enforce modifier selection constraints (`maxSelect`, `isRequired`, warning alerts) similarly to the customer details page.
+- [x] Add visual warning/out-of-stock indicators for modifier options based on active inventory forecast bottlenecks.
 
 ---
 
