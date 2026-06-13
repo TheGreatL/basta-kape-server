@@ -26,6 +26,7 @@ import paymentRouter from './feature/payment/payment.route';
 import { discountConfigRouter, orderDiscountRouter } from './feature/discount/discount.route';
 import { voidRouter } from './feature/void/void.route';
 import purchaseOrderRouter from './feature/purchase-order/purchase-order.route';
+import dashboardRouter from './feature/dashboard/dashboard.route';
 
 const router = Router();
 
@@ -73,6 +74,7 @@ router.use('/orders', orderRouter);
 router.use('/discounts', discountConfigRouter);
 router.use('/modifiers', modifierRouter);
 router.use('/purchase-orders', purchaseOrderRouter);
+router.use('/dashboard', dashboardRouter);
 
 registry.registerPath({
     method: 'get',

@@ -165,6 +165,16 @@ export class OrderService {
         const queueNumber = `#${String(countToday + 1).padStart(3, '0')}`;
 
         // Create the order in DB
+        let paymentDetails = data.paymentMethod
+            ? {
+                  paymentMethod: data.paymentMethod,
+                  gcashReferenceNumber: data.gcashReferenceNumber,
+                  paymentProofPhoto: data.paymentProofPhoto
+              }
+            : null;
+        if (data.paymentMethod === 'CASH') {
+            paymentDetails = null;
+        }
         const order = await this.repository.createOrder({
             queueNumber,
             orderType: data.orderType,
@@ -177,7 +187,8 @@ export class OrderService {
             customerName: data.customerName,
             cashierSessionId,
             actorId,
-            items: itemDetails
+            items: itemDetails,
+            paymentDetails
         });
 
         await this.activityLogService.logActivity({

@@ -182,6 +182,9 @@ export class ReportService {
                     lte: end
                 }
             },
+            orderBy: {
+                createdAt: 'desc'
+            },
             include: {
                 items: {
                     include: {
@@ -292,7 +295,25 @@ export class ReportService {
             paymentBreakdown,
             orderTypeBreakdown,
             topProducts,
-            dailyTrend
+            dailyTrend,
+            orders: orders.map((order) => ({
+                id: order.id,
+                queueNumber: order.queueNumber,
+                customerName: order.customerName,
+                orderType: order.orderType,
+                orderSource: order.orderSource,
+                netTotal: order.netTotal,
+                createdAt: order.createdAt.toISOString(),
+                status: order.status,
+                payments: order.payments.map((payment) => ({
+                    id: payment.id,
+                    paymentMethod: payment.paymentMethod,
+                    paymentStatus: payment.paymentStatus,
+                    amount: payment.amount,
+                    gcashReferenceNumber: payment.gcashReferenceNumber,
+                    paymentProofPhoto: payment.paymentProofPhoto
+                }))
+            }))
         };
     }
 }

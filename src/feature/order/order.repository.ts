@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
-import { Prisma, OrderStatus, OrderType, OrderSource } from '@prisma/client';
+import { Prisma, OrderStatus, OrderType, OrderSource, PaymentMethod, PaymentStatus } from '@prisma/client';
 import type { TGetOrderListQuery } from './order.types';
 import type { IPaginatedResult } from '@/types/base.types';
 
@@ -27,6 +27,11 @@ type TCreateOrderRepoData = {
             price: number;
         }[];
     }[];
+    paymentDetails?: {
+        paymentMethod: PaymentMethod;
+        gcashReferenceNumber?: string | null;
+        paymentProofPhoto?: string | null;
+    } | null;
 };
 
 export class OrderRepository extends BaseRepository {
@@ -96,6 +101,19 @@ export class OrderRepository extends BaseRepository {
                     changedById: data.actorId
                 }
             });
+
+            if (data.paymentDetails) {
+                await tx.orderPayment.create({
+                    data: {
+                        orderId: order.id,
+                        paymentMethod: data.paymentDetails.paymentMethod,
+                        paymentStatus: PaymentStatus.PENDING,
+                        amount: data.netTotal,
+                        gcashReferenceNumber: data.paymentDetails.gcashReferenceNumber ?? null,
+                        paymentProofPhoto: data.paymentDetails.paymentProofPhoto ?? null
+                    }
+                });
+            }
 
             return order;
         });

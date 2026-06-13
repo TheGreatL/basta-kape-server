@@ -19,14 +19,38 @@ export const CreateOrderItemSchema = z.object({
 
 export type TCreateOrderItem = z.infer<typeof CreateOrderItemSchema>;
 
-export const CreateOrderSchema = z.object({
-    orderType: OrderTypeEnum.default('DINE_IN'),
-    orderSource: OrderSourceEnum.default('POS'),
-    notes: z.string().max(1000).optional().nullable(),
-    customerId: z.string().uuid().optional().nullable(),
-    customerName: z.string().max(100).optional().nullable(),
-    items: z.array(CreateOrderItemSchema).min(1, 'Order must contain at least one item')
-});
+export const CreateOrderSchema = z
+    .object({
+        orderType: OrderTypeEnum.default('DINE_IN'),
+        orderSource: OrderSourceEnum.default('POS'),
+        notes: z.string().max(1000).optional().nullable(),
+        customerId: z.string().uuid().optional().nullable(),
+        customerName: z.string().max(100).optional().nullable(),
+        paymentMethod: z.enum(['CASH', 'GCASH', 'PAYMAYA']).optional().nullable(),
+        gcashReferenceNumber: z.string().max(100).optional().nullable(),
+        paymentProofPhoto: z.string().max(1000).optional().nullable(),
+        items: z.array(CreateOrderItemSchema).min(1, 'Order must contain at least one item')
+    })
+    .superRefine((data, ctx) => {
+        if (data.paymentMethod === 'GCASH' || data.paymentMethod === 'PAYMAYA') {
+            if (!data.gcashReferenceNumber || !data.gcashReferenceNumber.trim()) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Reference number is required for GCash/Maya payments',
+                    path: ['gcashReferenceNumber']
+                });
+            }
+            if (data.orderSource === 'WEBSITE' || data.orderSource === 'MOBILE_APP') {
+                if (!data.paymentProofPhoto || !data.paymentProofPhoto.trim()) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Payment proof photo is required for GCash/Maya payments from customer sources',
+                        path: ['paymentProofPhoto']
+                    });
+                }
+            }
+        }
+    });
 
 export type TCreateOrder = z.infer<typeof CreateOrderSchema>;
 

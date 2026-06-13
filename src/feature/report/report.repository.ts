@@ -45,6 +45,8 @@ export class ReportRepository extends BaseRepository {
                 return this.fetchActivityLogs(filters, pagination);
             case 'orders':
                 return this.fetchOrders(filters, pagination);
+            case 'sales':
+                return this.fetchSalesSummary(filters, pagination);
             default:
                 return { rows: [], total: 0 };
         }
@@ -492,6 +494,129 @@ export class ReportRepository extends BaseRepository {
                 netTotal: formatCurrency(order.netTotal),
                 createdAt: formatDateTime(order.createdAt)
             }))
+        };
+    }
+
+    private async fetchSalesSummary(filters: TReportFilters, pagination?: { page: number; limit: number }): Promise<TReportQueryResult> {
+        const where: Prisma.OrderWhereInput = {
+            status: 'COMPLETED'
+        };
+
+        if (filters.status === 'active') where.deletedAt = null;
+        else if (filters.status === 'archive') where.deletedAt = { not: null };
+
+        if (filters.dateFrom || filters.dateTo) {
+            where.createdAt = {};
+            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
+            if (filters.dateTo) {
+                const end = new Date(filters.dateTo);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt.lte = end;
+            }
+        }
+
+        // Fetch all matching completed orders
+        const orders = await prisma.order.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                payments: true
+            }
+        });
+
+        // Group by YYYY-MM-DD in Asia/Manila local time
+        const dailyGroups: Record<
+            string,
+            {
+                date: string;
+                orderCount: number;
+                grossSales: number;
+                discountAmount: number;
+                netSales: number;
+                cashSales: number;
+                gcashSales: number;
+                paymayaSales: number;
+                cardSales: number;
+            }
+        > = {};
+
+        const localDateFormatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+
+        for (const order of orders) {
+            const dateStr = localDateFormatter.format(order.createdAt);
+
+            if (!dailyGroups[dateStr]) {
+                dailyGroups[dateStr] = {
+                    date: dateStr,
+                    orderCount: 0,
+                    grossSales: 0,
+                    discountAmount: 0,
+                    netSales: 0,
+                    cashSales: 0,
+                    gcashSales: 0,
+                    paymayaSales: 0,
+                    cardSales: 0
+                };
+            }
+
+            const group = dailyGroups[dateStr];
+            group.orderCount += 1;
+            group.grossSales += order.subtotal;
+            group.discountAmount += order.discountAmount;
+            group.netSales += order.netTotal;
+
+            for (const payment of order.payments) {
+                if (payment.paymentStatus === 'PAID') {
+                    if (payment.paymentMethod === 'CASH') {
+                        group.cashSales += payment.amount;
+                    } else if (payment.paymentMethod === 'GCASH') {
+                        group.gcashSales += payment.amount;
+                    } else if (payment.paymentMethod === 'PAYMAYA') {
+                        group.paymayaSales += payment.amount;
+                    } else if (payment.paymentMethod === 'CREDIT_CARD') {
+                        group.cardSales += payment.amount;
+                    }
+                }
+            }
+        }
+
+        let rows = Object.values(dailyGroups);
+
+        // Filter by search string (match against date format)
+        if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
+            rows = rows.filter((row) => row.date.includes(searchLower));
+        }
+
+        // Sort by date descending
+        rows.sort((a, b) => b.date.localeCompare(a.date));
+
+        const total = rows.length;
+
+        // Pagination
+        const { skip, take } = this.resolvePagination(pagination);
+        const paginatedRows = rows.slice(skip, skip + take);
+
+        const formattedRows = paginatedRows.map((row) => ({
+            date: row.date,
+            orderCount: row.orderCount,
+            grossSales: formatCurrency(row.grossSales),
+            discountAmount: formatCurrency(row.discountAmount),
+            netSales: formatCurrency(row.netSales),
+            cashSales: formatCurrency(row.cashSales),
+            gcashSales: formatCurrency(row.gcashSales),
+            paymayaSales: formatCurrency(row.paymayaSales),
+            cardSales: formatCurrency(row.cardSales)
+        }));
+
+        return {
+            total,
+            rows: formattedRows
         };
     }
 }

@@ -13,7 +13,8 @@ export const ReportModuleSchema = z.enum([
     'customers',
     'suppliers',
     'activity-logs',
-    'orders'
+    'orders',
+    'sales'
 ]);
 
 export type TReportModule = z.infer<typeof ReportModuleSchema>;
@@ -343,6 +344,24 @@ export const REPORT_MODULE_CATALOG: TReportModuleDefinition[] = [
             { key: 'discountAmount', header: 'Discount', width: 12, align: 'right' },
             { key: 'netTotal', header: 'Net Total', width: 12, align: 'right' },
             { key: 'createdAt', header: 'Order Date', width: 22 }
+        ]
+    },
+    {
+        id: 'sales',
+        label: 'Sales Summary',
+        description: 'Daily compiled sales numbers including payment methods breakdown and discount totals.',
+        sourceModule: appModules.SALES_MANAGEMENT,
+        filters: [{ key: 'search', label: 'Search', type: 'text' }, commonStatusFilter, ...commonDateFilters],
+        columns: [
+            { key: 'date', header: 'Date', width: 15 },
+            { key: 'orderCount', header: 'Orders', width: 10, align: 'right' },
+            { key: 'grossSales', header: 'Gross Sales', width: 15, align: 'right' },
+            { key: 'discountAmount', header: 'Discounts', width: 14, align: 'right' },
+            { key: 'netSales', header: 'Net Sales', width: 15, align: 'right' },
+            { key: 'cashSales', header: 'Cash Sales', width: 14, align: 'right' },
+            { key: 'gcashSales', header: 'GCash Sales', width: 14, align: 'right' },
+            { key: 'paymayaSales', header: 'PayMaya Sales', width: 14, align: 'right' },
+            { key: 'cardSales', header: 'Card Sales', width: 14, align: 'right' }
         ]
     }
 ];

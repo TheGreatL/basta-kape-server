@@ -43,6 +43,7 @@ describe('Report Feature', () => {
     let app: express.Application;
     let prisma: PrismaClient;
     let testSupplierId: string;
+    let testOrderId: string;
 
     beforeAll(async () => {
         prisma = new PrismaClient();
@@ -85,11 +86,32 @@ describe('Report Feature', () => {
             }
         });
         testSupplierId = supplier.id;
+
+        const order = await prisma.order.create({
+            data: {
+                status: 'COMPLETED',
+                subtotal: 150.0,
+                discountAmount: 20.0,
+                netTotal: 130.0,
+                payments: {
+                    create: {
+                        paymentMethod: 'CASH',
+                        paymentStatus: 'PAID',
+                        amount: 130.0
+                    }
+                }
+            }
+        });
+        testOrderId = order.id;
     });
 
     afterAll(async () => {
         if (testSupplierId) {
             await prisma.supplier.deleteMany({ where: { id: testSupplierId } });
+        }
+        if (testOrderId) {
+            await prisma.orderPayment.deleteMany({ where: { orderId: testOrderId } });
+            await prisma.order.deleteMany({ where: { id: testOrderId } });
         }
         await prisma.user.deleteMany({ where: { id: 'test-report-user-id' } });
         await prisma.$disconnect();
@@ -225,5 +247,39 @@ describe('Report Feature', () => {
         });
 
         expect(res.status).toBe(400);
+    });
+
+    it('should preview sales report data and aggregate orders correctly', async () => {
+        const res = await request(app)
+            .post('/reports/preview')
+            .send({
+                module: 'sales',
+                filters: { status: 'active' },
+                page: 1,
+                limit: 10
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.module).toBe('sales');
+        expect(res.body).toHaveProperty('columns');
+        expect(res.body).toHaveProperty('rows');
+        expect(res.body.meta.total).toBeGreaterThanOrEqual(1);
+
+        const todayStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date());
+
+        const row = res.body.rows.find((entry: { date: string }) => entry.date === todayStr);
+        expect(row).toBeDefined();
+        expect(row.orderCount).toBeGreaterThanOrEqual(1);
+
+        const parseVal = (str: string) => parseFloat(str.replace(/[^\d.]/g, ''));
+        expect(parseVal(row.grossSales)).toBeGreaterThanOrEqual(150.0);
+        expect(parseVal(row.discountAmount)).toBeGreaterThanOrEqual(20.0);
+        expect(parseVal(row.netSales)).toBeGreaterThanOrEqual(130.0);
+        expect(parseVal(row.cashSales)).toBeGreaterThanOrEqual(130.0);
     });
 });
