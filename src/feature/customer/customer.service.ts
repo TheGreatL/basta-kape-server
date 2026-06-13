@@ -204,16 +204,19 @@ export class CustomerService {
         });
     }
 
-    async clearCart(customerId: string, actorId: string) {
+    async clearCart(customerId: string, actorId: string, cartItemIds?: string[]) {
         // Ensure customer exists
         const customer = await this.getCustomerById(customerId);
 
-        await this.customerRepository.clearCart(customerId);
+        await this.customerRepository.clearCart(customerId, cartItemIds);
 
+        const isPartial = cartItemIds && cartItemIds.length > 0;
         await this.activityLogService.logActivity({
             actorId,
-            title: 'Clear Cart',
-            details: `Cleared all cart items for customer ${customer.user.username}.`
+            title: isPartial ? 'Clear Specific Cart Items' : 'Clear Cart',
+            details: isPartial
+                ? `Cleared ${cartItemIds.length} specific cart item(s) for customer ${customer.user.username}.`
+                : `Cleared all cart items for customer ${customer.user.username}.`
         });
     }
 

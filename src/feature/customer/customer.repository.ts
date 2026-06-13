@@ -379,14 +379,20 @@ export class CustomerRepository extends BaseRepository {
     }
 
     /**
-     * Soft-deletes all cart items for a customer.
+     * Soft-deletes specific or all cart items for a customer.
      */
-    async clearCart(customerId: string) {
+    async clearCart(customerId: string, cartItemIds?: string[]) {
+        const where: Prisma.CustomerCartUpdateManyArgs['where'] = {
+            customerId,
+            deletedAt: null
+        };
+
+        if (cartItemIds && cartItemIds.length > 0) {
+            where.id = { in: cartItemIds };
+        }
+
         return prisma.customerCart.updateMany({
-            where: {
-                customerId,
-                deletedAt: null
-            },
+            where,
             data: { deletedAt: new Date() }
         });
     }

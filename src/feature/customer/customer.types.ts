@@ -179,6 +179,12 @@ export const CartResponseSchema = z.object({
 
 export type TCartResponse = z.infer<typeof CartResponseSchema>;
 
+export const ClearCartSchema = z.object({
+    cartItemIds: z.array(z.string()).optional()
+});
+
+export type TClearCart = z.infer<typeof ClearCartSchema>;
+
 export const GetCustomerOrdersQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1).optional(),
     limit: z.coerce.number().min(1).max(100).default(10).optional(),

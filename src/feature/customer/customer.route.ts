@@ -13,6 +13,7 @@ import {
     UpdateCartItemSchema,
     CartResponseSchema,
     CartItemResponseSchema,
+    ClearCartSchema,
     GetCustomerOrdersQuerySchema
 } from './customer.types';
 
@@ -386,8 +387,17 @@ registry.registerPath({
     method: 'delete',
     path: '/customers/{id}/cart',
     tags: ['Customers'],
-    summary: 'Clear customer cart',
+    summary: 'Clear customer cart or specific items',
     security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: ClearCartSchema
+                }
+            }
+        }
+    },
     responses: {
         200: {
             description: 'Cart cleared successfully'
@@ -400,7 +410,8 @@ router.delete(
     requireAccess(appModules.CUSTOMERS_MANAGEMENT, appPermissions.UPDATE),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            await customerService.clearCart(req.params.id as string, req.user!.sub);
+            const body = ClearCartSchema.parse(req.body || {});
+            await customerService.clearCart(req.params.id as string, req.user!.sub, body.cartItemIds);
             res.json({ message: 'Cart cleared successfully' });
         } catch (error) {
             next(error);
