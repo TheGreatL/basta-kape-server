@@ -1,13 +1,18 @@
 import { LocalStorageService } from '@/lib/storage/local-storage.service';
+import { R2StorageService } from '@/lib/storage/r2-storage.service';
 import { IStorageService } from '@/lib/storage/storage.interface';
 import { BadRequestException } from '@/exceptions';
+import { env } from '@/env';
 
 export class UploadService {
     private storageService: IStorageService;
 
-    // By default, we use LocalStorageService. Later you can inject a SupabaseStorageService.
-    constructor(storageService: IStorageService = new LocalStorageService()) {
-        this.storageService = storageService;
+    constructor(storageService?: IStorageService) {
+        if (storageService) {
+            this.storageService = storageService;
+        } else {
+            this.storageService = env.STORAGE_PROVIDER === 'r2' ? new R2StorageService() : new LocalStorageService();
+        }
     }
 
     /**
