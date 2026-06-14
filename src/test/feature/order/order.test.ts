@@ -256,11 +256,11 @@ describe('Order Feature CRUD', () => {
 
             // Price verification
             // subtotal: 150.00 * 2 = 300.00
-            // taxAmount: 300.00 * 12% = 36.00
-            // netTotal: 300.00 + 36.00 = 336.00
+            // taxAmount: 300.00 * 12 / 112 = 32.14
+            // netTotal: 300.00
             expect(res.body.subtotal).toBe(300.0);
-            expect(res.body.taxAmount).toBe(36.0);
-            expect(res.body.netTotal).toBe(336.0);
+            expect(res.body.taxAmount).toBe(32.14);
+            expect(res.body.netTotal).toBe(300.0);
 
             createdOrderId = res.body.id;
         });
@@ -289,11 +289,11 @@ describe('Order Feature CRUD', () => {
             // Price verification
             // variant price: 150.00 + modifier price: 10.00 = 160.00
             // subtotal: 160.00 * 2 = 320.00
-            // taxAmount: 320.00 * 12% = 38.40
-            // netTotal: 320.00 + 38.40 = 358.40
+            // taxAmount: 320.00 * 12 / 112 = 34.29
+            // netTotal: 320.00
             expect(res.body.subtotal).toBe(320.0);
-            expect(res.body.taxAmount).toBe(38.4);
-            expect(res.body.netTotal).toBe(358.4);
+            expect(res.body.taxAmount).toBe(34.29);
+            expect(res.body.netTotal).toBe(320.0);
 
             // Verify modifiers returned in response or persisted in DB
             expect(res.body.items[0].modifiers).toHaveLength(1);

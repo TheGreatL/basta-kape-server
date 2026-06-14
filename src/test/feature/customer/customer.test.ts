@@ -347,8 +347,8 @@ describe('Customer Feature CRUD', () => {
                     orderType: 'DINE_IN',
                     orderSource: 'MOBILE_APP',
                     subtotal: 150.0,
-                    taxAmount: 18.0,
-                    netTotal: 168.0,
+                    taxAmount: 16.07,
+                    netTotal: 150.0,
                     notes: 'Extra sugar test customer orders',
                     items: {
                         create: {

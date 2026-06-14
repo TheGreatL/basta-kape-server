@@ -5,7 +5,8 @@ import { ActivityLogService } from '@/feature/activity-log/activity-log.service'
 import { prisma } from '@/lib/prisma';
 import { NotFoundException, BadRequestException } from '@/exceptions';
 import type { TCreateOrder, TGetOrderListQuery } from './order.types';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, StoreSetting } from '@prisma/client';
+import { generateHtmlReceipt, generateTextReceipt, generatePdfReceipt } from './receipt.template';
 
 type OrderServiceConstructor = {
     orderRepository?: OrderRepository;
@@ -157,8 +158,8 @@ export class OrderService {
         }
 
         // Apply calculations
-        const taxAmount = calculatedSubtotal * (vatRate / 100);
-        const netTotal = calculatedSubtotal + taxAmount; // Standard pricing totals (without direct manual discounts in create payload)
+        const netTotal = calculatedSubtotal;
+        const taxAmount = Math.round(netTotal * (vatRate / (100 + vatRate)) * 100) / 100;
 
         // Generate Daily Queue Number
         const countToday = await this.repository.getOrdersCountToday();
@@ -212,5 +213,23 @@ export class OrderService {
         });
 
         return updated;
+    }
+
+    async generateOrderReceipt(orderId: string, format: 'html' | 'text' | 'pdf' | 'json') {
+        const order = await this.getOrderById(orderId);
+        const storeSetting = await this.storeSettingsService.getActiveSettings();
+
+        const typedOrder = order as unknown as Parameters<typeof generateHtmlReceipt>[0];
+        const typedStoreSetting = storeSetting as unknown as StoreSetting;
+
+        if (format === 'json') {
+            return { order, storeSetting };
+        } else if (format === 'text') {
+            return generateTextReceipt(typedOrder, typedStoreSetting);
+        } else if (format === 'pdf') {
+            return generatePdfReceipt(typedOrder, typedStoreSetting);
+        } else {
+            return generateHtmlReceipt(typedOrder, typedStoreSetting);
+        }
     }
 }

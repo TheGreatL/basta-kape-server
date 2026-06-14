@@ -5,6 +5,7 @@ import { requireAccess } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
 import { OrderStatus } from '@prisma/client';
 import { CreateOrderSchema, UpdateOrderStatusSchema, GetOrderListQuerySchema, OrderResponseSchema } from './order.types';
+import { z } from 'zod';
 
 const router = Router();
 const service = new OrderService();
@@ -130,6 +131,56 @@ router.patch(
             const body = UpdateOrderStatusSchema.parse(req.body);
             const result = await service.updateOrderStatus(req.params.id as string, body.status as OrderStatus, body.notes ?? null, req.user!.sub);
             res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// GET /orders/:id/receipt
+registry.registerPath({
+    method: 'get',
+    path: '/orders/{id}/receipt',
+    tags: ['Orders'],
+    summary: 'Generate transaction receipt for an order',
+    security: [{ bearerAuth: [] }],
+    request: {
+        params: z.object({
+            id: z.string().uuid()
+        }),
+        query: z.object({
+            format: z.enum(['html', 'text', 'pdf', 'json']).default('html')
+        })
+    },
+    responses: {
+        200: {
+            description: 'Order receipt generated successfully'
+        }
+    }
+});
+
+router.get(
+    '/:id/receipt',
+    requireAccess(appModules.ORDERS_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const formatQuery = req.query.format as string;
+            const format = ['html', 'text', 'pdf', 'json'].includes(formatQuery) ? (formatQuery as 'html' | 'text' | 'pdf' | 'json') : 'html';
+            const result = await service.generateOrderReceipt(req.params.id as string, format);
+
+            if (format === 'json') {
+                res.json(result);
+            } else if (format === 'text') {
+                res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+                res.send(result);
+            } else if (format === 'pdf') {
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `inline; filename="receipt-${req.params.id.slice(0, 8)}.pdf"`);
+                res.send(result);
+            } else {
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                res.send(result);
+            }
         } catch (error) {
             next(error);
         }

@@ -228,8 +228,8 @@ describe('Discount Feature Integration Tests', () => {
                 orderType: 'DINE_IN',
                 orderSource,
                 subtotal: 100.0,
-                taxAmount: 12.0,
-                netTotal: 112.0,
+                taxAmount: 10.71,
+                netTotal: 100.0,
                 cashierSessionId: orderSource === 'POS' ? activeShiftId : null,
                 status,
                 items: {
@@ -337,11 +337,11 @@ describe('Discount Feature Integration Tests', () => {
             expect(res.status).toBe(201);
             expect(res.body.amount).toBe(10.0); // 10% of 100
 
-            // Verify order table totals updated: subtotal=100, discount=10, tax=10.80 (12% of 90), net=100.80
+            // Verify order table totals updated: subtotal=100, discount=10, tax=9.64 (12/112 of 90), net=90.00
             const updatedOrder = await prisma.order.findUnique({ where: { id: order.id } });
             expect(updatedOrder?.discountAmount).toBe(10.0);
-            expect(updatedOrder?.taxAmount).toBe(10.8);
-            expect(updatedOrder?.netTotal).toBe(100.8);
+            expect(updatedOrder?.taxAmount).toBe(9.64);
+            expect(updatedOrder?.netTotal).toBe(90.0);
         });
 
         it('should successfully apply fixed amount discount and recalculate totals', async () => {
@@ -355,15 +355,34 @@ describe('Discount Feature Integration Tests', () => {
             expect(res.status).toBe(201);
             expect(res.body.amount).toBe(50.0); // PHP 50 off
 
-            // Verify order table totals: subtotal=100, discount=50, tax=6.00 (12% of 50), net=56.00
+            // Verify order table totals: subtotal=100, discount=50, tax=5.36 (12/112 of 50), net=50.00
             const updatedOrder = await prisma.order.findUnique({ where: { id: order.id } });
             expect(updatedOrder?.discountAmount).toBe(50.0);
-            expect(updatedOrder?.taxAmount).toBe(6.0);
-            expect(updatedOrder?.netTotal).toBe(56.0);
+            expect(updatedOrder?.taxAmount).toBe(5.36);
+            expect(updatedOrder?.netTotal).toBe(50.0);
         });
 
         it('should successfully apply BIR Senior Citizen discount (VAT-exempt + 20% discount)', async () => {
-            const order = await createTestOrder();
+            const order = await prisma.order.create({
+                data: {
+                    queueNumber: '#D01',
+                    orderType: 'DINE_IN',
+                    orderSource: 'POS',
+                    subtotal: 112.0,
+                    taxAmount: 12.0,
+                    netTotal: 112.0,
+                    cashierSessionId: activeShiftId,
+                    status: 'PENDING',
+                    items: {
+                        create: {
+                            productVariantId: testVariantId,
+                            quantity: 1,
+                            unitPrice: 112.0,
+                            totalPrice: 112.0
+                        }
+                    }
+                }
+            });
             const payload = {
                 discountId: scDiscountId,
                 referenceId: 'SC-98765',
@@ -373,11 +392,11 @@ describe('Discount Feature Integration Tests', () => {
             const res = await request(app).post(`/orders/${order.id}/discounts`).send(payload);
 
             expect(res.status).toBe(201);
-            expect(res.body.amount).toBe(20.0); // 20% of 100
+            expect(res.body.amount).toBe(20.0); // 20% of 100 (VAT-exclusive of 112)
             expect(res.body.referenceId).toBe('SC-98765');
             expect(res.body.referenceName).toBe('Juan Dela Cruz');
 
-            // Verify totals: subtotal=100, discount=20, tax=0 (VAT exempt), net=80.00
+            // Verify totals: subtotal=112, discount=20, tax=0 (VAT exempt), net=80.00
             const updatedOrder = await prisma.order.findUnique({ where: { id: order.id } });
             expect(updatedOrder?.discountAmount).toBe(20.0);
             expect(updatedOrder?.taxAmount).toBe(0.0);
@@ -407,11 +426,11 @@ describe('Discount Feature Integration Tests', () => {
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
 
-            // Verify totals restored: subtotal=100, discount=0, tax=12.00, net=112.00
+            // Verify totals restored: subtotal=100, discount=0, tax=10.71, net=100.00
             const updatedOrder = await prisma.order.findUnique({ where: { id: order.id } });
             expect(updatedOrder?.discountAmount).toBe(0);
-            expect(updatedOrder?.taxAmount).toBe(12.0);
-            expect(updatedOrder?.netTotal).toBe(112.0);
+            expect(updatedOrder?.taxAmount).toBe(10.71);
+            expect(updatedOrder?.netTotal).toBe(100.0);
 
             // Verify order discounts deleted
             const odCount = await prisma.orderDiscount.count({ where: { orderId: order.id } });
@@ -431,14 +450,14 @@ describe('Discount Feature Integration Tests', () => {
 
             const updatedOrder = await prisma.order.findUnique({ where: { id: order.id } });
             expect(updatedOrder?.discountAmount).toBe(50.0);
-            expect(updatedOrder?.taxAmount).toBe(6.0);
-            expect(updatedOrder?.netTotal).toBe(56.0);
+            expect(updatedOrder?.taxAmount).toBe(5.36);
+            expect(updatedOrder?.netTotal).toBe(50.0);
         });
 
         it('should fail if order is not pending or is already paid', async () => {
             const orderPaid = await createTestOrder();
             await prisma.orderPayment.create({
-                data: { orderId: orderPaid.id, paymentMethod: 'CASH', paymentStatus: 'PAID', amount: 112.0 }
+                data: { orderId: orderPaid.id, paymentMethod: 'CASH', paymentStatus: 'PAID', amount: 100.0 }
             });
 
             const orderCompleted = await createTestOrder('POS', 'COMPLETED');

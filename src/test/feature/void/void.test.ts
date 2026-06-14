@@ -354,8 +354,8 @@ describe('Void Feature Integration Tests', () => {
                 orderType: 'DINE_IN',
                 orderSource: 'POS',
                 subtotal: 150.0,
-                taxAmount: 18.0,
-                netTotal: 168.0,
+                taxAmount: 16.07,
+                netTotal: 150.0,
                 cashierSessionId: activeShiftId,
                 status,
                 items: {

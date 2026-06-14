@@ -232,7 +232,7 @@ describe('Product Feature CRUD & Transactional Mappings', () => {
         });
 
         it('should fetch the list of products', async () => {
-            const res = await request(app).get('/products?limit=10');
+            const res = await request(app).get(`/products?limit=10&productCategoryId=${testCategoryId}`);
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('data');
             expect(res.body).toHaveProperty('meta');

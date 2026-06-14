@@ -210,8 +210,8 @@ describe('Payment Feature Integration Tests', () => {
                 orderType: 'DINE_IN',
                 orderSource,
                 subtotal: 120.0,
-                taxAmount: 14.4,
-                netTotal: 134.4,
+                taxAmount: 12.86,
+                netTotal: 120.0,
                 cashierSessionId: orderSource === 'POS' ? activeShiftId : null,
                 status,
                 items: {
@@ -239,9 +239,9 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.status).toBe(201);
             expect(res.body.paymentMethod).toBe('CASH');
             expect(res.body.paymentStatus).toBe('PAID');
-            expect(res.body.amount).toBe(134.4);
+            expect(res.body.amount).toBe(120.0);
             expect(res.body.amountTendered).toBe(150.0);
-            expect(res.body.amountChange).toBe(15.6);
+            expect(res.body.amountChange).toBe(30.0);
 
             // Verify order status is PREPARING
             const updatedOrder = await prisma.order.findUnique({
@@ -269,7 +269,7 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.status).toBe(201);
             expect(res.body.paymentMethod).toBe('GCASH');
             expect(res.body.paymentStatus).toBe('PAID');
-            expect(res.body.amount).toBe(134.4);
+            expect(res.body.amount).toBe(120.0);
             expect(res.body.gcashReferenceNumber).toBe('REF123456789');
 
             const updatedOrder = await prisma.order.findUnique({
@@ -323,7 +323,7 @@ describe('Payment Feature Integration Tests', () => {
                     orderId: order.id,
                     paymentMethod: 'CASH',
                     paymentStatus: 'PAID',
-                    amount: 134.4
+                    amount: 120.0
                 }
             });
 
@@ -393,9 +393,9 @@ describe('Payment Feature Integration Tests', () => {
                     orderId: order.id,
                     paymentMethod: 'CASH',
                     paymentStatus: 'PAID',
-                    amount: 134.4,
+                    amount: 120.0,
                     amountTendered: 150.0,
-                    amountChange: 15.6
+                    amountChange: 30.0
                 }
             });
 
@@ -405,7 +405,7 @@ describe('Payment Feature Integration Tests', () => {
             expect(Array.isArray(res.body)).toBe(true);
             expect(res.body.length).toBe(1);
             expect(res.body[0].paymentMethod).toBe('CASH');
-            expect(res.body[0].amount).toBe(134.4);
+            expect(res.body[0].amount).toBe(120.0);
         });
 
         it('should fail if order does not exist', async () => {

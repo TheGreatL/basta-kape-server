@@ -111,15 +111,19 @@ export class DiscountService {
             codeLower.includes('sc') ||
             codeLower.includes('pwd');
 
+        const settings = await this.storeSettingsService.getActiveSettings();
+        const vatRate = settings?.vatRate ?? 12.0;
+
         if (isBIRDiscount) {
             if (!data.referenceId || !data.referenceName) {
                 throw new BadRequestException('Card ID and cardholder name are required for Senior Citizen/PWD discounts.');
             }
 
             // BIR calculations for SC/PWD: VAT Exemption (VAT = 0) + 20% discount on VAT-exclusive subtotal
-            discountAmount = subtotal * 0.2;
+            const vatExclusiveSubtotal = subtotal / (1 + vatRate / 100);
+            discountAmount = vatExclusiveSubtotal * 0.2;
             taxAmount = 0;
-            netTotal = subtotal - discountAmount;
+            netTotal = vatExclusiveSubtotal - discountAmount;
         } else {
             // Standard discount logic
             if (discount.type === 'PERCENTAGE') {
@@ -134,11 +138,9 @@ export class DiscountService {
             }
 
             const discountedSubtotal = subtotal - discountAmount;
-            const settings = await this.storeSettingsService.getActiveSettings();
-            const vatRate = settings?.vatRate ?? 12.0;
 
-            taxAmount = discountedSubtotal * (vatRate / 100);
-            netTotal = discountedSubtotal + taxAmount;
+            netTotal = discountedSubtotal;
+            taxAmount = netTotal * (vatRate / (100 + vatRate));
         }
 
         // 5. Round to 2 decimal places
@@ -195,8 +197,8 @@ export class DiscountService {
         const vatRate = settings?.vatRate ?? 12.0;
 
         const subtotal = order.subtotal;
-        let taxAmount = subtotal * (vatRate / 100);
-        let netTotal = subtotal + taxAmount;
+        let netTotal = subtotal;
+        let taxAmount = netTotal * (vatRate / (100 + vatRate));
 
         taxAmount = Math.round(taxAmount * 100) / 100;
         netTotal = Math.round(netTotal * 100) / 100;
