@@ -38,7 +38,7 @@ export class R2StorageService implements IStorageService {
             })
         );
 
-        return `${this.publicUrl}/${key}`;
+        return `${key}`;
     }
 
     async deleteFile(fileUrl: string): Promise<void> {
