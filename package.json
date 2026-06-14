@@ -24,6 +24,7 @@
     "type": "commonjs",
     "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
+        "@prisma/client": "^6.19.3",
         "@types/bcryptjs": "^2.4.6",
         "@types/jsonwebtoken": "^9.0.10",
         "bcryptjs": "^3.0.3",
@@ -44,7 +45,6 @@
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@prisma/client": "^6.19.3",
         "@types/cookie-parser": "^1.4.10",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
