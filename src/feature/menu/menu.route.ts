@@ -1,8 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { registry } from '@/docs/swagger';
 import { MenuService } from './menu.service';
-import { requireAccess } from '@/middleware/rbac.middleware';
-import { appModules, appPermissions } from '@/constant';
 import {
     GetMenuQuerySchema,
     MenuCategoryResponseSchema,
@@ -25,7 +23,6 @@ registry.registerPath({
     path: '/menu',
     tags: ['Menu'],
     summary: 'Get paginated catalog list of active products for customer menu',
-    security: [{ bearerAuth: [] }],
     request: {
         query: GetMenuQuerySchema
     },
@@ -37,7 +34,7 @@ registry.registerPath({
     }
 });
 
-router.get('/', requireAccess(appModules.MENU, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const query = GetMenuQuerySchema.parse(req.query);
         const result = await service.getMenuList(query);
@@ -53,7 +50,6 @@ registry.registerPath({
     path: '/menu/categories',
     tags: ['Menu'],
     summary: 'Get unpaginated list of active product categories',
-    security: [{ bearerAuth: [] }],
     responses: {
         200: {
             description: 'Menu categories retrieved successfully',
@@ -62,7 +58,7 @@ registry.registerPath({
     }
 });
 
-router.get('/categories', requireAccess(appModules.MENU, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
+router.get('/categories', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await service.getCategoryList();
         res.json(result);
@@ -77,7 +73,6 @@ registry.registerPath({
     path: '/menu/types',
     tags: ['Menu'],
     summary: 'Get unpaginated list of active product types',
-    security: [{ bearerAuth: [] }],
     responses: {
         200: {
             description: 'Menu product types retrieved successfully',
@@ -86,7 +81,7 @@ registry.registerPath({
     }
 });
 
-router.get('/types', requireAccess(appModules.MENU, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
+router.get('/types', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await service.getTypeList();
         res.json(result);
@@ -101,7 +96,6 @@ registry.registerPath({
     path: '/menu/{id}',
     tags: ['Menu'],
     summary: 'Get menu product details by Product ID',
-    security: [{ bearerAuth: [] }],
     responses: {
         200: {
             description: 'Menu product details retrieved successfully',
@@ -110,7 +104,7 @@ registry.registerPath({
     }
 });
 
-router.get('/:id', requireAccess(appModules.MENU, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await service.getMenuProductById(req.params.id as string);
         res.json(result);
