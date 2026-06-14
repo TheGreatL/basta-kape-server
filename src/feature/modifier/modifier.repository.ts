@@ -35,11 +35,11 @@ export class ModifierRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: [{ name: 'asc' }, { createdAt: 'asc' }],
                 include: {
                     options: {
                         where: { deletedAt: null },
-                        orderBy: { createdAt: 'asc' }
+                        orderBy: { name: 'asc' }
                     },
                     products: {
                         where: { deletedAt: null }
@@ -58,7 +58,7 @@ export class ModifierRepository extends BaseRepository {
             include: {
                 options: {
                     where: { deletedAt: null },
-                    orderBy: { createdAt: 'asc' }
+                    orderBy: { name: 'asc' }
                 },
                 products: {
                     where: { deletedAt: null }

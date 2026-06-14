@@ -99,7 +99,7 @@ export class InventoryRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
@@ -239,7 +239,7 @@ export class InventoryRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     defaultUnit: true,
                     createdBy: { select: auditSelect },

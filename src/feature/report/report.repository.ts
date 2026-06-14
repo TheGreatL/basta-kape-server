@@ -89,7 +89,7 @@ export class ReportRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     category: { select: { name: true } },
                     type: { select: { name: true } },
@@ -323,7 +323,7 @@ export class ReportRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: [{ user: { lastName: 'asc' } }, { user: { firstName: 'asc' } }],
                 include: { user: true }
             }),
             prisma.customer.count({ where })

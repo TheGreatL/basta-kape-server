@@ -30,7 +30,7 @@ export class DiscountRepository extends BaseRepository {
     async listDiscounts() {
         return prisma.discount.findMany({
             where: { deletedAt: null },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { name: 'asc' }
         });
     }
 

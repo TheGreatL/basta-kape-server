@@ -113,7 +113,7 @@ export class SupplierRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }

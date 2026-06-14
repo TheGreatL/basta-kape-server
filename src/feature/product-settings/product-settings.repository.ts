@@ -93,7 +93,7 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
@@ -183,7 +183,7 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
@@ -285,7 +285,7 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
@@ -381,7 +381,7 @@ export class ProductSettingsRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { value: 'asc' },
                 include: {
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }

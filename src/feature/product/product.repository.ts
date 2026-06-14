@@ -200,7 +200,7 @@ export class ProductRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
                 include: {
                     category: {
                         select: { id: true, name: true }

@@ -204,7 +204,7 @@ export class UserRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { createdAt: 'desc' },
+                orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
                 select: {
                     id: true,
                     email: true,
