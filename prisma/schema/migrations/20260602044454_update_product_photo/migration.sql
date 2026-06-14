@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `product` MODIFY `photo` VARCHAR(191) NULL;
+ALTER TABLE `Product` MODIFY `photo` VARCHAR(191) NULL;

@@ -5,10 +5,10 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `recipe` DROP FOREIGN KEY `Recipe_productVariantId_fkey`;
+ALTER TABLE `Recipe` DROP FOREIGN KEY `Recipe_productVariantId_fkey`;
 
 -- AlterTable
-ALTER TABLE `recipe` ADD COLUMN `modifierOptionId` VARCHAR(191) NULL,
+ALTER TABLE `Recipe` ADD COLUMN `modifierOptionId` VARCHAR(191) NULL,
     MODIFY `productVariantId` VARCHAR(191) NULL;
 
 -- CreateIndex

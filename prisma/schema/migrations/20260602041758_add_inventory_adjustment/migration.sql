@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `ingredientinventory` ADD COLUMN `status` ENUM('SAFE', 'CRITICAL', 'OUT_OF_STOCK') NOT NULL DEFAULT 'SAFE';
+ALTER TABLE `IngredientInventory` ADD COLUMN `status` ENUM('SAFE', 'CRITICAL', 'OUT_OF_STOCK') NOT NULL DEFAULT 'SAFE';
 
 -- CreateTable
 CREATE TABLE `InventoryAdjustment` (

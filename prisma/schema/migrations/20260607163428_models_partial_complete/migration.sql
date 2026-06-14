@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `ingredientdelivery` ADD COLUMN `purchaseOrderId` VARCHAR(191) NULL;
+ALTER TABLE `IngredientDelivery` ADD COLUMN `purchaseOrderId` VARCHAR(191) NULL;
 
 -- CreateTable
 CREATE TABLE `StoreSetting` (
