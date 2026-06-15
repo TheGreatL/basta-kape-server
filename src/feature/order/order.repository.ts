@@ -269,86 +269,100 @@ export class OrderRepository extends BaseRepository {
         order: Prisma.OrderGetPayload<{ include: { items: { include: { modifiers: true } } } }>,
         actorId: string
     ) {
-        for (const item of order.items) {
-            // 1. Variant recipe ingredients
-            const variantRecipe = await tx.recipe.findFirst({
-                where: { productVariantId: item.productVariantId, deletedAt: null },
+        const variantIds = [...new Set(order.items.map((item) => item.productVariantId))];
+        const modifierOptionIds = [...new Set(order.items.flatMap((item) => item.modifiers.map((modifier) => modifier.modifierOptionId)))];
+
+        const [variantRecipes, modifierRecipes] = await Promise.all([
+            tx.recipe.findMany({
+                where: { productVariantId: { in: variantIds }, deletedAt: null },
                 include: {
                     ingredients: {
                         where: { deletedAt: null }
                     }
                 }
-            });
+            }),
+            modifierOptionIds.length > 0
+                ? tx.recipe.findMany({
+                      where: { modifierOptionId: { in: modifierOptionIds }, deletedAt: null },
+                      include: {
+                          ingredients: {
+                              where: { deletedAt: null }
+                          }
+                      }
+                  })
+                : Promise.resolve([])
+        ]);
 
+        const ingredientDeductions = new Map<string, number>();
+
+        const accumulateDeduction = (ingredientId: string, quantity: number) => {
+            ingredientDeductions.set(ingredientId, (ingredientDeductions.get(ingredientId) ?? 0) + quantity);
+        };
+
+        for (const item of order.items) {
+            const variantRecipe = variantRecipes.find((recipe) => recipe.productVariantId === item.productVariantId);
             if (variantRecipe) {
-                for (const ri of variantRecipe.ingredients) {
-                    const deduction = ri.quantity * item.quantity;
-                    await this.adjustStockAndStatusInTx(tx, ri.ingredientId, -deduction, actorId);
+                for (const ingredient of variantRecipe.ingredients) {
+                    accumulateDeduction(ingredient.ingredientId, ingredient.quantity * item.quantity);
                 }
             }
 
-            // 2. Selected modifiers recipes ingredients
             for (const itemMod of item.modifiers) {
-                const modRecipe = await tx.recipe.findFirst({
-                    where: { modifierOptionId: itemMod.modifierOptionId, deletedAt: null },
-                    include: {
-                        ingredients: {
-                            where: { deletedAt: null }
-                        }
-                    }
-                });
-
-                if (modRecipe) {
-                    for (const ri of modRecipe.ingredients) {
-                        const deduction = ri.quantity * item.quantity;
-                        await this.adjustStockAndStatusInTx(tx, ri.ingredientId, -deduction, actorId);
+                const modifierRecipe = modifierRecipes.find((recipe) => recipe.modifierOptionId === itemMod.modifierOptionId);
+                if (modifierRecipe) {
+                    for (const ingredient of modifierRecipe.ingredients) {
+                        accumulateDeduction(ingredient.ingredientId, ingredient.quantity * item.quantity);
                     }
                 }
             }
         }
-    }
 
-    private async adjustStockAndStatusInTx(tx: Prisma.TransactionClient, ingredientId: string, quantityDiff: number, actorId: string) {
-        const ingredient = await tx.ingredient.findFirst({
-            where: { id: ingredientId, deletedAt: null }
-        });
-        if (!ingredient) return;
+        if (ingredientDeductions.size === 0) {
+            return;
+        }
 
-        let inventory = await tx.ingredientInventory.findFirst({
-            where: { ingredientId, deletedAt: null }
-        });
+        const ingredientIds = Array.from(ingredientDeductions.keys());
+        const [ingredients, inventories] = await Promise.all([
+            tx.ingredient.findMany({
+                where: { id: { in: ingredientIds }, deletedAt: null }
+            }),
+            tx.ingredientInventory.findMany({
+                where: { ingredientId: { in: ingredientIds }, deletedAt: null }
+            })
+        ]);
 
-        if (!inventory) {
-            inventory = await tx.ingredientInventory.create({
+        const inventoryByIngredientId = new Map(inventories.map((inventory) => [inventory.ingredientId, inventory]));
+
+        for (const [ingredientId, deductionQuantity] of ingredientDeductions.entries()) {
+            const ingredient = ingredients.find((item) => item.id === ingredientId);
+            if (!ingredient) {
+                continue;
+            }
+
+            let inventory = inventoryByIngredientId.get(ingredientId);
+            if (!inventory) {
+                inventory = await tx.ingredientInventory.create({
+                    data: {
+                        ingredientId,
+                        currentQuantity: 0,
+                        status: 'OUT_OF_STOCK',
+                        createdById: actorId,
+                        updatedById: actorId
+                    }
+                });
+            }
+
+            const newQuantity = Math.max(0, inventory.currentQuantity - deductionQuantity);
+            const newStatus = newQuantity <= 0 ? 'OUT_OF_STOCK' : newQuantity <= ingredient.reorderPoint ? 'CRITICAL' : 'SAFE';
+
+            await tx.ingredientInventory.update({
+                where: { id: inventory.id },
                 data: {
-                    ingredientId,
-                    currentQuantity: 0,
-                    status: 'OUT_OF_STOCK',
-                    createdById: actorId,
+                    currentQuantity: newQuantity,
+                    status: newStatus,
                     updatedById: actorId
                 }
             });
         }
-
-        let newQuantity = inventory.currentQuantity + quantityDiff;
-        if (newQuantity < 0) {
-            newQuantity = 0;
-        }
-
-        let newStatus: 'SAFE' | 'CRITICAL' | 'OUT_OF_STOCK' = 'SAFE';
-        if (newQuantity <= 0) {
-            newStatus = 'OUT_OF_STOCK';
-        } else if (newQuantity <= ingredient.reorderPoint) {
-            newStatus = 'CRITICAL';
-        }
-
-        await tx.ingredientInventory.update({
-            where: { id: inventory.id },
-            data: {
-                currentQuantity: newQuantity,
-                status: newStatus,
-                updatedById: actorId
-            }
-        });
     }
 }

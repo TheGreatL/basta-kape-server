@@ -196,6 +196,12 @@ export class PurchaseOrderRepository extends BaseRepository {
             } else if (status === PurchaseOrderStatus.RECEIVED) {
                 updates.receivedAt = new Date();
 
+                const ingredientIds = po.items.map((item) => item.ingredientId);
+                const inventories = await tx.ingredientInventory.findMany({
+                    where: { ingredientId: { in: ingredientIds }, deletedAt: null }
+                });
+                const inventoryByIngredient = new Map(inventories.map((inventory) => [inventory.ingredientId, inventory]));
+
                 // Generate deliveries and increment stock levels
                 for (const item of po.items) {
                     // 1. Create delivery batch
@@ -214,9 +220,7 @@ export class PurchaseOrderRepository extends BaseRepository {
                     });
 
                     // 2. Adjust stock & status
-                    let inventory = await tx.ingredientInventory.findFirst({
-                        where: { ingredientId: item.ingredientId, deletedAt: null }
-                    });
+                    let inventory = inventoryByIngredient.get(item.ingredientId);
 
                     if (!inventory) {
                         inventory = await tx.ingredientInventory.create({
@@ -228,6 +232,7 @@ export class PurchaseOrderRepository extends BaseRepository {
                                 updatedById: actorId
                             }
                         });
+                        inventoryByIngredient.set(item.ingredientId, inventory);
                     }
 
                     const newQuantity = Math.max(0, inventory.currentQuantity + item.quantity);

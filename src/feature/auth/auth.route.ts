@@ -5,6 +5,7 @@ import { LoginSchema, RegisterSchema, AuthTokenResponseSchema, ForgotPasswordSch
 import { authenticate } from '@/middleware/rbac.middleware';
 import { z } from 'zod';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
+import { prisma } from '@/lib/prisma';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -329,6 +330,94 @@ router.post('/change-password', authenticate, async (req: Request, res: Response
 
         res.clearCookie('refreshToken');
         res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ==========================================
+// GET /auth/me
+// ==========================================
+registry.registerPath({
+    method: 'get',
+    path: '/auth/me',
+    tags: ['Auth'],
+    summary: 'Get current authenticated user profile',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Current user profile',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        id: z.string(),
+                        email: z.string(),
+                        username: z.string(),
+                        firstName: z.string(),
+                        lastName: z.string(),
+                        phoneNumber: z.string().nullable(),
+                        createdAt: z.string(),
+                        roles: z.array(
+                            z.object({
+                                name: z.string(),
+                                permissions: z.array(
+                                    z.object({
+                                        module: z.string(),
+                                        permission: z.string(),
+                                        scope: z.string()
+                                    })
+                                )
+                            })
+                        )
+                    })
+                }
+            }
+        },
+        401: { description: 'Unauthorized' }
+    }
+});
+
+router.get('/me', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.sub;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                lastName: true,
+                phoneNumber: true,
+                createdAt: true,
+                profilePhoto: true,
+                middleName: true,
+                roles: {
+                    where: { deletedAt: null },
+                    select: {
+                        name: true,
+                        permissions: {
+                            where: { deletedAt: null },
+                            select: {
+                                module: true,
+                                permission: true,
+                                scope: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!user) {
+            return res.status(401).json({ success: false, error: 'User not found' });
+        }
+
+        res.json({
+            ...user,
+            createdAt: user.createdAt.toISOString()
+        });
     } catch (error) {
         next(error);
     }

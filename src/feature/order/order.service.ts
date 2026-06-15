@@ -72,59 +72,69 @@ export class OrderService {
 
         let calculatedSubtotal = 0;
 
+        const variantIds = [...new Set(data.items.map((item) => item.productVariantId))];
+        const variants = await prisma.productVariant.findMany({
+            where: { id: { in: variantIds }, deletedAt: null },
+            include: {
+                product: {
+                    include: {
+                        modifierGroups: {
+                            where: { deletedAt: null },
+                            include: {
+                                options: {
+                                    where: { deletedAt: null }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
+        const modifierOptionIds = Array.from(new Set(data.items.flatMap((item) => item.modifierOptionIds ?? [])));
+
+        const selectedOptions = modifierOptionIds.length
+            ? await prisma.modifierOption.findMany({
+                  where: {
+                      id: { in: modifierOptionIds },
+                      deletedAt: null
+                  }
+              })
+            : [];
+
+        const modifierOptionMap = new Map(selectedOptions.map((option) => [option.id, option]));
+
         for (const item of data.items) {
-            const variant = await prisma.productVariant.findFirst({
-                where: { id: item.productVariantId, deletedAt: null }
-            });
+            const variant = variantMap.get(item.productVariantId);
 
             if (!variant) {
                 throw new NotFoundException(`Product variant with ID "${item.productVariantId}" not found or disabled.`);
             }
 
-            // Fetch product along with its allowed modifier groups and options
-            const product = await prisma.product.findFirst({
-                where: { id: variant.productId, deletedAt: null },
-                include: {
-                    modifierGroups: {
-                        where: { deletedAt: null },
-                        include: {
-                            options: {
-                                where: { deletedAt: null }
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (!product) {
+            const product = variant.product;
+            if (!product || product.deletedAt !== null) {
                 throw new NotFoundException(`Product not found for variant.`);
             }
 
-            const modifierOptionIds = item.modifierOptionIds ?? [];
-
-            // Verify modifier options exist
-            const selectedOptions = await prisma.modifierOption.findMany({
-                where: {
-                    id: { in: modifierOptionIds },
-                    deletedAt: null
+            const itemModifierOptionIds = item.modifierOptionIds ?? [];
+            const selectedOptionsForItem = itemModifierOptionIds.map((id) => {
+                const option = modifierOptionMap.get(id);
+                if (!option) {
+                    throw new NotFoundException(`Modifier option with ID "${id}" does not exist or is disabled.`);
                 }
+                return option;
             });
 
-            if (selectedOptions.length !== modifierOptionIds.length) {
-                throw new NotFoundException(`One or more modifier options for variant do not exist or are disabled.`);
-            }
-
-            // Verify that all selected options belong to the product's modifier groups
-            for (const opt of selectedOptions) {
+            for (const opt of selectedOptionsForItem) {
                 const belongsToGroup = product.modifierGroups.some((g) => g.id === opt.modifierGroupId);
                 if (!belongsToGroup) {
                     throw new BadRequestException(`Modifier option "${opt.name}" is not applicable to product "${product.name}".`);
                 }
             }
 
-            // Validate constraints on modifier group selection counts
             for (const group of product.modifierGroups) {
-                const selections = selectedOptions.filter((o) => o.modifierGroupId === group.id);
+                const selections = selectedOptionsForItem.filter((o) => o.modifierGroupId === group.id);
                 const count = selections.length;
 
                 if (group.isRequired && count === 0) {
@@ -138,8 +148,7 @@ export class OrderService {
                 }
             }
 
-            // Calculate unit price and snapshot details
-            const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
+            const optionsPrice = selectedOptionsForItem.reduce((sum, opt) => sum + opt.price, 0);
             const unitPrice = variant.price + optionsPrice;
             const totalPrice = unitPrice * item.quantity;
             calculatedSubtotal += totalPrice;
@@ -150,7 +159,7 @@ export class OrderService {
                 unitPrice,
                 totalPrice,
                 notes: item.notes,
-                modifiers: selectedOptions.map((o) => ({
+                modifiers: selectedOptionsForItem.map((o) => ({
                     modifierOptionId: o.id,
                     price: o.price
                 }))

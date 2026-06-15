@@ -1,6 +1,7 @@
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { BadRequestException, NotFoundException } from '@/exceptions';
 import { prisma } from '@/lib/prisma';
+import { OrderStatus, OrderType, PaymentMethod, PaymentStatus, Prisma } from '@prisma/client';
 import { ReportGenerator } from './report.generator';
 import { ReportRepository } from './report.repository';
 import {
@@ -14,6 +15,18 @@ import {
     type TReportPreviewRequest,
     type TReportStoreInfo
 } from './report.types';
+
+type SalesPaymentRow = {
+    paymentMethod: PaymentMethod;
+    _count: { id: number };
+    _sum: { amount: number | null };
+};
+
+type SalesOrderTypeRow = {
+    orderType: OrderType;
+    _count: { id: number };
+    _sum: { netTotal: number | null };
+};
 
 type ReportServiceConstructor = {
     reportRepository?: ReportRepository;
@@ -174,46 +187,104 @@ export class ReportService {
             end.setHours(23, 59, 59, 999);
         }
 
-        const orders = await prisma.order.findMany({
-            where: {
-                status: 'COMPLETED',
-                createdAt: {
-                    gte: start,
-                    lte: end
-                }
-            },
-            orderBy: {
-                createdAt: 'desc'
-            },
-            include: {
-                items: {
-                    include: {
-                        variant: {
-                            include: {
-                                product: true
-                            }
-                        }
-                    }
-                },
-                payments: true
+        const orderWhere: Prisma.OrderWhereInput = {
+            status: OrderStatus.COMPLETED,
+            createdAt: {
+                gte: start,
+                lte: end
+            }
+        };
+
+        const summary = await prisma.order.aggregate({
+            where: orderWhere,
+            _count: { id: true },
+            _sum: {
+                subtotal: true,
+                discountAmount: true,
+                netTotal: true
             }
         });
 
-        // 1. Core aggregates
-        let grossSales = 0;
-        let discountTotal = 0;
-        let netSales = 0;
-        const orderCount = orders.length;
+        const paymentRows = (await prisma.orderPayment.groupBy({
+            by: ['paymentMethod'],
+            where: {
+                paymentStatus: PaymentStatus.PAID,
+                order: {
+                    is: orderWhere
+                }
+            },
+            _count: { id: true },
+            _sum: { amount: true }
+        })) as unknown as SalesPaymentRow[];
 
-        for (const order of orders) {
-            grossSales += order.subtotal;
-            discountTotal += order.discountAmount;
-            netSales += order.netTotal;
-        }
+        const orderTypeRows = (await prisma.order.groupBy({
+            by: ['orderType'],
+            where: orderWhere,
+            _count: { id: true },
+            _sum: { netTotal: true }
+        })) as unknown as SalesOrderTypeRow[];
 
+        const itemRows = await prisma.orderItem.findMany({
+            where: {
+                order: {
+                    is: orderWhere
+                }
+            },
+            select: {
+                quantity: true,
+                totalPrice: true,
+                variant: {
+                    select: {
+                        product: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const dailyRows = await prisma.order.findMany({
+            where: orderWhere,
+            orderBy: { createdAt: 'asc' },
+            select: {
+                createdAt: true,
+                netTotal: true
+            }
+        });
+
+        const orders = await prisma.order.findMany({
+            where: orderWhere,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                queueNumber: true,
+                customerName: true,
+                orderType: true,
+                orderSource: true,
+                netTotal: true,
+                createdAt: true,
+                status: true,
+                payments: {
+                    select: {
+                        id: true,
+                        paymentMethod: true,
+                        paymentStatus: true,
+                        amount: true,
+                        gcashReferenceNumber: true,
+                        paymentProofPhoto: true
+                    }
+                }
+            }
+        });
+
+        const grossSales = summary._sum?.subtotal ?? 0;
+        const discountTotal = summary._sum?.discountAmount ?? 0;
+        const netSales = summary._sum?.netTotal ?? 0;
+        const orderCount = summary._count?.id ?? 0;
         const averageOrderValue = orderCount > 0 ? netSales / orderCount : 0;
 
-        // 2. Payment methods breakdown
         const paymentBreakdown = {
             CASH: { count: 0, revenue: 0 },
             GCASH: { count: 0, revenue: 0 },
@@ -221,51 +292,41 @@ export class ReportService {
             CREDIT_CARD: { count: 0, revenue: 0 }
         };
 
-        for (const order of orders) {
-            for (const payment of order.payments) {
-                if (payment.paymentStatus === 'PAID') {
-                    const method = payment.paymentMethod;
-                    if (paymentBreakdown[method]) {
-                        paymentBreakdown[method].count += 1;
-                        paymentBreakdown[method].revenue += payment.amount;
-                    }
-                }
-            }
+        for (const row of paymentRows) {
+            if (!paymentBreakdown[row.paymentMethod]) continue;
+            paymentBreakdown[row.paymentMethod].count = row._count.id;
+            paymentBreakdown[row.paymentMethod].revenue = row._sum.amount ?? 0;
         }
 
-        // 3. Order type breakdown
         const orderTypeBreakdown = {
             DINE_IN: { count: 0, revenue: 0 },
             TAKE_OUT: { count: 0, revenue: 0 },
             DELIVERY: { count: 0, revenue: 0 }
         };
 
-        for (const order of orders) {
-            const type = order.orderType;
-            if (orderTypeBreakdown[type]) {
-                orderTypeBreakdown[type].count += 1;
-                orderTypeBreakdown[type].revenue += order.netTotal;
-            }
+        for (const row of orderTypeRows) {
+            if (!orderTypeBreakdown[row.orderType]) continue;
+            orderTypeBreakdown[row.orderType].count = row._count.id;
+            orderTypeBreakdown[row.orderType].revenue = row._sum.netTotal ?? 0;
         }
 
-        // 4. Top 5 selling items
         const productMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
-        for (const order of orders) {
-            for (const item of order.items) {
-                const name = item.variant.product.name;
-                if (!productMap[name]) {
-                    productMap[name] = { name, quantity: 0, revenue: 0 };
-                }
-                productMap[name].quantity += item.quantity;
-                productMap[name].revenue += item.totalPrice;
+        for (const item of itemRows) {
+            const name = item.variant.product.name;
+            if (!name) continue;
+
+            if (!productMap[name]) {
+                productMap[name] = { name, quantity: 0, revenue: 0 };
             }
+
+            productMap[name].quantity += item.quantity;
+            productMap[name].revenue += item.totalPrice;
         }
 
         const topProducts = Object.values(productMap)
             .sort((a, b) => b.quantity - a.quantity)
             .slice(0, 5);
 
-        // 5. Daily sales trend
         const dailyMap: Record<string, { date: string; sales: number; count: number }> = {};
         const temp = new Date(start);
         while (temp <= end) {
@@ -274,7 +335,7 @@ export class ReportService {
             temp.setDate(temp.getDate() + 1);
         }
 
-        for (const order of orders) {
+        for (const order of dailyRows) {
             const dateStr = order.createdAt.toISOString().split('T')[0];
             if (dailyMap[dateStr]) {
                 dailyMap[dateStr].sales += order.netTotal;

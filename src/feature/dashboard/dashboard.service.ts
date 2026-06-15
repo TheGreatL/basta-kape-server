@@ -49,32 +49,28 @@ export class DashboardService {
             hasPermission(appModules.SALES_MANAGEMENT, appPermissions.READ) || hasPermission(appModules.REPORTS_MANAGEMENT, appPermissions.READ);
 
         if (canReadSales) {
-            const todayCompletedOrders = await prisma.order.findMany({
+            const todaySales = await prisma.order.aggregate({
+                _sum: {
+                    subtotal: true,
+                    discountAmount: true,
+                    netTotal: true
+                },
+                _count: {
+                    _all: true
+                },
                 where: {
                     status: 'COMPLETED',
                     createdAt: {
                         gte: todayStart,
                         lte: todayEnd
                     }
-                },
-                select: {
-                    subtotal: true,
-                    discountAmount: true,
-                    netTotal: true
                 }
             });
 
-            let grossSales = 0;
-            let discountTotal = 0;
-            let netSales = 0;
-            const orderCount = todayCompletedOrders.length;
-
-            for (const order of todayCompletedOrders) {
-                grossSales += order.subtotal;
-                discountTotal += order.discountAmount;
-                netSales += order.netTotal;
-            }
-
+            const grossSales = todaySales._sum.subtotal ?? 0;
+            const discountTotal = todaySales._sum.discountAmount ?? 0;
+            const netSales = todaySales._sum.netTotal ?? 0;
+            const orderCount = todaySales._count._all;
             const averageOrderValue = orderCount > 0 ? netSales / orderCount : 0;
 
             summary.salesToday = {

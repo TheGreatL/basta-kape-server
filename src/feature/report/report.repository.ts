@@ -519,8 +519,18 @@ export class ReportRepository extends BaseRepository {
         const orders = await prisma.order.findMany({
             where,
             orderBy: { createdAt: 'desc' },
-            include: {
-                payments: true
+            select: {
+                createdAt: true,
+                subtotal: true,
+                discountAmount: true,
+                netTotal: true,
+                payments: {
+                    where: { paymentStatus: 'PAID' },
+                    select: {
+                        paymentMethod: true,
+                        amount: true
+                    }
+                }
             }
         });
 
@@ -571,16 +581,14 @@ export class ReportRepository extends BaseRepository {
             group.netSales += order.netTotal;
 
             for (const payment of order.payments) {
-                if (payment.paymentStatus === 'PAID') {
-                    if (payment.paymentMethod === 'CASH') {
-                        group.cashSales += payment.amount;
-                    } else if (payment.paymentMethod === 'GCASH') {
-                        group.gcashSales += payment.amount;
-                    } else if (payment.paymentMethod === 'PAYMAYA') {
-                        group.paymayaSales += payment.amount;
-                    } else if (payment.paymentMethod === 'CREDIT_CARD') {
-                        group.cardSales += payment.amount;
-                    }
+                if (payment.paymentMethod === 'CASH') {
+                    group.cashSales += payment.amount;
+                } else if (payment.paymentMethod === 'GCASH') {
+                    group.gcashSales += payment.amount;
+                } else if (payment.paymentMethod === 'PAYMAYA') {
+                    group.paymayaSales += payment.amount;
+                } else if (payment.paymentMethod === 'CREDIT_CARD') {
+                    group.cardSales += payment.amount;
                 }
             }
         }

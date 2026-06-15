@@ -316,7 +316,7 @@ describe('Order Feature CRUD', () => {
 
             const res = await request(app).post('/orders').send(payload);
             expect(res.status).toBe(404);
-            expect(res.body.error).toContain('do not exist or are disabled');
+            expect(res.body.error).toContain('does not exist or is disabled');
         });
 
         it('should fail to place an order if modifier group constraints are violated', async () => {

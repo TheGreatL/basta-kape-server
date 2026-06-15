@@ -27,7 +27,7 @@ registry.registerPath({
     }
 });
 
-router.get('/', requireAccess(appModules.STORE_SETTINGS, appPermissions.READ), async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await service.getActiveSettings();
         res.json(result);

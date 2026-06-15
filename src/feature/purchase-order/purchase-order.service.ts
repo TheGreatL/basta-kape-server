@@ -24,11 +24,14 @@ export class PurchaseOrderService {
         }
 
         // 2. Validate all Ingredients exist
+        const ingredientIds = Array.from(new Set(data.items.map((item) => item.ingredientId)));
+        const ingredients = await prisma.ingredient.findMany({
+            where: { id: { in: ingredientIds }, deletedAt: null }
+        });
+        const ingredientMap = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient]));
+
         for (const item of data.items) {
-            const ingredient = await prisma.ingredient.findFirst({
-                where: { id: item.ingredientId, deletedAt: null }
-            });
-            if (!ingredient) {
+            if (!ingredientMap.has(item.ingredientId)) {
                 throw new NotFoundException(`Ingredient with ID ${item.ingredientId} not found`);
             }
         }

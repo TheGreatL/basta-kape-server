@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -24,6 +25,7 @@ export const setupGlobalMiddleware = (app: Express) => {
             legacyHeaders: false
         })
     );
+    app.use(compression());
 
     // Logging Middleware
     app.use(pinoHttp({ logger }));
