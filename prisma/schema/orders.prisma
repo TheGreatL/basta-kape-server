@@ -45,97 +45,111 @@ model RegisterShift {
   actualBalance Float?
   notes         String?
   orders        Order[]
+
+  @@index([cashierId])
 }
 
 // 2. Order: Master order entity
 model Order {
-  id               String               @id @default(uuid())
-  queueNumber      String?              // E.g. #042 printed on cup label
-  buzzerId         String?              // Pager/buzzer number
-  status           OrderStatus          @default(PENDING)
-  orderType        OrderType            @default(DINE_IN)
-  orderSource      OrderSource          @default(POS)
-  notes            String?
-  
+  id          String      @id @default(uuid())
+  queueNumber String? // E.g. #042 printed on cup label
+  buzzerId    String? // Pager/buzzer number
+  status      OrderStatus @default(PENDING)
+  orderType   OrderType   @default(DINE_IN)
+  orderSource OrderSource @default(POS)
+  notes       String?
+
   // Pricing totals
-  subtotal         Float                @default(0)
-  taxAmount        Float                @default(0)
-  discountAmount   Float                @default(0)
-  netTotal         Float                @default(0)
-  
+  subtotal       Float @default(0)
+  taxAmount      Float @default(0)
+  discountAmount Float @default(0)
+  netTotal       Float @default(0)
+
   // Customer details (Registered or walk-in name for sticker)
-  customerId       String?
-  customer         Customer?            @relation(fields: [customerId], references: [id])
-  customerName     String?              // Custom walk-in customer name
-  
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  customerName String? // Custom walk-in customer name
+
   // Cashier shift assignment
   cashierSessionId String?
-  cashierSession   RegisterShift?       @relation(fields: [cashierSessionId], references: [id])
-  
-  items            OrderItem[]
-  statusHistory    OrderStatusHistory[]
-  payments         OrderPayment[]
-  voidLogs         OrderVoidLog[]
-  discounts        OrderDiscount[]
-  
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  deletedAt        DateTime?
+  cashierSession   RegisterShift? @relation(fields: [cashierSessionId], references: [id])
+
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+  payments      OrderPayment[]
+  voidLogs      OrderVoidLog[]
+  discounts     OrderDiscount[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([orderType])
+  @@index([orderSource])
+  @@index([createdAt])
+  @@index([customerId])
+  @@index([cashierSessionId])
+  @@index([deletedAt])
 }
 
 // 3. OrderItem: Individual items in the order
 model OrderItem {
-  id               String               @id @default(uuid())
+  id               String         @id @default(uuid())
   orderId          String
-  order            Order                @relation(fields: [orderId], references: [id])
+  order            Order          @relation(fields: [orderId], references: [id])
   productVariantId String
-  variant          ProductVariant       @relation(fields: [productVariantId], references: [id])
-  
-  quantity         Int                  @default(1)
-  unitPrice        Float                @default(0)
-  totalPrice       Float                @default(0)
-  notes            String?              // Item-specific instructions (e.g. "extra hot")
-  
-  modifiers        OrderItemModifier[]
-  
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  deletedAt        DateTime?
+  variant          ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  quantity   Int     @default(1)
+  unitPrice  Float   @default(0)
+  totalPrice Float   @default(0)
+  notes      String? // Item-specific instructions (e.g. "extra hot")
+
+  modifiers OrderItemModifier[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([orderId])
+  @@index([productVariantId])
+  @@index([deletedAt])
 }
 
 // 4. ModifierGroup: Customize options configurations (e.g. "Sweetness Level", "Add-ons")
 model ModifierGroup {
-  id          String           @id @default(uuid())
-  name        String
-  isRequired  Boolean          @default(false)
-  minSelect   Int              @default(0)
-  maxSelect   Int              @default(1)
-  options     ModifierOption[]
-  
+  id         String           @id @default(uuid())
+  name       String
+  isRequired Boolean          @default(false)
+  minSelect  Int              @default(0)
+  maxSelect  Int              @default(1)
+  options    ModifierOption[]
+
   // Many-to-many relationship with Product
-  products    Product[]
-  
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  deletedAt   DateTime?
+  products Product[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 // 5. ModifierOption: Choice selection and price adjustment (e.g. "Oat Milk" (+$0.50))
 model ModifierOption {
-  id              String               @id @default(uuid())
+  id              String        @id @default(uuid())
   modifierGroupId String
-  group           ModifierGroup        @relation(fields: [modifierGroupId], references: [id])
+  group           ModifierGroup @relation(fields: [modifierGroupId], references: [id])
   name            String
-  price           Float                @default(0)
-  
-  recipe          Recipe?
-  
+  price           Float         @default(0)
+
+  recipe Recipe?
+
   orderItemModifiers OrderItemModifier[]
   cartModifiers      CustomerCartModifier[]
-  
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  deletedAt       DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 // 6. OrderItemModifier: Selected customizations mapped to order item
@@ -146,30 +160,37 @@ model OrderItemModifier {
   modifierOptionId String
   modifierOption   ModifierOption @relation(fields: [modifierOptionId], references: [id])
   price            Float          @default(0) // Captures price snapshot at purchase
-  
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderItemId])
+  @@index([modifierOptionId])
 }
 
 // 7. OrderPayment: Payment transaction tracking
 model OrderPayment {
-  id                    String        @id @default(uuid())
-  orderId               String
-  order                 Order         @relation(fields: [orderId], references: [id])
-  paymentMethod         PaymentMethod @default(CASH)
-  paymentStatus         PaymentStatus @default(PENDING)
-  amount                Float         @default(0)
-  
+  id            String        @id @default(uuid())
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id])
+  paymentMethod PaymentMethod @default(CASH)
+  paymentStatus PaymentStatus @default(PENDING)
+  amount        Float         @default(0)
+
   // GCash / Digital verification
-  gcashReferenceNumber  String?
-  paymentProofPhoto     String?       // Path/URL to GCash screenshot
-  
+  gcashReferenceNumber String?
+  paymentProofPhoto    String? // Path/URL to GCash screenshot
+
   // Cash payment specific
-  amountTendered        Float?
-  amountChange          Float?
-  
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  amountTendered Float?
+  amountChange   Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([paymentStatus])
+  @@index([createdAt])
 }
 
 // 8. OrderStatusHistory: Live status logging
@@ -181,20 +202,28 @@ model OrderStatusHistory {
   notes       String?
   changedById String?
   changedBy   User?       @relation(fields: [changedById], references: [id])
-  
-  createdAt   DateTime    @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([changedById])
+  @@index([createdAt])
 }
 
 // 9. OrderVoidLog: Loss prevention audit logs
 model OrderVoidLog {
-  id          String    @id @default(uuid())
-  orderId     String
-  order       Order     @relation(fields: [orderId], references: [id])
-  reason      String
-  voidedById  String
-  voidedBy    User      @relation(fields: [voidedById], references: [id])
-  
-  createdAt   DateTime  @default(now())
+  id         String @id @default(uuid())
+  orderId    String
+  order      Order  @relation(fields: [orderId], references: [id])
+  reason     String
+  voidedById String
+  voidedBy   User   @relation(fields: [voidedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([voidedById])
+  @@index([createdAt])
 }
 
 enum DiscountType {
@@ -203,31 +232,34 @@ enum DiscountType {
 }
 
 model Discount {
-  id          String         @id @default(uuid())
-  name        String         // E.g., "Senior Citizen", "PWD", "Soft Launch 10% Off"
-  type        DiscountType   @default(PERCENTAGE)
-  value       Float          // E.g. 20.00 for percentage or 50.00 for fixed
-  code        String?        @unique // E.g. WELCOME10
-  isActive    Boolean        @default(true)
-  
+  id       String       @id @default(uuid())
+  name     String // E.g., "Senior Citizen", "PWD", "Soft Launch 10% Off"
+  type     DiscountType @default(PERCENTAGE)
+  value    Float // E.g. 20.00 for percentage or 50.00 for fixed
+  code     String?      @unique // E.g. WELCOME10
+  isActive Boolean      @default(true)
+
   orderDiscounts OrderDiscount[]
-  
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  deletedAt   DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 model OrderDiscount {
-  id            String    @id @default(uuid())
-  orderId       String
-  order         Order     @relation(fields: [orderId], references: [id])
-  discountId    String
-  discount      Discount  @relation(fields: [discountId], references: [id])
-  amount        Float     // The actual monetary value discounted
-  
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  discountId String
+  discount   Discount @relation(fields: [discountId], references: [id])
+  amount     Float // The actual monetary value discounted
+
   // Philippine BIR SC/PWD Compliance Fields
-  referenceId   String?   // SC/PWD Card ID number (e.g. "SC-12345")
-  referenceName String?   // SC/PWD cardholder name
-  
-  createdAt     DateTime  @default(now())
+  referenceId   String? // SC/PWD Card ID number (e.g. "SC-12345")
+  referenceName String? // SC/PWD cardholder name
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([discountId])
 }

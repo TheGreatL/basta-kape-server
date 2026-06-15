@@ -11,6 +11,8 @@ model ProductCategory {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
 }
 
 model ProductType {
@@ -26,6 +28,8 @@ model ProductType {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
 }
 
 model Product {
@@ -39,14 +43,18 @@ model Product {
   type              ProductType?     @relation(fields: [productTypeId], references: [id])
   variants          ProductVariant[]
 
-  createdById String?
-  createdBy   User?     @relation("ProductCreatedBy", fields: [createdById], references: [id])
-  updatedById String?
-  updatedBy   User?     @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  createdById    String?
+  createdBy      User?           @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedById    String?
+  updatedBy      User?           @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
   modifierGroups ModifierGroup[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+
+  @@index([deletedAt])
+  @@index([productCategoryId])
+  @@index([productTypeId])
 }
 
 model ProductAttribute {
@@ -62,6 +70,8 @@ model ProductAttribute {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
 }
 
 model ProductAttributeValue {
@@ -78,6 +88,9 @@ model ProductAttributeValue {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
+  @@index([productAttributeId])
 }
 
 model ProductVariant {
@@ -91,13 +104,16 @@ model ProductVariant {
   cartItems  CustomerCart[]
 
   createdById String?
-  createdBy   User?     @relation("ProductVariantCreatedBy", fields: [createdById], references: [id])
+  createdBy   User?       @relation("ProductVariantCreatedBy", fields: [createdById], references: [id])
   updatedById String?
-  updatedBy   User?     @relation("ProductVariantUpdatedBy", fields: [updatedById], references: [id])
+  updatedBy   User?       @relation("ProductVariantUpdatedBy", fields: [updatedById], references: [id])
   orderItems  OrderItem[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
+  @@index([productId])
 }
 
 model ProductVariantAttribute {
@@ -114,6 +130,10 @@ model ProductVariantAttribute {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
+  @@index([productVariantId])
+  @@index([productAttributeValueId])
 }
 
 model IngredientUnit {
@@ -140,10 +160,10 @@ model Ingredient {
   defaultUnit      IngredientUnit @relation(fields: [ingredientUnitId], references: [id])
   reorderPoint     Float          @default(0)
 
-  deliveries        IngredientDelivery[]
-  inventories       IngredientInventory[]
-  recipeIngredients RecipeIngredient[]
-  adjustments       InventoryAdjustment[]
+  deliveries         IngredientDelivery[]
+  inventories        IngredientInventory[]
+  recipeIngredients  RecipeIngredient[]
+  adjustments        InventoryAdjustment[]
   purchaseOrderItems PurchaseOrderItem[]
 
   createdById String?
@@ -156,13 +176,13 @@ model Ingredient {
 }
 
 model Supplier {
-  id            String               @id @default(uuid())
-  name          String
-  address       String?
-  notes         String?
-  contactPerson String?
-  contactNumber String?
-  deliveries    IngredientDelivery[]
+  id             String               @id @default(uuid())
+  name           String
+  address        String?
+  notes          String?
+  contactPerson  String?
+  contactNumber  String?
+  deliveries     IngredientDelivery[]
   purchaseOrders PurchaseOrder[]
 
   createdById String?
@@ -187,8 +207,8 @@ model IngredientDelivery {
   totalCost        Float      @default(0)
   batchNumber      String?
 
-  purchaseOrderId     String?
-  purchaseOrder       PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
 
   createdById String?
   createdBy   User?     @relation("IngredientDeliveryCreatedBy", fields: [createdById], references: [id])
@@ -233,6 +253,8 @@ model Recipe {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
 }
 
 model RecipeIngredient {
@@ -252,6 +274,10 @@ model RecipeIngredient {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+
+  @@index([deletedAt])
+  @@index([recipeId])
+  @@index([ingredientId])
 }
 
 enum InventoryStatus {
@@ -294,27 +320,27 @@ enum PurchaseOrderStatus {
 }
 
 model PurchaseOrder {
-  id           String              @id @default(uuid())
-  poNumber     String              @unique // E.g., PO-2026-0001
-  status       PurchaseOrderStatus @default(DRAFT)
-  notes        String?
-  totalAmount  Float               @default(0)
-  
-  supplierId   String
-  supplier     Supplier            @relation(fields: [supplierId], references: [id])
-  
-  createdById  String
-  createdBy    User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
-  
-  items        PurchaseOrderItem[]
-  deliveries   IngredientDelivery[]
-  
-  orderedAt    DateTime?
-  receivedAt   DateTime?
-  
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  deletedAt    DateTime?
+  id          String              @id @default(uuid())
+  poNumber    String              @unique // E.g., PO-2026-0001
+  status      PurchaseOrderStatus @default(DRAFT)
+  notes       String?
+  totalAmount Float               @default(0)
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
+
+  items      PurchaseOrderItem[]
+  deliveries IngredientDelivery[]
+
+  orderedAt  DateTime?
+  receivedAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 model PurchaseOrderItem {
@@ -323,12 +349,12 @@ model PurchaseOrderItem {
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   ingredientId    String
   ingredient      Ingredient    @relation(fields: [ingredientId], references: [id])
-  
-  quantity        Float         @default(0)
-  unitCost        Float         @default(0)
-  totalCost       Float         @default(0)
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deletedAt       DateTime?
+
+  quantity  Float @default(0)
+  unitCost  Float @default(0)
+  totalCost Float @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }

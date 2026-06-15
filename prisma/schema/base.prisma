@@ -8,14 +8,14 @@ datasource db {
 }
 
 model StoreSetting {
-  id            String   @id @default(uuid())
-  storeName     String   @default("Basta Kape")
-  address       String   @default("50 K-1st, Quezon City, Metro Manila")
+  id            String  @id @default(uuid())
+  storeName     String  @default("Basta Kape")
+  address       String  @default("50 K-1st, Quezon City, Metro Manila")
   contactNumber String?
-  openingTime   String   @default("07:00") // HH:MM
-  closingTime   String   @default("21:00") // HH:MM
-  vatRate       Float    @default(12.0)    // Standard PH VAT (12%)
-  serviceCharge Float    @default(0.0)
-  
-  updatedAt     DateTime @updatedAt
+  openingTime   String  @default("07:00") // HH:MM
+  closingTime   String  @default("21:00") // HH:MM
+  vatRate       Float   @default(12.0) // Standard PH VAT (12%)
+  serviceCharge Float   @default(0.0)
+
+  updatedAt DateTime @updatedAt
 }
