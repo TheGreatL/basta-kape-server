@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { generateOpenAPI, registry } from './docs/swagger';
 import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
 
 import moduleRouter from './feature/rbac/module/module.route';
 import permissionRouter from './feature/rbac/permission/permission.route';
@@ -34,20 +35,55 @@ registry.registerPath({
     method: 'get',
     path: '/health',
     summary: 'Health check',
-    description: 'Returns the health status of the server',
+    description: 'Returns the health status of the server and database',
     responses: {
         200: {
-            description: 'Server is healthy',
+            description: 'Server and database are healthy',
             content: {
-                'text/plain': {
-                    schema: z.string()
+                'application/json': {
+                    schema: z.object({
+                        status: z.string(),
+                        server: z.string(),
+                        database: z.string(),
+                        timestamp: z.string()
+                    })
+                }
+            }
+        },
+        503: {
+            description: 'Database is unreachable',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        status: z.string(),
+                        server: z.string(),
+                        database: z.string(),
+                        error: z.string(),
+                        timestamp: z.string()
+                    })
                 }
             }
         }
     }
 });
-router.get('/health', (req: Request, res: Response) => {
-    res.send('Server is healthy');
+router.get('/health', async (req: Request, res: Response) => {
+    try {
+        await prisma.$queryRawUnsafe('SELECT 1');
+        res.status(200).json({
+            status: 'healthy',
+            server: 'running',
+            database: 'connected',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: 'unhealthy',
+            server: 'running',
+            database: 'disconnected',
+            error: error instanceof Error ? error.message : 'Unknown database error',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 router.use('/auth', authRouter);

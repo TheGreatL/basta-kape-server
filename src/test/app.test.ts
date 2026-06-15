@@ -12,6 +12,9 @@ describe('App Integration Tests', () => {
     it('should return 200 on GET /api/health', async () => {
         const response = await request(app).get('/api/health');
         expect(response.status).toBe(200);
-        expect(response.text).toBe('Server is healthy');
+        expect(response.body.status).toBe('healthy');
+        expect(response.body.server).toBe('running');
+        expect(response.body.database).toBe('connected');
+        expect(response.body.timestamp).toBeDefined();
     });
 });
