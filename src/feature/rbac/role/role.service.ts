@@ -1,4 +1,4 @@
-import { RoleRepository, type TRoleWithPermissions } from './role.repository';
+import { RoleRepository, TRoleRow } from './role.repository';
 import { ModulePermissionRepository } from '../module-permission.repository';
 import type { IRoleFilterParams } from './role.types';
 import type { IPaginatedResult } from '@/types/base.types';
@@ -49,7 +49,7 @@ export class RoleService {
         return this.modulePermissionRepository.getSelectionTree();
     }
 
-    async getList(params: IRoleFilterParams): Promise<IPaginatedResult<TRoleWithPermissions>> {
+    async getList(params: IRoleFilterParams): Promise<IPaginatedResult<TRoleRow>> {
         return this.roleRepository.getList(params);
     }
 

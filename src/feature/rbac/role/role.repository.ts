@@ -39,7 +39,7 @@ export type TRoleRow = Prisma.RoleGetPayload<{ select: typeof roleSelect }>;
 export type TRoleWithPermissions = Prisma.RoleGetPayload<{ select: typeof roleWithPermissionsSelect }>;
 
 export class RoleRepository extends BaseRepository {
-    async getList(params: IRoleFilterParams): Promise<IPaginatedResult<TRoleWithPermissions>> {
+    async getList(params: IRoleFilterParams): Promise<IPaginatedResult<TRoleRow>> {
         const { skip, take, page } = this.normalizePagination(params);
 
         const where: Prisma.RoleWhereInput = {};
@@ -62,7 +62,7 @@ export class RoleRepository extends BaseRepository {
                 skip,
                 take,
                 orderBy: { name: 'asc' },
-                select: roleWithPermissionsSelect
+                select: roleSelect
             })
         ]);
 
