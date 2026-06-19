@@ -167,11 +167,14 @@ export class CustomerRepository extends BaseRepository {
     }
 
     /**
-     * Finds a single customer by ID.
+     * Finds a single customer by ID (customer ID, user ID, or username).
      */
     async findCustomerById(id: string) {
         return prisma.customer.findFirst({
-            where: { id, deletedAt: null },
+            where: {
+                OR: [{ id }, { userId: id }, { user: { username: id } }],
+                deletedAt: null
+            },
             include: {
                 user: true
             }
@@ -179,11 +182,13 @@ export class CustomerRepository extends BaseRepository {
     }
 
     /**
-     * Finds a single customer by ID, including soft-deleted ones.
+     * Finds a single customer by ID (customer ID, user ID, or username), including soft-deleted ones.
      */
     async findCustomerByIdIncludingDeleted(id: string) {
         return prisma.customer.findFirst({
-            where: { id },
+            where: {
+                OR: [{ id }, { userId: id }, { user: { username: id } }]
+            },
             include: {
                 user: true
             }

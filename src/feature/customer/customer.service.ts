@@ -75,7 +75,7 @@ export class CustomerService {
             }
         }
 
-        const updatedCustomer = await this.customerRepository.updateCustomer(id, data);
+        const updatedCustomer = await this.customerRepository.updateCustomer(customer.id, data);
 
         await this.activityLogService.logActivity({
             actorId,
@@ -89,7 +89,7 @@ export class CustomerService {
     async deleteCustomer(id: string, actorId: string) {
         const customer = await this.getCustomerById(id);
 
-        await this.customerRepository.softDeleteCustomer(id);
+        await this.customerRepository.softDeleteCustomer(customer.id);
 
         await this.activityLogService.logActivity({
             actorId,
@@ -104,7 +104,7 @@ export class CustomerService {
             throw new NotFoundException('Customer not found');
         }
 
-        await this.customerRepository.restoreCustomer(id);
+        await this.customerRepository.restoreCustomer(customer.id);
 
         await this.activityLogService.logActivity({
             actorId,
@@ -121,9 +121,9 @@ export class CustomerService {
 
     async getCart(customerId: string) {
         // Ensure customer exists
-        await this.getCustomerById(customerId);
+        const customer = await this.getCustomerById(customerId);
 
-        const items = await this.customerRepository.getCart(customerId);
+        const items = await this.customerRepository.getCart(customer.id);
 
         // Compute total cart amount dynamically
         const totalAmount = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
@@ -148,7 +148,7 @@ export class CustomerService {
         }
 
         const cartItem = await this.customerRepository.addCartItem(
-            customerId,
+            customer.id,
             data.productVariantId,
             data.quantity,
             variant.price,
@@ -169,12 +169,12 @@ export class CustomerService {
         const customer = await this.getCustomerById(customerId);
 
         // Ensure cart item exists
-        const existingItem = await this.customerRepository.findCartItemById(customerId, cartItemId);
+        const existingItem = await this.customerRepository.findCartItemById(customer.id, cartItemId);
         if (!existingItem) {
             throw new NotFoundException('Cart item not found in customer cart');
         }
 
-        const updatedItem = await this.customerRepository.updateCartItem(customerId, cartItemId, data.quantity);
+        const updatedItem = await this.customerRepository.updateCartItem(customer.id, cartItemId, data.quantity);
 
         await this.activityLogService.logActivity({
             actorId,
@@ -190,12 +190,12 @@ export class CustomerService {
         const customer = await this.getCustomerById(customerId);
 
         // Ensure cart item exists
-        const existingItem = await this.customerRepository.findCartItemById(customerId, cartItemId);
+        const existingItem = await this.customerRepository.findCartItemById(customer.id, cartItemId);
         if (!existingItem) {
             throw new NotFoundException('Cart item not found in customer cart');
         }
 
-        await this.customerRepository.removeCartItem(customerId, cartItemId);
+        await this.customerRepository.removeCartItem(customer.id, cartItemId);
 
         await this.activityLogService.logActivity({
             actorId,
@@ -208,7 +208,7 @@ export class CustomerService {
         // Ensure customer exists
         const customer = await this.getCustomerById(customerId);
 
-        await this.customerRepository.clearCart(customerId, cartItemIds);
+        await this.customerRepository.clearCart(customer.id, cartItemIds);
 
         const isPartial = cartItemIds && cartItemIds.length > 0;
         await this.activityLogService.logActivity({
@@ -222,8 +222,8 @@ export class CustomerService {
 
     async getCustomerOrders(customerId: string, params: TGetCustomerOrdersQuery) {
         // Ensure customer exists
-        await this.getCustomerById(customerId);
+        const customer = await this.getCustomerById(customerId);
 
-        return this.customerRepository.getCustomerOrders(customerId, params);
+        return this.customerRepository.getCustomerOrders(customer.id, params);
     }
 }
