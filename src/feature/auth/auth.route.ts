@@ -58,10 +58,7 @@ router.post('/login', loginRateLimiter, async (req: Request, res: Response, next
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
-        // Omit refreshToken from JSON response
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { refreshToken, ...responsePayload } = result;
-        res.json(responsePayload);
+        res.json({ accessToken: result.accessToken, userId: result.user.id });
     } catch (error) {
         next(error);
     }
@@ -112,10 +109,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
-        // Omit refreshToken from JSON response
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { refreshToken, ...responsePayload } = result;
-        res.status(201).json(responsePayload);
+        res.status(201).json({ accessToken: result.accessToken, userId: result.user.id });
     } catch (error) {
         next(error);
     }
@@ -153,7 +147,7 @@ router.post('/refresh', async (req: Request, res: Response, next: NextFunction) 
         }
 
         const result = await authService.refreshAccessToken(refreshToken);
-        res.json(result);
+        res.json({ accessToken: result.accessToken, userId: result.user.id });
     } catch (error) {
         next(error);
     }
@@ -393,16 +387,24 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
                 createdAt: true,
                 profilePhoto: true,
                 middleName: true,
-                roles: {
+                userRoles: {
                     where: { deletedAt: null },
                     select: {
-                        name: true,
-                        permissions: {
-                            where: { deletedAt: null },
+                        role: {
                             select: {
-                                module: true,
-                                permission: true,
-                                scope: true
+                                name: true,
+                                rolePermissions: {
+                                    where: { deletedAt: null },
+                                    select: {
+                                        modulePermission: {
+                                            select: {
+                                                module: { select: { name: true } },
+                                                permission: { select: { name: true } },
+                                                accessScope: true
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -415,8 +417,23 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
         }
 
         res.json({
-            ...user,
-            createdAt: user.createdAt.toISOString()
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phoneNumber: user.phoneNumber,
+            profilePhoto: user.profilePhoto,
+            middleName: user.middleName,
+            createdAt: user.createdAt.toISOString(),
+            roles: user.userRoles.map((ur) => ({
+                name: ur.role.name,
+                permissions: ur.role.rolePermissions.map((rp) => ({
+                    module: rp.modulePermission.module.name,
+                    permission: rp.modulePermission.permission.name,
+                    scope: rp.modulePermission.accessScope
+                }))
+            }))
         });
     } catch (error) {
         next(error);

@@ -70,15 +70,19 @@ describe('Auth Feature Integration Tests', () => {
             const res = await request(app).post('/auth/register').send(testUser);
 
             expect(res.status).toBe(201);
-            expect(res.body).toHaveProperty('user');
+            expect(res.body).toHaveProperty('userId');
             expect(res.body).toHaveProperty('accessToken');
             expect(res.body).not.toHaveProperty('refreshToken');
             expect(res.headers['set-cookie']).toBeDefined();
             expect(res.headers['set-cookie'][0]).toMatch(/refreshToken=/);
-            expect(res.body.user.username).toBe(testUser.username);
-            expect(res.body.user.email).toBe(testUser.email);
 
-            registeredUserId = res.body.user.id;
+            registeredUserId = res.body.userId;
+            const createdUser = await prisma.user.findUnique({
+                where: { id: registeredUserId }
+            });
+            expect(createdUser).toBeDefined();
+            expect(createdUser?.username).toBe(testUser.username);
+            expect(createdUser?.email).toBe(testUser.email);
         });
 
         it('should fail with 400 when registration fields are invalid', async () => {
@@ -110,7 +114,8 @@ describe('Auth Feature Integration Tests', () => {
             });
 
             expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('user');
+            expect(res.body).toHaveProperty('userId');
+            expect(res.body.userId).toBe(registeredUserId);
             expect(res.body).toHaveProperty('accessToken');
             expect(res.body).not.toHaveProperty('refreshToken');
 

@@ -32,25 +32,7 @@ export interface IJwtPayload {
 // ── Auth Response ─────────────────────────────────────────────────────────────
 export const AuthTokenResponseSchema = z.object({
     accessToken: z.string(),
-    user: z.object({
-        id: z.string(),
-        email: z.string(),
-        username: z.string(),
-        firstName: z.string(),
-        lastName: z.string(),
-        roles: z.array(
-            z.object({
-                name: z.string(),
-                permissions: z.array(
-                    z.object({
-                        module: z.string(),
-                        permission: z.string(),
-                        scope: z.string()
-                    })
-                )
-            })
-        )
-    })
+    userId: z.string()
 });
 
 // ── Password Reset & Change ───────────────────────────────────────────────────
