@@ -237,11 +237,14 @@ export class UserRepository extends BaseRepository {
     }
 
     /**
-     * Finds a user by ID with nested roles.
+     * Finds a user by ID or Username with nested roles.
      */
-    async findById(id: string) {
+    async findById(idOrUsername: string) {
         return prisma.user.findFirst({
-            where: { id, deletedAt: null },
+            where: {
+                OR: [{ id: idOrUsername }, { username: idOrUsername }],
+                deletedAt: null
+            },
             select: {
                 id: true,
                 email: true,
@@ -270,11 +273,13 @@ export class UserRepository extends BaseRepository {
     }
 
     /**
-     * Finds a user by ID, including soft-deleted ones.
+     * Finds a user by ID or Username, including soft-deleted ones.
      */
-    async findByIdIncludingDeleted(id: string) {
+    async findByIdIncludingDeleted(idOrUsername: string) {
         return prisma.user.findFirst({
-            where: { id },
+            where: {
+                OR: [{ id: idOrUsername }, { username: idOrUsername }]
+            },
             select: {
                 id: true,
                 email: true,
