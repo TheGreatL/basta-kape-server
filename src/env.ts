@@ -8,7 +8,10 @@ const envSchema = z
     .object({
         NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
         PORT: z.string().default('8000').transform(Number),
-        FRONTEND_URL: z.url().default('http://localhost:3000'),
+        FRONTEND_URL: z
+            .string()
+            .default('http://localhost:3000')
+            .transform((val) => val.split(',').map((u) => u.trim())),
         DATABASE_URL: z.string().url(),
         JWT_ACCESS_SECRET: z.string().min(1, 'JWT access secret is required'),
         JWT_REFRESH_SECRET: z.string().min(1, 'JWT refresh secret is required'),

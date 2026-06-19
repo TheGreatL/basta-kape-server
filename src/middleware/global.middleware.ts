@@ -33,7 +33,17 @@ export const setupGlobalMiddleware = (app: Express) => {
     // CORS configuration
     app.use(
         cors({
-            origin: env.FRONTEND_URL,
+            origin: (origin, callback) => {
+                // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+                if (!origin) return callback(null, true);
+
+                const allowedOrigins = env.FRONTEND_URL;
+                if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+                    callback(null, true);
+                } else {
+                    callback(null, false);
+                }
+            },
             credentials: true
         })
     );
