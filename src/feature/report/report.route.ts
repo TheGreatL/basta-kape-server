@@ -120,7 +120,8 @@ registry.registerPath({
     request: {
         query: z.object({
             dateFrom: z.string().optional(),
-            dateTo: z.string().optional()
+            dateTo: z.string().optional(),
+            type: z.string().optional()
         })
     },
     responses: {
@@ -137,7 +138,8 @@ router.get(
         try {
             const dateFrom = req.query.dateFrom as string;
             const dateTo = req.query.dateTo as string;
-            const result = await service.getSalesAnalytics(dateFrom, dateTo);
+            const type = req.query.type as string;
+            const result = await service.getSalesAnalytics(dateFrom, dateTo, type);
             res.json(result);
         } catch (error) {
             next(error);

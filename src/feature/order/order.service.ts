@@ -187,6 +187,7 @@ export class OrderService {
         }
         const order = await this.repository.createOrder({
             queueNumber,
+            buzzerId: data.buzzerId,
             orderType: data.orderType,
             orderSource: data.orderSource,
             notes: data.notes,

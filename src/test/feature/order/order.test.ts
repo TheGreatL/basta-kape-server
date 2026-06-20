@@ -376,6 +376,28 @@ describe('Order Feature CRUD', () => {
             expect(res.body.statusHistory.length).toBeGreaterThanOrEqual(1);
         });
 
+        it('should return a referenceNumber and allow searching by referenceNumber and receiptId', async () => {
+            const getRes = await request(app).get(`/orders/${createdOrderId}`);
+            expect(getRes.status).toBe(200);
+            expect(getRes.body).toHaveProperty('referenceNumber');
+            const referenceNumber = getRes.body.referenceNumber;
+            expect(referenceNumber).toMatch(/^\d{6}-\d{3}$/);
+
+            // Search by Reference Number
+            const searchRes = await request(app).get(`/orders?search=${referenceNumber}`);
+            expect(searchRes.status).toBe(200);
+            expect(searchRes.body.data.length).toBeGreaterThanOrEqual(1);
+            const foundOrder = searchRes.body.data.find((o: { id: string }) => o.id === createdOrderId);
+            expect(foundOrder).toBeDefined();
+
+            // Search by Shortened Receipt ID (UUID startsWith)
+            const receiptId = createdOrderId.slice(0, 8);
+            const searchReceiptRes = await request(app).get(`/orders?search=${receiptId}`);
+            expect(searchReceiptRes.status).toBe(200);
+            expect(searchReceiptRes.body.data.length).toBe(1);
+            expect(searchReceiptRes.body.data[0].id).toBe(createdOrderId);
+        });
+
         it('should successfully update order status and append to status history', async () => {
             const payload = {
                 status: 'PREPARING',

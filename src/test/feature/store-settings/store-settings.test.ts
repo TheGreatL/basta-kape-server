@@ -165,6 +165,7 @@ describe('Store Settings Feature CRUD', () => {
         });
 
         it('should create new settings successfully via POST when none exists', async () => {
+            await prisma.storeSetting.deleteMany({});
             const payload = {
                 storeName: 'Fresh Brewed Kape',
                 address: '99 Espresso Ave, Manila',

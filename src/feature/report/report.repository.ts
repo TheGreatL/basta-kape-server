@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
 import type { TReportFilters, TReportModule, TReportRow } from './report.types';
+import { getOrderReference } from '../order/order.utils';
 
 type TReportQueryResult = {
     rows: TReportRow[];
@@ -449,20 +450,47 @@ export class ReportRepository extends BaseRepository {
         if (filters.orderType) where.orderType = filters.orderType;
 
         if (filters.search) {
-            where.OR = [
-                { queueNumber: { contains: filters.search } },
-                { customerName: { contains: filters.search } },
-                { buzzerId: { contains: filters.search } }
-            ];
+            const refMatch = filters.search.match(/^(\d{6}|\d{8})-(\d+)$/);
+            if (refMatch) {
+                const datePart = refMatch[1];
+                const queuePart = refMatch[2];
+
+                const yearStr = datePart.length === 6 ? datePart.slice(0, 2) : datePart.slice(0, 4);
+                const monthStr = datePart.length === 6 ? datePart.slice(2, 4) : datePart.slice(4, 6);
+                const dayStr = datePart.length === 6 ? datePart.slice(4, 6) : datePart.slice(6, 8);
+
+                const yearNum = parseInt(datePart.length === 6 ? '20' + yearStr : yearStr, 10);
+                const monthNum = parseInt(monthStr, 10) - 1;
+                const dayNum = parseInt(dayStr, 10);
+
+                const startOfDay = new Date(yearNum, monthNum, dayNum, 0, 0, 0, 0);
+                const endOfDay = new Date(yearNum, monthNum, dayNum, 23, 59, 59, 999);
+
+                where.createdAt = {
+                    gte: startOfDay,
+                    lte: endOfDay
+                };
+                where.queueNumber = `#${queuePart.padStart(3, '0')}`;
+            } else {
+                const searchLower = filters.search.toLowerCase();
+                where.OR = [
+                    { id: { startsWith: searchLower } },
+                    { queueNumber: { contains: filters.search } },
+                    { customerName: { contains: filters.search } },
+                    { buzzerId: { contains: filters.search } }
+                ];
+            }
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
+            if (!where.createdAt) {
+                where.createdAt = {};
+                if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
+                if (filters.dateTo) {
+                    const end = new Date(filters.dateTo);
+                    end.setHours(23, 59, 59, 999);
+                    where.createdAt.lte = end;
+                }
             }
         }
 
@@ -484,6 +512,7 @@ export class ReportRepository extends BaseRepository {
         return {
             total,
             rows: records.map((order) => ({
+                referenceNumber: getOrderReference(order.createdAt, order.queueNumber),
                 queueNumber: order.queueNumber ?? '',
                 customerName:
                     order.customerName || (order.customer ? `${order.customer.user.firstName} ${order.customer.user.lastName}`.trim() : 'Walk-in'),

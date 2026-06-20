@@ -175,7 +175,7 @@ export class ReportService {
         };
     }
 
-    async getSalesAnalytics(dateFrom?: string, dateTo?: string) {
+    async getSalesAnalytics(dateFrom?: string, dateTo?: string, type?: string) {
         const now = new Date();
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(now.getDate() - 30);
@@ -194,6 +194,206 @@ export class ReportService {
                 lte: end
             }
         };
+
+        if (type === 'summary') {
+            const summary = await prisma.order.aggregate({
+                where: orderWhere,
+                _count: { id: true },
+                _sum: {
+                    subtotal: true,
+                    discountAmount: true,
+                    netTotal: true
+                }
+            });
+
+            const grossSales = summary._sum?.subtotal ?? 0;
+            const discountTotal = summary._sum?.discountAmount ?? 0;
+            const netSales = summary._sum?.netTotal ?? 0;
+            const orderCount = summary._count?.id ?? 0;
+            const averageOrderValue = orderCount > 0 ? netSales / orderCount : 0;
+
+            return {
+                summary: {
+                    grossSales,
+                    discountTotal,
+                    netSales,
+                    orderCount,
+                    averageOrderValue
+                }
+            };
+        }
+
+        if (type === 'daily-trend') {
+            const dailyRows = await prisma.order.findMany({
+                where: orderWhere,
+                orderBy: { createdAt: 'asc' },
+                select: {
+                    createdAt: true,
+                    netTotal: true
+                }
+            });
+
+            const dailyMap: Record<string, { date: string; sales: number; count: number }> = {};
+            const temp = new Date(start);
+            while (temp <= end) {
+                const dateStr = temp.toISOString().split('T')[0];
+                dailyMap[dateStr] = { date: dateStr, sales: 0, count: 0 };
+                temp.setDate(temp.getDate() + 1);
+            }
+
+            for (const order of dailyRows) {
+                const dateStr = order.createdAt.toISOString().split('T')[0];
+                if (dailyMap[dateStr]) {
+                    dailyMap[dateStr].sales += order.netTotal;
+                    dailyMap[dateStr].count += 1;
+                }
+            }
+
+            const dailyTrend = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+            return { dailyTrend };
+        }
+
+        if (type === 'top-products') {
+            const itemRows = await prisma.orderItem.findMany({
+                where: {
+                    order: {
+                        is: orderWhere
+                    }
+                },
+                select: {
+                    quantity: true,
+                    totalPrice: true,
+                    variant: {
+                        select: {
+                            product: {
+                                select: {
+                                    name: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const productMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
+            for (const item of itemRows) {
+                const name = item.variant.product.name;
+                if (!name) continue;
+
+                if (!productMap[name]) {
+                    productMap[name] = { name, quantity: 0, revenue: 0 };
+                }
+
+                productMap[name].quantity += item.quantity;
+                productMap[name].revenue += item.totalPrice;
+            }
+
+            const topProducts = Object.values(productMap)
+                .sort((a, b) => b.quantity - a.quantity)
+                .slice(0, 5);
+
+            return { topProducts };
+        }
+
+        if (type === 'order-type-breakdown') {
+            const orderTypeRows = (await prisma.order.groupBy({
+                by: ['orderType'],
+                where: orderWhere,
+                _count: { id: true },
+                _sum: { netTotal: true }
+            })) as unknown as SalesOrderTypeRow[];
+
+            const orderTypeBreakdown = {
+                DINE_IN: { count: 0, revenue: 0 },
+                TAKE_OUT: { count: 0, revenue: 0 },
+                DELIVERY: { count: 0, revenue: 0 }
+            };
+
+            for (const row of orderTypeRows) {
+                if (!orderTypeBreakdown[row.orderType]) continue;
+                orderTypeBreakdown[row.orderType].count = row._count.id;
+                orderTypeBreakdown[row.orderType].revenue = row._sum.netTotal ?? 0;
+            }
+
+            return { orderTypeBreakdown };
+        }
+
+        if (type === 'payment-breakdown') {
+            const paymentRows = (await prisma.orderPayment.groupBy({
+                by: ['paymentMethod'],
+                where: {
+                    paymentStatus: PaymentStatus.PAID,
+                    order: {
+                        is: orderWhere
+                    }
+                },
+                _count: { id: true },
+                _sum: { amount: true }
+            })) as unknown as SalesPaymentRow[];
+
+            const paymentBreakdown = {
+                CASH: { count: 0, revenue: 0 },
+                GCASH: { count: 0, revenue: 0 },
+                PAYMAYA: { count: 0, revenue: 0 },
+                CREDIT_CARD: { count: 0, revenue: 0 }
+            };
+
+            for (const row of paymentRows) {
+                if (!paymentBreakdown[row.paymentMethod]) continue;
+                paymentBreakdown[row.paymentMethod].count = row._count.id;
+                paymentBreakdown[row.paymentMethod].revenue = row._sum.amount ?? 0;
+            }
+
+            return { paymentBreakdown };
+        }
+
+        if (type === 'orders') {
+            const orders = await prisma.order.findMany({
+                where: orderWhere,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    queueNumber: true,
+                    customerName: true,
+                    orderType: true,
+                    orderSource: true,
+                    netTotal: true,
+                    createdAt: true,
+                    status: true,
+                    payments: {
+                        select: {
+                            id: true,
+                            paymentMethod: true,
+                            paymentStatus: true,
+                            amount: true,
+                            gcashReferenceNumber: true,
+                            paymentProofPhoto: true
+                        }
+                    }
+                }
+            });
+
+            return {
+                orders: orders.map((order) => ({
+                    id: order.id,
+                    queueNumber: order.queueNumber,
+                    customerName: order.customerName,
+                    orderType: order.orderType,
+                    orderSource: order.orderSource,
+                    netTotal: order.netTotal,
+                    createdAt: order.createdAt.toISOString(),
+                    status: order.status,
+                    payments: order.payments.map((payment) => ({
+                        id: payment.id,
+                        paymentMethod: payment.paymentMethod,
+                        paymentStatus: payment.paymentStatus,
+                        amount: payment.amount,
+                        gcashReferenceNumber: payment.gcashReferenceNumber,
+                        paymentProofPhoto: payment.paymentProofPhoto
+                    }))
+                }))
+            };
+        }
 
         const summary = await prisma.order.aggregate({
             where: orderWhere,

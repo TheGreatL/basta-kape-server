@@ -1,5 +1,6 @@
 import { OrderPayment, PaymentMethod, PaymentStatus, Prisma, StoreSetting } from '@prisma/client';
 import PDFDocument from 'pdfkit';
+import { getOrderReference } from './order.utils';
 
 /**
  * Generates a plain text thermal layout for the receipt (40-column width)
@@ -60,11 +61,13 @@ export function generateTextReceipt(
     lines.push(divider);
 
     // Meta details
-    lines.push(leftRight(`Receipt ID: ${order.id.slice(0, 8).toUpperCase()}`, new Date(order.createdAt).toLocaleDateString()));
+    const refNo = getOrderReference(order.createdAt, order.queueNumber);
+    lines.push(leftRight(`Ref No: ${refNo}`, new Date(order.createdAt).toLocaleDateString()));
     lines.push(
         leftRight(`Queue No: ${order.queueNumber || 'N/A'}`, new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
     );
-    lines.push(leftRight(`Type: ${order.orderType}`, `Src: ${order.orderSource}`));
+    lines.push(leftRight(`Receipt ID: ${order.id.slice(0, 8).toUpperCase()}`, `Type: ${order.orderType}`));
+    lines.push(leftRight(`Src: ${order.orderSource}`, ''));
     if (order.cashierSession?.cashier) {
         const cashierName =
             `${order.cashierSession.cashier.firstName || ''} ${order.cashierSession.cashier.lastName || ''}`.trim() ||
@@ -509,6 +512,8 @@ export function generateHtmlReceipt(
         <div class="receipt-meta-grid">
             <div>Receipt ID:</div>
             <div>${order.id.slice(0, 8).toUpperCase()}</div>
+            <div>Reference No:</div>
+            <div><strong>${getOrderReference(order.createdAt, order.queueNumber)}</strong></div>
             <div>Queue No:</div>
             <div><strong>${order.queueNumber || 'N/A'}</strong></div>
             <div>Date:</div>
@@ -633,7 +638,7 @@ export async function generatePdfReceipt(
 
         // Custom point height computation for continuous thermal paper size mapping
         const headerHeight = 90;
-        const metaHeight = 70;
+        const metaHeight = 81;
         const itemsHeight = 20 + itemsCount * 22 + modifiersCount * 14;
         const totalsHeight = 70 + discountsCount * 14;
         const paymentsHeight = paymentsCount > 0 ? 20 + paymentsCount * 25 : 0;
@@ -680,6 +685,11 @@ export async function generatePdfReceipt(
         doc.font('Helvetica').fontSize(8).fillColor('#1f2937');
         doc.text('Receipt ID:', 15, y);
         doc.font('Helvetica-Bold').text(order.id.slice(0, 8).toUpperCase(), 75, y, { align: 'right', width: 136 });
+        y += 11;
+
+        const refNo = getOrderReference(order.createdAt, order.queueNumber);
+        doc.font('Helvetica').text('Reference No:', 15, y);
+        doc.font('Helvetica-Bold').text(refNo, 75, y, { align: 'right', width: 136 });
         y += 11;
 
         doc.font('Helvetica').text('Queue No:', 15, y);

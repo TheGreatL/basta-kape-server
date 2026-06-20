@@ -3,9 +3,11 @@ import { BaseRepository } from '@/repository/base.repository';
 import { Prisma, OrderStatus, OrderType, OrderSource, PaymentMethod, PaymentStatus } from '@prisma/client';
 import type { TGetOrderListQuery } from './order.types';
 import type { IPaginatedResult } from '@/types/base.types';
+import { formatOrderWithReference, formatOrdersWithReference } from './order.utils';
 
 type TCreateOrderRepoData = {
     queueNumber: string;
+    buzzerId?: string | null;
     orderType: OrderType;
     orderSource: OrderSource;
     notes?: string | null;
@@ -53,10 +55,11 @@ export class OrderRepository extends BaseRepository {
     }
 
     async createOrder(data: TCreateOrderRepoData) {
-        return prisma.$transaction(async (tx) => {
+        const createdOrder = await prisma.$transaction(async (tx) => {
             const order = await tx.order.create({
                 data: {
                     queueNumber: data.queueNumber,
+                    buzzerId: data.buzzerId ?? null,
                     orderType: data.orderType,
                     orderSource: data.orderSource,
                     notes: data.notes ?? null,
@@ -117,10 +120,11 @@ export class OrderRepository extends BaseRepository {
 
             return order;
         });
+        return formatOrderWithReference(createdOrder);
     }
 
     async getOrderById(id: string) {
-        return prisma.order.findUnique({
+        const order = await prisma.order.findUnique({
             where: { id },
             include: {
                 items: {
@@ -173,6 +177,7 @@ export class OrderRepository extends BaseRepository {
                 }
             }
         });
+        return order ? formatOrderWithReference(order) : null;
     }
 
     async getOrderList(params: TGetOrderListQuery): Promise<IPaginatedResult<unknown>> {
@@ -184,11 +189,36 @@ export class OrderRepository extends BaseRepository {
         if (params.orderSource) where.orderSource = params.orderSource;
 
         if (params.search) {
-            where.OR = [
-                { queueNumber: { contains: params.search } },
-                { customerName: { contains: params.search } },
-                { notes: { contains: params.search } }
-            ];
+            const refMatch = params.search.match(/^(\d{6}|\d{8})-(\d+)$/);
+            if (refMatch) {
+                const datePart = refMatch[1];
+                const queuePart = refMatch[2];
+
+                const yearStr = datePart.length === 6 ? datePart.slice(0, 2) : datePart.slice(0, 4);
+                const monthStr = datePart.length === 6 ? datePart.slice(2, 4) : datePart.slice(4, 6);
+                const dayStr = datePart.length === 6 ? datePart.slice(4, 6) : datePart.slice(6, 8);
+
+                const yearNum = parseInt(datePart.length === 6 ? '20' + yearStr : yearStr, 10);
+                const monthNum = parseInt(monthStr, 10) - 1;
+                const dayNum = parseInt(dayStr, 10);
+
+                const startOfDay = new Date(yearNum, monthNum, dayNum, 0, 0, 0, 0);
+                const endOfDay = new Date(yearNum, monthNum, dayNum, 23, 59, 59, 999);
+
+                where.createdAt = {
+                    gte: startOfDay,
+                    lte: endOfDay
+                };
+                where.queueNumber = `#${queuePart.padStart(3, '0')}`;
+            } else {
+                const searchLower = params.search.toLowerCase();
+                where.OR = [
+                    { id: { startsWith: searchLower } },
+                    { queueNumber: { contains: params.search } },
+                    { customerName: { contains: params.search } },
+                    { notes: { contains: params.search } }
+                ];
+            }
         }
 
         const [data, totalRows] = await Promise.all([
@@ -221,7 +251,8 @@ export class OrderRepository extends BaseRepository {
             prisma.order.count({ where })
         ]);
 
-        return this.formatPaginatedResult(data, totalRows, page, take);
+        const formattedData = formatOrdersWithReference(data);
+        return this.formatPaginatedResult(formattedData, totalRows, page, take);
     }
 
     async updateOrderStatus(orderId: string, status: OrderStatus, notes: string | null, actorId: string) {

@@ -26,6 +26,7 @@ export const CreateOrderSchema = z
         notes: z.string().max(1000).optional().nullable(),
         customerId: z.string().uuid().optional().nullable(),
         customerName: z.string().max(100).optional().nullable(),
+        buzzerId: z.string().max(50).optional().nullable(),
         paymentMethod: z.enum(['CASH', 'GCASH', 'PAYMAYA']).optional().nullable(),
         gcashReferenceNumber: z.string().max(100).optional().nullable(),
         paymentProofPhoto: z.string().max(1000).optional().nullable(),
@@ -96,6 +97,7 @@ export const OrderItemResponseSchema = z.object({
 export const OrderResponseSchema = z.object({
     id: z.string(),
     queueNumber: z.string().nullable(),
+    referenceNumber: z.string().optional(),
     buzzerId: z.string().nullable(),
     status: OrderStatusEnum,
     orderType: OrderTypeEnum,
