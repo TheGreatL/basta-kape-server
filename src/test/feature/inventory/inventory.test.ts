@@ -84,7 +84,7 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
             await prisma.inventoryAdjustment.deleteMany({ where: { id: testAdjustmentId } });
         }
         if (testDeliveryId) {
-            await prisma.ingredientDelivery.deleteMany({ where: { id: testDeliveryId } });
+            await prisma.ingredientBatch.deleteMany({ where: { id: testDeliveryId } });
         }
         if (testIngredientId) {
             await prisma.ingredientInventory.deleteMany({ where: { ingredientId: testIngredientId } });
@@ -306,7 +306,7 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
 
         afterAll(async () => {
             await prisma.inventoryAdjustment.deleteMany({ where: { ingredientId: activeIngredientId } });
-            await prisma.ingredientDelivery.deleteMany({ where: { ingredientId: activeIngredientId } });
+            await prisma.ingredientBatch.deleteMany({ where: { ingredientId: activeIngredientId } });
             await prisma.ingredientInventory.deleteMany({ where: { ingredientId: activeIngredientId } });
             await prisma.ingredient.deleteMany({ where: { id: activeIngredientId } });
             await prisma.ingredientUnit.deleteMany({ where: { id: activeUnitId } });
@@ -539,6 +539,16 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
             await prisma.productVariant.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
             await prisma.product.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
             await prisma.ingredientInventory.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
+            await prisma.inventoryAdjustment.deleteMany({
+                where: {
+                    OR: [{ createdById: 'test-inventory-user-id' }, { ingredient: { createdById: 'test-inventory-user-id' } }]
+                }
+            });
+            await prisma.ingredientBatch.deleteMany({
+                where: {
+                    OR: [{ createdById: 'test-inventory-user-id' }, { ingredient: { createdById: 'test-inventory-user-id' } }]
+                }
+            });
             await prisma.ingredient.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
             await prisma.ingredientUnit.deleteMany({ where: { createdById: 'test-inventory-user-id' } });
         });

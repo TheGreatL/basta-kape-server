@@ -4,6 +4,7 @@ import { Prisma, OrderStatus, OrderType, OrderSource, PaymentMethod, PaymentStat
 import type { TGetOrderListQuery } from './order.types';
 import type { IPaginatedResult } from '@/types/base.types';
 import { formatOrderWithReference, formatOrdersWithReference } from './order.utils';
+import { InventoryRepository } from '@/feature/inventory/inventory.repository';
 
 type TCreateOrderRepoData = {
     queueNumber: string;
@@ -352,48 +353,17 @@ export class OrderRepository extends BaseRepository {
             return;
         }
 
-        const ingredientIds = Array.from(ingredientDeductions.keys());
-        const [ingredients, inventories] = await Promise.all([
-            tx.ingredient.findMany({
-                where: { id: { in: ingredientIds }, deletedAt: null }
-            }),
-            tx.ingredientInventory.findMany({
-                where: { ingredientId: { in: ingredientIds }, deletedAt: null }
-            })
-        ]);
-
-        const inventoryByIngredientId = new Map(inventories.map((inventory) => [inventory.ingredientId, inventory]));
+        const inventoryRepo = new InventoryRepository();
 
         for (const [ingredientId, deductionQuantity] of ingredientDeductions.entries()) {
-            const ingredient = ingredients.find((item) => item.id === ingredientId);
-            if (!ingredient) {
-                continue;
-            }
-
-            let inventory = inventoryByIngredientId.get(ingredientId);
-            if (!inventory) {
-                inventory = await tx.ingredientInventory.create({
-                    data: {
-                        ingredientId,
-                        currentQuantity: 0,
-                        status: 'OUT_OF_STOCK',
-                        createdById: actorId,
-                        updatedById: actorId
-                    }
-                });
-            }
-
-            const newQuantity = Math.max(0, inventory.currentQuantity - deductionQuantity);
-            const newStatus = newQuantity <= 0 ? 'OUT_OF_STOCK' : newQuantity <= ingredient.reorderPoint ? 'CRITICAL' : 'SAFE';
-
-            await tx.ingredientInventory.update({
-                where: { id: inventory.id },
-                data: {
-                    currentQuantity: newQuantity,
-                    status: newStatus,
-                    updatedById: actorId
-                }
-            });
+            await inventoryRepo.deductIngredientStockFEFO(
+                tx,
+                ingredientId,
+                deductionQuantity,
+                'SALE',
+                `Order completion stock deduction for Order ${order.queueNumber}`,
+                actorId
+            );
         }
     }
 }

@@ -17,15 +17,15 @@ import {
     UpdateInventoryCountSchema,
     InventoryLevelResponseSchema,
     PaginatedInventoryLevelResponseSchema,
-    CreateDeliverySchema,
-    DeliveryResponseSchema,
-    PaginatedDeliveryResponseSchema,
+    CreateBatchSchema,
+    BatchResponseSchema,
+    PaginatedBatchResponseSchema,
     CreateAdjustmentSchema,
     AdjustmentResponseSchema,
     PaginatedAdjustmentResponseSchema,
     InventoryForecastResponseSchema,
     InventoryDashboardOverviewResponseSchema,
-    DashboardDeliverySchema,
+    DashboardBatchSchema,
     DashboardAdjustmentSchema,
     DashboardExpiringSoonSchema,
     DashboardWasteSummarySchema
@@ -530,12 +530,12 @@ registry.registerPath({
     method: 'get',
     path: '/inventory/deliveries',
     tags: ['Inventory - Deliveries & Batches'],
-    summary: 'Get paginated list of ingredient deliveries',
+    summary: 'Get paginated list of ingredient batches/deliveries',
     security: [{ bearerAuth: [] }],
     responses: {
         200: {
-            description: 'Deliveries list retrieved successfully',
-            content: { 'application/json': { schema: PaginatedDeliveryResponseSchema } }
+            description: 'Batches list retrieved successfully',
+            content: { 'application/json': { schema: PaginatedBatchResponseSchema } }
         }
     }
 });
@@ -546,7 +546,7 @@ router.get(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const query = GetListQuerySchema.parse(req.query);
-            const result = await service.getDeliveryList(query);
+            const result = await service.getBatchList(query);
             res.json(result);
         } catch (error) {
             next(error);
@@ -559,21 +559,21 @@ registry.registerPath({
     method: 'post',
     path: '/inventory/deliveries',
     tags: ['Inventory - Deliveries & Batches'],
-    summary: 'Receive an ingredient delivery (increments current stock count)',
+    summary: 'Receive an ingredient delivery/batch (increments current stock count)',
     security: [{ bearerAuth: [] }],
     request: {
         body: {
             content: {
                 'application/json': {
-                    schema: CreateDeliverySchema
+                    schema: CreateBatchSchema
                 }
             }
         }
     },
     responses: {
         201: {
-            description: 'Delivery received and logged successfully',
-            content: { 'application/json': { schema: DeliveryResponseSchema } }
+            description: 'Delivery batch received and logged successfully',
+            content: { 'application/json': { schema: BatchResponseSchema } }
         }
     }
 });
@@ -583,8 +583,8 @@ router.post(
     requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.CREATE),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const body = CreateDeliverySchema.parse(req.body);
-            const result = await service.logDelivery(body, req.user!.sub);
+            const body = CreateBatchSchema.parse(req.body);
+            const result = await service.logBatch(body, req.user!.sub);
             res.status(201).json(result);
         } catch (error) {
             next(error);
@@ -732,12 +732,12 @@ registry.registerPath({
     method: 'get',
     path: '/inventory/dashboard/recent-deliveries',
     tags: ['Inventory - Dashboard'],
-    summary: 'Get top 5 recent ingredient deliveries',
+    summary: 'Get top 5 recent ingredient deliveries/batches',
     security: [{ bearerAuth: [] }],
     responses: {
         200: {
             description: 'Recent deliveries list retrieved successfully',
-            content: { 'application/json': { schema: z.array(DashboardDeliverySchema) } }
+            content: { 'application/json': { schema: z.array(DashboardBatchSchema) } }
         }
     }
 });

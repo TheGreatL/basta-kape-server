@@ -36,6 +36,13 @@ describe('Module Feature (RBAC) - GET /', () => {
             const status = err.statusCode || 400;
             res.status(status).json({ error: err.message });
         });
+
+        // Ensure we have seeded modules
+        const module = await prisma.module.findFirst();
+        if (!module) {
+            const { seedUsers } = await import('../../../../prisma/seed/user.seed');
+            await seedUsers(prisma);
+        }
     });
 
     afterAll(async () => {

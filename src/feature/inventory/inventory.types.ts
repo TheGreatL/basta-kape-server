@@ -135,9 +135,9 @@ export const PaginatedInventoryLevelResponseSchema = z.object({
 });
 
 // ==========================================
-// 4. INGREDIENT DELIVERY (BATCHES) SCHEMAS
+// 4. INGREDIENT BATCHES & STOCK TRANSACTIONS SCHEMAS
 // ==========================================
-export const CreateDeliverySchema = z.object({
+export const CreateBatchSchema = z.object({
     ingredientId: z.string().uuid(),
     supplierId: z.string().uuid().optional().nullable(),
     quantityReceived: z.number().positive(),
@@ -145,13 +145,14 @@ export const CreateDeliverySchema = z.object({
     batchNumber: z.string().max(100).optional().nullable(),
     expiryDate: z.string().datetime().or(z.string().date()).optional().nullable()
 });
-export type TCreateDelivery = z.infer<typeof CreateDeliverySchema>;
+export type TCreateBatch = z.infer<typeof CreateBatchSchema>;
 
-export const DeliveryResponseSchema = z.object({
+export const BatchResponseSchema = z.object({
     id: z.string(),
     ingredientId: z.string(),
     supplierId: z.string().nullable(),
     quantityReceived: z.number(),
+    currentQuantity: z.number(),
     unitCost: z.number(),
     totalCost: z.number(),
     batchNumber: z.string().nullable(),
@@ -162,8 +163,8 @@ export const DeliveryResponseSchema = z.object({
     deletedAt: z.date().nullable().or(z.string().nullable())
 });
 
-export const PaginatedDeliveryResponseSchema = z.object({
-    data: z.array(DeliveryResponseSchema),
+export const PaginatedBatchResponseSchema = z.object({
+    data: z.array(BatchResponseSchema),
     meta: z.object({
         total: z.number(),
         pageCount: z.number(),
@@ -171,6 +172,15 @@ export const PaginatedDeliveryResponseSchema = z.object({
         currentPage: z.number(),
         hasMore: z.boolean()
     })
+});
+
+export const StockTransactionResponseSchema = z.object({
+    id: z.string(),
+    batchId: z.string(),
+    quantityChange: z.number(),
+    type: z.enum(['DELIVERY', 'SALE', 'WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE', 'PHYSICAL_COUNT_CORRECTION']),
+    reason: z.string().nullable(),
+    createdAt: z.date().or(z.string())
 });
 
 // ==========================================
@@ -249,11 +259,12 @@ export const InventoryDashboardOverviewResponseSchema = z.object({
     outOfStockCount: z.number()
 });
 
-export const DashboardDeliverySchema = z.object({
+export const DashboardBatchSchema = z.object({
     id: z.string(),
     ingredientName: z.string(),
     supplierName: z.string().nullable(),
     quantityReceived: z.number(),
+    currentQuantity: z.number(),
     unitAbbreviation: z.string().nullable(),
     totalCost: z.number(),
     receivedAt: z.date().or(z.string())
@@ -274,6 +285,7 @@ export const DashboardExpiringSoonSchema = z.object({
     batchNumber: z.string().nullable(),
     expiryDate: z.date().or(z.string()),
     quantityReceived: z.number(),
+    currentQuantity: z.number(),
     ingredientName: z.string(),
     unitAbbreviation: z.string().nullable()
 });

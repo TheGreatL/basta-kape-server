@@ -276,6 +276,16 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
         await prisma.productVariant.deleteMany({ where: { createdById: 'test-deduct-user-id' } });
         await prisma.product.deleteMany({ where: { createdById: 'test-deduct-user-id' } });
         await prisma.ingredientInventory.deleteMany({ where: { createdById: 'test-deduct-user-id' } });
+        await prisma.inventoryAdjustment.deleteMany({
+            where: {
+                OR: [{ createdById: 'test-deduct-user-id' }, { ingredient: { createdById: 'test-deduct-user-id' } }]
+            }
+        });
+        await prisma.ingredientBatch.deleteMany({
+            where: {
+                OR: [{ createdById: 'test-deduct-user-id' }, { ingredient: { createdById: 'test-deduct-user-id' } }]
+            }
+        });
         await prisma.ingredient.deleteMany({ where: { createdById: 'test-deduct-user-id' } });
         await prisma.ingredientUnit.deleteMany({ where: { createdById: 'test-deduct-user-id' } });
         await prisma.productCategory.deleteMany({ where: { createdById: 'test-deduct-user-id' } });

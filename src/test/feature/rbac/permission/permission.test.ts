@@ -36,6 +36,13 @@ describe('Permission Feature (RBAC) - GET /', () => {
             const status = err.statusCode || 400;
             res.status(status).json({ error: err.message });
         });
+
+        // Ensure we have seeded permissions
+        const permission = await prisma.permission.findFirst();
+        if (!permission) {
+            const { seedUsers } = await import('../../../../prisma/seed/user.seed');
+            await seedUsers(prisma);
+        }
     });
 
     afterAll(async () => {

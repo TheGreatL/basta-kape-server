@@ -92,7 +92,7 @@ export class PurchaseOrderRepository extends BaseRepository {
                         }
                     }
                 },
-                deliveries: true
+                batches: true
             }
         });
     }
@@ -204,18 +204,30 @@ export class PurchaseOrderRepository extends BaseRepository {
 
                 // Generate deliveries and increment stock levels
                 for (const item of po.items) {
-                    // 1. Create delivery batch
-                    await tx.ingredientDelivery.create({
+                    // 1. Create batch
+                    const batch = await tx.ingredientBatch.create({
                         data: {
                             ingredientId: item.ingredientId,
                             supplierId: po.supplierId,
                             quantityReceived: item.quantity,
+                            currentQuantity: item.quantity,
                             unitCost: item.unitCost,
                             totalCost: item.totalCost,
                             batchNumber: po.poNumber, // Use PO Number as batch number
                             purchaseOrderId: po.id,
                             createdById: actorId,
                             updatedById: actorId
+                        }
+                    });
+
+                    // Log stock transaction
+                    await tx.stockTransaction.create({
+                        data: {
+                            batchId: batch.id,
+                            quantityChange: item.quantity,
+                            type: 'DELIVERY',
+                            reason: `Received from Purchase Order ${po.poNumber}`,
+                            createdById: actorId
                         }
                     });
 

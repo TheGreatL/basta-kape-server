@@ -198,7 +198,7 @@ export class ReportRepository extends BaseRepository {
 
     private async fetchInventoryDeliveries(filters: TReportFilters, pagination?: { page: number; limit: number }): Promise<TReportQueryResult> {
         const { skip, take } = this.resolvePagination(pagination);
-        const where: Prisma.IngredientDeliveryWhereInput = {};
+        const where: Prisma.IngredientBatchWhereInput = {};
 
         if (filters.status === 'active') where.deletedAt = null;
         else if (filters.status === 'archive') where.deletedAt = { not: null };
@@ -218,7 +218,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         const [records, total] = await Promise.all([
-            prisma.ingredientDelivery.findMany({
+            prisma.ingredientBatch.findMany({
                 where,
                 skip,
                 take,
@@ -228,7 +228,7 @@ export class ReportRepository extends BaseRepository {
                     supplier: true
                 }
             }),
-            prisma.ingredientDelivery.count({ where })
+            prisma.ingredientBatch.count({ where })
         ]);
 
         return {

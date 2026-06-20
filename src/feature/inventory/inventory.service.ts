@@ -2,12 +2,13 @@ import { InventoryRepository } from './inventory.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { prisma } from '@/lib/prisma';
 import { NotFoundException, ConflictException } from '@/exceptions';
+import { TransactionType } from '@prisma/client';
 import type {
     TCreateIngredientUnit,
     TUpdateIngredientUnit,
     TCreateIngredient,
     TUpdateIngredient,
-    TCreateDelivery,
+    TCreateBatch,
     TCreateAdjustment,
     TGetListQuery,
     TGetStockLevelListQuery
@@ -235,11 +236,11 @@ export class InventoryService {
     // 4. BATCH DELIVERIES SERVICES
     // ==========================================
 
-    async getDeliveryList(params: TGetListQuery) {
-        return this.repository.getDeliveryList(params);
+    async getBatchList(params: TGetListQuery) {
+        return this.repository.getBatchList(params);
     }
 
-    async logDelivery(data: TCreateDelivery, actorId: string) {
+    async logBatch(data: TCreateBatch, actorId: string) {
         const ingredient = await this.getIngredientById(data.ingredientId);
 
         if (data.supplierId) {
@@ -253,8 +254,8 @@ export class InventoryService {
 
         const totalCost = data.quantityReceived * data.unitCost;
 
-        // 1. Create delivery batch record
-        const delivery = await this.repository.createDelivery(
+        // 1. Create batch record
+        const batch = await this.repository.createBatch(
             {
                 ...data,
                 totalCost
@@ -262,12 +263,15 @@ export class InventoryService {
             actorId
         );
 
-        // 2. Increment stock quantity and update status alert in a safe database transaction
+        // 2. Increment stock quantity and update status alert globally, skipping batch adjustment (already done)
         const updatedInventory = await this.repository.adjustStockAndStatus(
             data.ingredientId,
             data.quantityReceived,
             false, // isPhysicalCount
-            actorId
+            actorId,
+            'DELIVERY',
+            `Received delivery batch ${data.batchNumber || 'N/A'}`,
+            true // skipBatchAdjustment
         );
 
         await this.activityLogService.logActivity({
@@ -276,7 +280,7 @@ export class InventoryService {
             details: `Received delivery batch ${data.batchNumber || 'N/A'} of ${data.quantityReceived} ${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name} ${ingredient.name} at PHP ${data.unitCost}/${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name} (Total: PHP ${totalCost}). Live inventory increased to ${updatedInventory.currentQuantity} (Alert: ${updatedInventory.status}).`
         });
 
-        return delivery;
+        return batch;
     }
 
     // ==========================================
@@ -293,12 +297,17 @@ export class InventoryService {
         // 1. Create adjustment log
         const adjustment = await this.repository.createAdjustment(data, actorId);
 
+        // Map AdjustmentType to TransactionType
+        const mappedType = data.type === 'PHYSICAL_COUNT_DISCREPANCY' ? 'PHYSICAL_COUNT_CORRECTION' : (data.type as unknown as TransactionType);
+
         // 2. Increment/Decrement currentQuantity and update status alert in database transaction
         const updatedInventory = await this.repository.adjustStockAndStatus(
             data.ingredientId,
             data.quantity, // quantityDiff (e.g. -500g for waste)
             false, // isPhysicalCount
-            actorId
+            actorId,
+            mappedType,
+            data.reason ?? null
         );
 
         await this.activityLogService.logActivity({

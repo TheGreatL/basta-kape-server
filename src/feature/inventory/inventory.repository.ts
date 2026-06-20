@@ -1,13 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
-import { Prisma, InventoryStatus } from '@prisma/client';
+import { Prisma, InventoryStatus, TransactionType } from '@prisma/client';
 import { auditSelect, type IPaginatedResult } from '@/types/base.types';
 import type {
     TCreateIngredientUnit,
     TUpdateIngredientUnit,
     TCreateIngredient,
     TUpdateIngredient,
-    TCreateDelivery,
+    TCreateBatch,
     TCreateAdjustment,
     TGetListQuery,
     TGetStockLevelListQuery
@@ -313,9 +313,256 @@ export class InventoryRepository extends BaseRepository {
     // 4. TRANSACTION: SYNC STOCK & STATUS ALERTS
     // ==========================================
 
-    async adjustStockAndStatus(ingredientId: string, quantityDiff: number, isPhysicalCount: boolean, actorId: string) {
+    async deductIngredientStockFEFO(
+        tx: Prisma.TransactionClient,
+        ingredientId: string,
+        quantityToDeduct: number,
+        type: TransactionType,
+        reason: string | null,
+        actorId: string
+    ) {
+        if (quantityToDeduct <= 0) return;
+
+        // 1. Fetch active batches
+        const batches = await tx.ingredientBatch.findMany({
+            where: {
+                ingredientId,
+                currentQuantity: { gt: 0 },
+                deletedAt: null
+            },
+            orderBy: { receivedAt: 'asc' }
+        });
+
+        // Sort in memory: null expiryDate last, others by date ASC
+        batches.sort((a, b) => {
+            if (a.expiryDate && b.expiryDate) {
+                return a.expiryDate.getTime() - b.expiryDate.getTime();
+            }
+            if (a.expiryDate && !b.expiryDate) {
+                return -1;
+            }
+            if (!a.expiryDate && b.expiryDate) {
+                return 1;
+            }
+            return a.receivedAt.getTime() - b.receivedAt.getTime();
+        });
+
+        let remainingToDeduct = quantityToDeduct;
+
+        for (const batch of batches) {
+            if (remainingToDeduct <= 0) break;
+
+            const deductFromThisBatch = Math.min(batch.currentQuantity, remainingToDeduct);
+            const newBatchQty = batch.currentQuantity - deductFromThisBatch;
+            remainingToDeduct -= deductFromThisBatch;
+
+            await tx.ingredientBatch.update({
+                where: { id: batch.id },
+                data: {
+                    currentQuantity: newBatchQty,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.stockTransaction.create({
+                data: {
+                    batchId: batch.id,
+                    quantityChange: -deductFromThisBatch,
+                    type,
+                    reason,
+                    createdById: actorId
+                }
+            });
+        }
+
+        if (remainingToDeduct > 0) {
+            if (batches.length > 0) {
+                const lastBatch = batches[batches.length - 1];
+                await tx.ingredientBatch.update({
+                    where: { id: lastBatch.id },
+                    data: {
+                        currentQuantity: lastBatch.currentQuantity - remainingToDeduct,
+                        updatedById: actorId
+                    }
+                });
+
+                await tx.stockTransaction.create({
+                    data: {
+                        batchId: lastBatch.id,
+                        quantityChange: -remainingToDeduct,
+                        type,
+                        reason: (reason || '') + ' (Excess deduction over batch stock)',
+                        createdById: actorId
+                    }
+                });
+            } else {
+                const dummyBatch = await tx.ingredientBatch.create({
+                    data: {
+                        ingredientId,
+                        quantityReceived: 0,
+                        currentQuantity: -remainingToDeduct,
+                        unitCost: 0,
+                        totalCost: 0,
+                        batchNumber: 'OVERFLOW-BATCH',
+                        expiryDate: null,
+                        createdById: actorId,
+                        updatedById: actorId
+                    }
+                });
+
+                await tx.stockTransaction.create({
+                    data: {
+                        batchId: dummyBatch.id,
+                        quantityChange: -remainingToDeduct,
+                        type,
+                        reason: (reason || '') + ' (Excess deduction with no active batches)',
+                        createdById: actorId
+                    }
+                });
+            }
+        }
+
+        // 2. Fetch the ingredient for reorderPoint
+        const ingredient = await tx.ingredient.findUniqueOrThrow({
+            where: { id: ingredientId }
+        });
+
+        // 3. Update global IngredientInventory
+        let inventory = await tx.ingredientInventory.findFirst({
+            where: { ingredientId, deletedAt: null }
+        });
+
+        if (!inventory) {
+            inventory = await tx.ingredientInventory.create({
+                data: {
+                    ingredientId,
+                    currentQuantity: 0,
+                    status: 'OUT_OF_STOCK',
+                    createdById: actorId,
+                    updatedById: actorId
+                }
+            });
+        }
+
+        const newQuantity = Math.max(0, inventory.currentQuantity - quantityToDeduct);
+        const newStatus = this.calculateInventoryStatus(newQuantity, ingredient.reorderPoint);
+
+        await tx.ingredientInventory.update({
+            where: { id: inventory.id },
+            data: {
+                currentQuantity: newQuantity,
+                status: newStatus,
+                updatedById: actorId
+            }
+        });
+    }
+
+    async addIngredientStockLatest(
+        tx: Prisma.TransactionClient,
+        ingredientId: string,
+        quantityToAdd: number,
+        type: TransactionType,
+        reason: string | null,
+        actorId: string
+    ) {
+        if (quantityToAdd <= 0) return;
+
+        const latestBatch = await tx.ingredientBatch.findFirst({
+            where: {
+                ingredientId,
+                deletedAt: null
+            },
+            orderBy: { receivedAt: 'desc' }
+        });
+
+        if (latestBatch) {
+            await tx.ingredientBatch.update({
+                where: { id: latestBatch.id },
+                data: {
+                    currentQuantity: latestBatch.currentQuantity + quantityToAdd,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.stockTransaction.create({
+                data: {
+                    batchId: latestBatch.id,
+                    quantityChange: quantityToAdd,
+                    type,
+                    reason,
+                    createdById: actorId
+                }
+            });
+        } else {
+            const newBatch = await tx.ingredientBatch.create({
+                data: {
+                    ingredientId,
+                    quantityReceived: quantityToAdd,
+                    currentQuantity: quantityToAdd,
+                    unitCost: 0,
+                    totalCost: 0,
+                    batchNumber: 'ADJUSTMENT-BATCH',
+                    expiryDate: null,
+                    createdById: actorId,
+                    updatedById: actorId
+                }
+            });
+
+            await tx.stockTransaction.create({
+                data: {
+                    batchId: newBatch.id,
+                    quantityChange: quantityToAdd,
+                    type,
+                    reason,
+                    createdById: actorId
+                }
+            });
+        }
+
+        // Update global IngredientInventory
+        const ingredient = await tx.ingredient.findUniqueOrThrow({
+            where: { id: ingredientId }
+        });
+
+        let inventory = await tx.ingredientInventory.findFirst({
+            where: { ingredientId, deletedAt: null }
+        });
+
+        if (!inventory) {
+            inventory = await tx.ingredientInventory.create({
+                data: {
+                    ingredientId,
+                    currentQuantity: 0,
+                    status: 'OUT_OF_STOCK',
+                    createdById: actorId,
+                    updatedById: actorId
+                }
+            });
+        }
+
+        const newQuantity = inventory.currentQuantity + quantityToAdd;
+        const newStatus = this.calculateInventoryStatus(newQuantity, ingredient.reorderPoint);
+
+        await tx.ingredientInventory.update({
+            where: { id: inventory.id },
+            data: {
+                currentQuantity: newQuantity,
+                status: newStatus,
+                updatedById: actorId
+            }
+        });
+    }
+
+    async adjustStockAndStatus(
+        ingredientId: string,
+        quantityDiff: number,
+        isPhysicalCount: boolean,
+        actorId: string,
+        transactionType?: TransactionType,
+        reason?: string | null,
+        skipBatchAdjustment = false
+    ) {
         return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            // 1. Retrieve the ingredient (to fetch reorderPoint)
             const ingredient = await tx.ingredient.findFirst({
                 where: { id: ingredientId, deletedAt: null }
             });
@@ -323,13 +570,11 @@ export class InventoryRepository extends BaseRepository {
                 throw new Error('Ingredient not found');
             }
 
-            // 2. Retrieve existing inventory row
             let inventory = await tx.ingredientInventory.findFirst({
                 where: { ingredientId, deletedAt: null }
             });
 
             if (!inventory) {
-                // Self-heal: Create inventory row if somehow missing
                 inventory = await tx.ingredientInventory.create({
                     data: {
                         ingredientId,
@@ -341,34 +586,63 @@ export class InventoryRepository extends BaseRepository {
                 });
             }
 
-            // 3. Recalculate quantity
-            let newQuantity = inventory.currentQuantity;
-            const updatePayload: Prisma.IngredientInventoryUpdateInput = {
-                updatedBy: actorId ? { connect: { id: actorId } } : undefined
-            };
+            if (!skipBatchAdjustment) {
+                if (isPhysicalCount) {
+                    const discrepancy = quantityDiff - inventory.currentQuantity;
+                    if (discrepancy < 0) {
+                        await this.deductIngredientStockFEFO(
+                            tx,
+                            ingredientId,
+                            Math.abs(discrepancy),
+                            'PHYSICAL_COUNT_CORRECTION',
+                            reason || 'Deduction via Physical Inventory Count',
+                            actorId
+                        );
+                    } else if (discrepancy > 0) {
+                        await this.addIngredientStockLatest(
+                            tx,
+                            ingredientId,
+                            discrepancy,
+                            'PHYSICAL_COUNT_CORRECTION',
+                            reason || 'Addition via Physical Inventory Count',
+                            actorId
+                        );
+                    }
+                } else {
+                    const type = transactionType || (quantityDiff < 0 ? 'WASTE' : 'PHYSICAL_COUNT_CORRECTION');
+                    if (quantityDiff < 0) {
+                        await this.deductIngredientStockFEFO(tx, ingredientId, Math.abs(quantityDiff), type, reason ?? null, actorId);
+                    } else if (quantityDiff > 0) {
+                        await this.addIngredientStockLatest(tx, ingredientId, quantityDiff, type, reason ?? null, actorId);
+                    }
+                }
+            }
 
             if (isPhysicalCount) {
-                newQuantity = quantityDiff;
-                updatePayload.lastPhysicalCount = new Date();
-            } else {
-                newQuantity += quantityDiff;
+                await tx.ingredientInventory.updateMany({
+                    where: { ingredientId, deletedAt: null },
+                    data: {
+                        lastPhysicalCount: new Date(),
+                        updatedById: actorId
+                    }
+                });
             }
 
-            // Guard against negative quantity
-            if (newQuantity < 0) {
-                newQuantity = 0;
+            if (skipBatchAdjustment) {
+                const newQuantity = Math.max(0, inventory.currentQuantity + quantityDiff);
+                const newStatus = this.calculateInventoryStatus(newQuantity, ingredient.reorderPoint);
+                await tx.ingredientInventory.update({
+                    where: { id: inventory.id },
+                    data: {
+                        currentQuantity: newQuantity,
+                        status: newStatus,
+                        updatedById: actorId
+                    }
+                });
             }
 
-            // 4. Calculate alert status
-            const newStatus = this.calculateInventoryStatus(newQuantity, ingredient.reorderPoint);
-
-            updatePayload.currentQuantity = newQuantity;
-            updatePayload.status = newStatus;
-
-            // 5. Save updated inventory details
-            return tx.ingredientInventory.update({
-                where: { id: inventory.id },
-                data: updatePayload,
+            return tx.ingredientInventory.findFirstOrThrow({
+                where: { ingredientId, deletedAt: null },
                 include: {
                     ingredient: {
                         include: { defaultUnit: true }
@@ -391,32 +665,47 @@ export class InventoryRepository extends BaseRepository {
     }
 
     // ==========================================
-    // 5. INGREDIENT DELIVERY CRUD
+    // 5. INGREDIENT BATCH CRUD
     // ==========================================
 
-    async createDelivery(data: TCreateDelivery & { totalCost: number }, actorId: string) {
-        return prisma.ingredientDelivery.create({
-            data: {
-                ingredientId: data.ingredientId,
-                supplierId: data.supplierId,
-                quantityReceived: data.quantityReceived,
-                unitCost: data.unitCost,
-                totalCost: data.totalCost,
-                batchNumber: data.batchNumber,
-                expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-                createdById: actorId,
-                updatedById: actorId
-            },
-            include: {
-                createdBy: { select: auditSelect },
-                updatedBy: { select: auditSelect }
-            }
+    async createBatch(data: TCreateBatch & { totalCost: number }, actorId: string) {
+        return prisma.$transaction(async (tx) => {
+            const batch = await tx.ingredientBatch.create({
+                data: {
+                    ingredientId: data.ingredientId,
+                    supplierId: data.supplierId,
+                    quantityReceived: data.quantityReceived,
+                    currentQuantity: data.quantityReceived,
+                    unitCost: data.unitCost,
+                    totalCost: data.totalCost,
+                    batchNumber: data.batchNumber,
+                    expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+                    createdById: actorId,
+                    updatedById: actorId
+                },
+                include: {
+                    createdBy: { select: auditSelect },
+                    updatedBy: { select: auditSelect }
+                }
+            });
+
+            await tx.stockTransaction.create({
+                data: {
+                    batchId: batch.id,
+                    quantityChange: data.quantityReceived,
+                    type: 'DELIVERY',
+                    reason: `Received delivery batch ${data.batchNumber || 'N/A'}`,
+                    createdById: actorId
+                }
+            });
+
+            return batch;
         });
     }
 
-    async getDeliveryList(params: TGetListQuery): Promise<IPaginatedResult<unknown>> {
+    async getBatchList(params: TGetListQuery): Promise<IPaginatedResult<unknown>> {
         const { skip, take, page } = this.normalizePagination(params);
-        const where: Prisma.IngredientDeliveryWhereInput = {};
+        const where: Prisma.IngredientBatchWhereInput = {};
 
         if (params.status === 'active') {
             where.deletedAt = null;
@@ -436,7 +725,7 @@ export class InventoryRepository extends BaseRepository {
         }
 
         const [data, totalRows] = await Promise.all([
-            prisma.ingredientDelivery.findMany({
+            prisma.ingredientBatch.findMany({
                 where,
                 skip,
                 take,
@@ -450,7 +739,7 @@ export class InventoryRepository extends BaseRepository {
                     updatedBy: { select: auditSelect }
                 }
             }),
-            prisma.ingredientDelivery.count({ where })
+            prisma.ingredientBatch.count({ where })
         ]);
 
         return this.formatPaginatedResult(data, totalRows, page, take);
@@ -688,7 +977,7 @@ export class InventoryRepository extends BaseRepository {
     }
 
     async getDashboardRecentDeliveries() {
-        const deliveries = await prisma.ingredientDelivery.findMany({
+        const deliveries = await prisma.ingredientBatch.findMany({
             where: { deletedAt: null },
             orderBy: { receivedAt: 'desc' },
             take: 5,
@@ -710,6 +999,7 @@ export class InventoryRepository extends BaseRepository {
             ingredientName: d.ingredient?.name || '—',
             supplierName: d.supplier?.name || null,
             quantityReceived: d.quantityReceived,
+            currentQuantity: d.currentQuantity,
             unitAbbreviation: d.ingredient?.defaultUnit?.abbreviation || null,
             totalCost: d.totalCost,
             receivedAt: d.receivedAt
@@ -747,9 +1037,10 @@ export class InventoryRepository extends BaseRepository {
         const next30Days = new Date();
         next30Days.setDate(next30Days.getDate() + 30);
 
-        const expiring = await prisma.ingredientDelivery.findMany({
+        const expiring = await prisma.ingredientBatch.findMany({
             where: {
                 deletedAt: null,
+                currentQuantity: { gt: 0 },
                 expiryDate: {
                     gte: now,
                     lte: next30Days
@@ -772,6 +1063,7 @@ export class InventoryRepository extends BaseRepository {
             batchNumber: e.batchNumber,
             expiryDate: e.expiryDate!,
             quantityReceived: e.quantityReceived,
+            currentQuantity: e.currentQuantity,
             ingredientName: e.ingredient?.name || '—',
             unitAbbreviation: e.ingredient?.defaultUnit?.abbreviation || null
         }));

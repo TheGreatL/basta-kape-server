@@ -58,9 +58,14 @@ describe('Role Feature (RBAC)', () => {
         }
 
         // Ensure we have at least one ModulePermission to test with
-        const module = await prisma.module.findFirst();
-        const permission = await prisma.permission.findFirst();
-        if (!module || !permission) throw new Error('Seed your database first!');
+        let module = await prisma.module.findFirst();
+        let permission = await prisma.permission.findFirst();
+        if (!module || !permission) {
+            const { seedUsers } = await import('../../../../prisma/seed/user.seed');
+            await seedUsers(prisma);
+            module = (await prisma.module.findFirst())!;
+            permission = (await prisma.permission.findFirst())!;
+        }
 
         let mp = await prisma.modulePermission.findFirst({
             where: { moduleId: module.id, permissionId: permission.id, accessScope: AccessScope.ALL }

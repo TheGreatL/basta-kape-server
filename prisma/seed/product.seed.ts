@@ -334,7 +334,7 @@ export async function seedProduct(prisma: PrismaClient) {
     // ==========================================
     // 6. SEED INGREDIENT DELIVERIES & BATCHES
     // ==========================================
-    await prisma.ingredientDelivery.upsert({
+    await prisma.ingredientBatch.upsert({
         where: { id: '66666666-6666-4666-a666-666666666661' },
         update: {},
         create: {
@@ -342,6 +342,7 @@ export async function seedProduct(prisma: PrismaClient) {
             ingredientId: ingBeans.id,
             supplierId: supplierRoastery.id,
             quantityReceived: 10000,
+            currentQuantity: 8500,
             unitCost: 0.65,
             totalCost: 6500.0,
             batchNumber: 'BATCH-BEANS-099',
@@ -351,7 +352,27 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    await prisma.ingredientDelivery.upsert({
+    await prisma.stockTransaction.create({
+        data: {
+            batchId: '66666666-6666-4666-a666-666666666661',
+            quantityChange: 10000,
+            type: 'DELIVERY',
+            reason: 'Seed delivery',
+            createdById: adminId
+        }
+    });
+
+    await prisma.stockTransaction.create({
+        data: {
+            batchId: '66666666-6666-4666-a666-666666666661',
+            quantityChange: -1500,
+            type: 'PHYSICAL_COUNT_CORRECTION',
+            reason: 'Deducted to match current inventory quantity',
+            createdById: adminId
+        }
+    });
+
+    await prisma.ingredientBatch.upsert({
         where: { id: '66666666-6666-4666-a666-666666666662' },
         update: {},
         create: {
@@ -359,6 +380,7 @@ export async function seedProduct(prisma: PrismaClient) {
             ingredientId: ingWholeMilk.id,
             supplierId: supplierDairy.id,
             quantityReceived: 24000,
+            currentQuantity: 15000,
             unitCost: 0.085,
             totalCost: 2040.0,
             batchNumber: 'BATCH-MILK-774',
@@ -368,7 +390,27 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    await prisma.ingredientDelivery.upsert({
+    await prisma.stockTransaction.create({
+        data: {
+            batchId: '66666666-6666-4666-a666-666666666662',
+            quantityChange: 24000,
+            type: 'DELIVERY',
+            reason: 'Seed delivery',
+            createdById: adminId
+        }
+    });
+
+    await prisma.stockTransaction.create({
+        data: {
+            batchId: '66666666-6666-4666-a666-666666666662',
+            quantityChange: -9000,
+            type: 'PHYSICAL_COUNT_CORRECTION',
+            reason: 'Deducted to match current inventory quantity',
+            createdById: adminId
+        }
+    });
+
+    await prisma.ingredientBatch.upsert({
         where: { id: '66666666-6666-4666-a666-666666666663' },
         update: {},
         create: {
@@ -376,12 +418,33 @@ export async function seedProduct(prisma: PrismaClient) {
             ingredientId: ingMatcha.id,
             supplierId: supplierGrocery.id,
             quantityReceived: 1000,
+            currentQuantity: 800,
             unitCost: 2.2,
             totalCost: 2200.0,
             batchNumber: 'BATCH-MATCHA-003',
             expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
             createdById: adminId,
             updatedById: adminId
+        }
+    });
+
+    await prisma.stockTransaction.create({
+        data: {
+            batchId: '66666666-6666-4666-a666-666666666663',
+            quantityChange: 1000,
+            type: 'DELIVERY',
+            reason: 'Seed delivery',
+            createdById: adminId
+        }
+    });
+
+    await prisma.stockTransaction.create({
+        data: {
+            batchId: '66666666-6666-4666-a666-666666666663',
+            quantityChange: -200,
+            type: 'PHYSICAL_COUNT_CORRECTION',
+            reason: 'Deducted to match current inventory quantity',
+            createdById: adminId
         }
     });
 
