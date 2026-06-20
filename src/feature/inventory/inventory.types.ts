@@ -239,3 +239,47 @@ export const ForecastVariantSchema = z.object({
 });
 
 export const InventoryForecastResponseSchema = z.array(ForecastVariantSchema);
+
+// ==========================================
+// 7. INVENTORY DASHBOARD SCHEMAS
+// ==========================================
+export const InventoryDashboardOverviewResponseSchema = z.object({
+    totalIngredients: z.number(),
+    lowStockCount: z.number(),
+    outOfStockCount: z.number()
+});
+
+export const DashboardDeliverySchema = z.object({
+    id: z.string(),
+    ingredientName: z.string(),
+    supplierName: z.string().nullable(),
+    quantityReceived: z.number(),
+    unitAbbreviation: z.string().nullable(),
+    totalCost: z.number(),
+    receivedAt: z.date().or(z.string())
+});
+
+export const DashboardAdjustmentSchema = z.object({
+    id: z.string(),
+    ingredientName: z.string(),
+    quantity: z.number(),
+    unitAbbreviation: z.string().nullable(),
+    type: z.string(),
+    reason: z.string().nullable(),
+    createdAt: z.date().or(z.string())
+});
+
+export const DashboardExpiringSoonSchema = z.object({
+    id: z.string(),
+    batchNumber: z.string().nullable(),
+    expiryDate: z.date().or(z.string()),
+    quantityReceived: z.number(),
+    ingredientName: z.string(),
+    unitAbbreviation: z.string().nullable()
+});
+
+export const DashboardWasteSummarySchema = z.object({
+    type: z.string(),
+    count: z.number(),
+    totalQuantity: z.number()
+});

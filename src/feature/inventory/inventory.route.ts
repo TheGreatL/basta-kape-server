@@ -23,8 +23,14 @@ import {
     CreateAdjustmentSchema,
     AdjustmentResponseSchema,
     PaginatedAdjustmentResponseSchema,
-    InventoryForecastResponseSchema
+    InventoryForecastResponseSchema,
+    InventoryDashboardOverviewResponseSchema,
+    DashboardDeliverySchema,
+    DashboardAdjustmentSchema,
+    DashboardExpiringSoonSchema,
+    DashboardWasteSummarySchema
 } from './inventory.types';
+import { z } from 'zod';
 
 const router = Router();
 const service = new InventoryService();
@@ -682,6 +688,150 @@ router.get(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const result = await service.getInventoryForecast();
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ============================================================================
+// 7. INVENTORY DASHBOARD ENDPOINTS
+// ============================================================================
+
+// GET /inventory/dashboard/overview
+registry.registerPath({
+    method: 'get',
+    path: '/inventory/dashboard/overview',
+    tags: ['Inventory - Dashboard'],
+    summary: 'Get inventory dashboard overview metrics (total active, critical, out of stock)',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Inventory dashboard overview retrieved successfully',
+            content: { 'application/json': { schema: InventoryDashboardOverviewResponseSchema } }
+        }
+    }
+});
+
+router.get(
+    '/dashboard/overview',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getDashboardOverview();
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// GET /inventory/dashboard/recent-deliveries
+registry.registerPath({
+    method: 'get',
+    path: '/inventory/dashboard/recent-deliveries',
+    tags: ['Inventory - Dashboard'],
+    summary: 'Get top 5 recent ingredient deliveries',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Recent deliveries list retrieved successfully',
+            content: { 'application/json': { schema: z.array(DashboardDeliverySchema) } }
+        }
+    }
+});
+
+router.get(
+    '/dashboard/recent-deliveries',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getDashboardRecentDeliveries();
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// GET /inventory/dashboard/recent-adjustments
+registry.registerPath({
+    method: 'get',
+    path: '/inventory/dashboard/recent-adjustments',
+    tags: ['Inventory - Dashboard'],
+    summary: 'Get top 5 recent stock adjustments/waste events',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Recent adjustments list retrieved successfully',
+            content: { 'application/json': { schema: z.array(DashboardAdjustmentSchema) } }
+        }
+    }
+});
+
+router.get(
+    '/dashboard/recent-adjustments',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getDashboardRecentAdjustments();
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// GET /inventory/dashboard/expiring-soon
+registry.registerPath({
+    method: 'get',
+    path: '/inventory/dashboard/expiring-soon',
+    tags: ['Inventory - Dashboard'],
+    summary: 'Get top 5 batches expiring soon (next 30 days)',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Expiring soon list retrieved successfully',
+            content: { 'application/json': { schema: z.array(DashboardExpiringSoonSchema) } }
+        }
+    }
+});
+
+router.get(
+    '/dashboard/expiring-soon',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getDashboardExpiringSoon();
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// GET /inventory/dashboard/waste-summary
+registry.registerPath({
+    method: 'get',
+    path: '/inventory/dashboard/waste-summary',
+    tags: ['Inventory - Dashboard'],
+    summary: 'Get waste summary breakdown by type for the last 30 days',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Waste summary breakdown retrieved successfully',
+            content: { 'application/json': { schema: z.array(DashboardWasteSummarySchema) } }
+        }
+    }
+});
+
+router.get(
+    '/dashboard/waste-summary',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getDashboardWasteSummary();
             res.json(result);
         } catch (error) {
             next(error);

@@ -662,4 +662,150 @@ export class InventoryRepository extends BaseRepository {
             }
         });
     }
+
+    // ==========================================
+    // 8. DASHBOARD METHODS
+    // ==========================================
+
+    async getDashboardOverview() {
+        const [totalIngredients, lowStockCount, outOfStockCount] = await Promise.all([
+            prisma.ingredient.count({
+                where: { deletedAt: null }
+            }),
+            prisma.ingredientInventory.count({
+                where: { status: InventoryStatus.CRITICAL, deletedAt: null }
+            }),
+            prisma.ingredientInventory.count({
+                where: { status: InventoryStatus.OUT_OF_STOCK, deletedAt: null }
+            })
+        ]);
+
+        return {
+            totalIngredients,
+            lowStockCount,
+            outOfStockCount
+        };
+    }
+
+    async getDashboardRecentDeliveries() {
+        const deliveries = await prisma.ingredientDelivery.findMany({
+            where: { deletedAt: null },
+            orderBy: { receivedAt: 'desc' },
+            take: 5,
+            include: {
+                ingredient: {
+                    select: {
+                        name: true,
+                        defaultUnit: { select: { abbreviation: true } }
+                    }
+                },
+                supplier: {
+                    select: { name: true }
+                }
+            }
+        });
+
+        return deliveries.map((d) => ({
+            id: d.id,
+            ingredientName: d.ingredient?.name || '—',
+            supplierName: d.supplier?.name || null,
+            quantityReceived: d.quantityReceived,
+            unitAbbreviation: d.ingredient?.defaultUnit?.abbreviation || null,
+            totalCost: d.totalCost,
+            receivedAt: d.receivedAt
+        }));
+    }
+
+    async getDashboardRecentAdjustments() {
+        const adjustments = await prisma.inventoryAdjustment.findMany({
+            where: { deletedAt: null },
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            include: {
+                ingredient: {
+                    select: {
+                        name: true,
+                        defaultUnit: { select: { abbreviation: true } }
+                    }
+                }
+            }
+        });
+
+        return adjustments.map((a) => ({
+            id: a.id,
+            ingredientName: a.ingredient?.name || '—',
+            quantity: a.quantity,
+            unitAbbreviation: a.ingredient?.defaultUnit?.abbreviation || null,
+            type: a.type,
+            reason: a.reason,
+            createdAt: a.createdAt
+        }));
+    }
+
+    async getDashboardExpiringSoon() {
+        const now = new Date();
+        const next30Days = new Date();
+        next30Days.setDate(next30Days.getDate() + 30);
+
+        const expiring = await prisma.ingredientDelivery.findMany({
+            where: {
+                deletedAt: null,
+                expiryDate: {
+                    gte: now,
+                    lte: next30Days
+                }
+            },
+            orderBy: { expiryDate: 'asc' },
+            take: 5,
+            include: {
+                ingredient: {
+                    select: {
+                        name: true,
+                        defaultUnit: { select: { abbreviation: true } }
+                    }
+                }
+            }
+        });
+
+        return expiring.map((e) => ({
+            id: e.id,
+            batchNumber: e.batchNumber,
+            expiryDate: e.expiryDate!,
+            quantityReceived: e.quantityReceived,
+            ingredientName: e.ingredient?.name || '—',
+            unitAbbreviation: e.ingredient?.defaultUnit?.abbreviation || null
+        }));
+    }
+
+    async getDashboardWasteSummary() {
+        const last30Days = new Date();
+        last30Days.setDate(last30Days.getDate() - 30);
+
+        const adjustments = await prisma.inventoryAdjustment.findMany({
+            where: {
+                createdAt: { gte: last30Days },
+                deletedAt: null
+            },
+            select: {
+                type: true,
+                quantity: true
+            }
+        });
+
+        // Group by type
+        const groups: Record<string, { count: number; totalQuantity: number }> = {};
+        for (const adj of adjustments) {
+            if (!groups[adj.type]) {
+                groups[adj.type] = { count: 0, totalQuantity: 0 };
+            }
+            groups[adj.type].count += 1;
+            groups[adj.type].totalQuantity += Math.abs(adj.quantity);
+        }
+
+        return Object.entries(groups).map(([type, summary]) => ({
+            type,
+            count: summary.count,
+            totalQuantity: summary.totalQuantity
+        }));
+    }
 }

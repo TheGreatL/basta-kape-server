@@ -462,4 +462,28 @@ export class InventoryService {
 
         return [...variantForecasts, ...modifierForecasts];
     }
+
+    // ==========================================
+    // 6. INVENTORY DASHBOARD SERVICES
+    // ==========================================
+
+    async getDashboardOverview() {
+        return this.repository.getDashboardOverview();
+    }
+
+    async getDashboardRecentDeliveries() {
+        return this.repository.getDashboardRecentDeliveries();
+    }
+
+    async getDashboardRecentAdjustments() {
+        return this.repository.getDashboardRecentAdjustments();
+    }
+
+    async getDashboardExpiringSoon() {
+        return this.repository.getDashboardExpiringSoon();
+    }
+
+    async getDashboardWasteSummary() {
+        return this.repository.getDashboardWasteSummary();
+    }
 }
