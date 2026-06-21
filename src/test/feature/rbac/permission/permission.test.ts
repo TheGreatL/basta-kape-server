@@ -40,7 +40,7 @@ describe('Permission Feature (RBAC) - GET /', () => {
         // Ensure we have seeded permissions
         const permission = await prisma.permission.findFirst();
         if (!permission) {
-            const { seedUsers } = await import('../../../../prisma/seed/user.seed');
+            const { seedUsers } = await import('../../../../../prisma/seed/user.seed');
             await seedUsers(prisma);
         }
     });

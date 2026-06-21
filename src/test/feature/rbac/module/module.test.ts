@@ -40,7 +40,7 @@ describe('Module Feature (RBAC) - GET /', () => {
         // Ensure we have seeded modules
         const module = await prisma.module.findFirst();
         if (!module) {
-            const { seedUsers } = await import('../../../../prisma/seed/user.seed');
+            const { seedUsers } = await import('../../../../../prisma/seed/user.seed');
             await seedUsers(prisma);
         }
     });
