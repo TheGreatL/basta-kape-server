@@ -142,7 +142,7 @@ describe('Product Feature CRUD & Transactional Mappings', () => {
         // 1. Delete Variant Attributes
         await prisma.productVariantAttribute.deleteMany({
             where: {
-                createdById: 'test-product-user-id'
+                OR: [{ createdById: 'test-product-user-id' }, { productAttributeValueId: { in: [mediumValueId, largeValueId] } }]
             }
         });
 

@@ -313,7 +313,7 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
         });
 
         it('should verify live inventory levels retrieve correctly', async () => {
-            const res = await request(app).get('/inventory/levels');
+            const res = await request(app).get(`/inventory/levels?search=Test Oat Milk`);
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('data');
 
