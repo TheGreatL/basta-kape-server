@@ -5,22 +5,22 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `ingredientdelivery` DROP FOREIGN KEY `IngredientDelivery_createdById_fkey`;
+ALTER TABLE `IngredientDelivery` DROP FOREIGN KEY `IngredientDelivery_createdById_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `ingredientdelivery` DROP FOREIGN KEY `IngredientDelivery_ingredientId_fkey`;
+ALTER TABLE `IngredientDelivery` DROP FOREIGN KEY `IngredientDelivery_ingredientId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `ingredientdelivery` DROP FOREIGN KEY `IngredientDelivery_purchaseOrderId_fkey`;
+ALTER TABLE `IngredientDelivery` DROP FOREIGN KEY `IngredientDelivery_purchaseOrderId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `ingredientdelivery` DROP FOREIGN KEY `IngredientDelivery_supplierId_fkey`;
+ALTER TABLE `IngredientDelivery` DROP FOREIGN KEY `IngredientDelivery_supplierId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `ingredientdelivery` DROP FOREIGN KEY `IngredientDelivery_updatedById_fkey`;
+ALTER TABLE `IngredientDelivery` DROP FOREIGN KEY `IngredientDelivery_updatedById_fkey`;
 
 -- DropTable
-DROP TABLE `ingredientdelivery`;
+DROP TABLE `IngredientDelivery`;
 
 -- CreateTable
 CREATE TABLE `IngredientBatch` (
