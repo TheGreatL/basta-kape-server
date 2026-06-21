@@ -1,6 +1,6 @@
 import { PrismaClient, AccessScope } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { appModules } from '../../src/constant';
+import { appModules } from '../../constant';
 
 export async function seedUsers(prisma: PrismaClient) {
     console.log('Seeding explicitly: Users, Roles, and Permissions...');

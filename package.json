@@ -83,6 +83,6 @@
     },
     "prisma": {
         "schema": "prisma/schema",
-        "seed": "ts-node prisma/seed.ts"
+        "seed": "ts-node -r tsconfig-paths/register src/prisma/seed.ts"
     }
 }

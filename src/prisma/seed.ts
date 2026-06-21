@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import { seedUsers } from './seed/user.seed';
 import { seedProduct } from './seed/product.seed';
 import { seedStoreSetting } from './seed/store-setting.seed';
 import { seedDiscounts } from './seed/discount.seed';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 async function main() {
     try {

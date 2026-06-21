@@ -61,7 +61,7 @@ describe('Role Feature (RBAC)', () => {
         let module = await prisma.module.findFirst();
         let permission = await prisma.permission.findFirst();
         if (!module || !permission) {
-            const { seedUsers } = await import('../../../../../prisma/seed/user.seed');
+            const { seedUsers } = await import('@/prisma/seed/user.seed');
             await seedUsers(prisma);
             module = (await prisma.module.findFirst())!;
             permission = (await prisma.permission.findFirst())!;
