@@ -39,7 +39,7 @@ registry.registerPath({
     }
 });
 
-router.get('/groups', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get('/groups', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const query = GetModifierGroupListQuerySchema.parse(req.query);
         const result = await service.getModifierGroupList(query);
