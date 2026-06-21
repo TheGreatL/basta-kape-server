@@ -130,4 +130,15 @@ dist
 dist/
 build/
 
-uploads/
+uploads/*
+!uploads/images/
+uploads/images/*
+!uploads/images/americano.jpg
+!uploads/images/cafe-lattle.jpg
+!uploads/images/caramel-macchiato.jpg
+!uploads/images/chocolate-chip-cookie.jpg
+!uploads/images/classic-butter-croissant.jpg
+!uploads/images/plain-au-chocolat.jpg
+!uploads/images/signature-hot-chocolate.jpg
+!uploads/images/spanish-lattle.jpg
+!uploads/images/uji-macha-lattle.png
