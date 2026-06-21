@@ -294,7 +294,7 @@ export class InventoryRepository extends BaseRepository {
                 where,
                 skip,
                 take,
-                orderBy: { currentQuantity: 'asc' }, // Rank critical items first
+                orderBy: { ingredient: { name: 'asc' } },
                 include: {
                     ingredient: {
                         include: { defaultUnit: true }
