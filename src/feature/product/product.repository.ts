@@ -2,7 +2,14 @@ import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
 import { auditSelect, type IPaginatedResult } from '@/types/base.types';
-import type { TCreateProduct, TUpdateProduct, TCreateProductVariant, TUpdateProductVariant, TGetProductListQuery } from './product.types';
+import type {
+    TCreateProduct,
+    TUpdateProduct,
+    TCreateProductVariant,
+    TUpdateProductVariant,
+    TGetProductListQuery,
+    TBulkSyncProductVariants
+} from './product.types';
 
 export class ProductRepository extends BaseRepository {
     // ==========================================
@@ -405,6 +412,155 @@ export class ProductRepository extends BaseRepository {
             }
 
             return variant;
+        });
+    }
+
+    async syncVariants(productId: string, data: TBulkSyncProductVariants, actorId: string) {
+        return prisma.$transaction(async (tx) => {
+            // Get all existing active variants of the product
+            const existingVariants = await tx.productVariant.findMany({
+                where: { productId, deletedAt: null },
+                include: {
+                    attributes: {
+                        where: { deletedAt: null }
+                    }
+                }
+            });
+
+            const processedIds = new Set<string>();
+
+            for (const item of data.variants) {
+                // Determine if this variant already exists. We check if an ID is provided, or if there's a variant with matching attributeValueIds
+                let match = existingVariants.find((v) => item.id && v.id === item.id);
+
+                if (!match) {
+                    // Check if there is an active variant with the exact same attribute values
+                    match = existingVariants.find((v) => {
+                        const existingAttrIds = v.attributes.map((a) => a.productAttributeValueId).sort();
+                        const incomingAttrIds = [...item.attributeValueIds].sort();
+                        return existingAttrIds.length === incomingAttrIds.length && existingAttrIds.every((val, idx) => val === incomingAttrIds[idx]);
+                    });
+                }
+
+                if (match) {
+                    processedIds.add(match.id);
+                    // Update this variant (sku, price)
+                    await tx.productVariant.update({
+                        where: { id: match.id },
+                        data: {
+                            sku: item.sku || null,
+                            price: item.price,
+                            updatedById: actorId
+                        }
+                    });
+
+                    // Sync attributes for this variant
+                    const currentAttrValueIds = match.attributes.map((a) => a.productAttributeValueId);
+                    const incomingAttrIds = item.attributeValueIds;
+
+                    // If attributes differ, delete all and recreate
+                    const sortedCurrent = [...currentAttrValueIds].sort();
+                    const sortedIncoming = [...incomingAttrIds].sort();
+                    const attributesChanged =
+                        sortedCurrent.length !== sortedIncoming.length || !sortedCurrent.every((val, idx) => val === sortedIncoming[idx]);
+
+                    if (attributesChanged) {
+                        // Soft delete existing attributes
+                        await tx.productVariantAttribute.updateMany({
+                            where: { productVariantId: match.id, deletedAt: null },
+                            data: {
+                                deletedAt: new Date(),
+                                updatedById: actorId
+                            }
+                        });
+
+                        // Insert new attributes
+                        if (incomingAttrIds.length > 0) {
+                            await tx.productVariantAttribute.createMany({
+                                data: incomingAttrIds.map((valId) => ({
+                                    productVariantId: match!.id,
+                                    productAttributeValueId: valId,
+                                    createdById: actorId,
+                                    updatedById: actorId
+                                }))
+                            });
+                        }
+                    }
+                } else {
+                    // Create new variant
+                    const newVariant = await tx.productVariant.create({
+                        data: {
+                            productId,
+                            sku: item.sku || null,
+                            price: item.price,
+                            createdById: actorId,
+                            updatedById: actorId
+                        }
+                    });
+
+                    processedIds.add(newVariant.id);
+
+                    if (item.attributeValueIds.length > 0) {
+                        await tx.productVariantAttribute.createMany({
+                            data: item.attributeValueIds.map((valId) => ({
+                                productVariantId: newVariant.id,
+                                productAttributeValueId: valId,
+                                createdById: actorId,
+                                updatedById: actorId
+                            }))
+                        });
+                    }
+                }
+            }
+
+            // Soft-delete any existing variants that are NOT in processedIds
+            const obsoleteVariants = existingVariants.filter((v) => !processedIds.has(v.id));
+            if (obsoleteVariants.length > 0) {
+                const obsoleteIds = obsoleteVariants.map((v) => v.id);
+
+                // Soft-delete variants
+                await tx.productVariant.updateMany({
+                    where: { id: { in: obsoleteIds } },
+                    data: {
+                        deletedAt: new Date(),
+                        updatedById: actorId
+                    }
+                });
+
+                // Soft-delete attributes
+                await tx.productVariantAttribute.updateMany({
+                    where: { productVariantId: { in: obsoleteIds }, deletedAt: null },
+                    data: {
+                        deletedAt: new Date(),
+                        updatedById: actorId
+                    }
+                });
+
+                // Soft-delete recipes
+                const recipes = await tx.recipe.findMany({
+                    where: { productVariantId: { in: obsoleteIds }, deletedAt: null },
+                    select: { id: true }
+                });
+                const recipeIds = recipes.map((r) => r.id);
+
+                if (recipeIds.length > 0) {
+                    await tx.recipeIngredient.updateMany({
+                        where: { recipeId: { in: recipeIds }, deletedAt: null },
+                        data: {
+                            deletedAt: new Date(),
+                            updatedById: actorId
+                        }
+                    });
+
+                    await tx.recipe.updateMany({
+                        where: { id: { in: recipeIds } },
+                        data: {
+                            deletedAt: new Date(),
+                            updatedById: actorId
+                        }
+                    });
+                }
+            }
         });
     }
 

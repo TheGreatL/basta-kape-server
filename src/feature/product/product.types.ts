@@ -114,3 +114,16 @@ export const PaginatedProductResponseSchema = z.object({
         hasMore: z.boolean()
     })
 });
+
+export const BulkSyncProductVariantsSchema = z.object({
+    variants: z.array(
+        z.object({
+            id: z.string().uuid().optional().nullable(),
+            sku: z.string().min(2).max(50).optional().nullable(),
+            price: z.number().nonnegative(),
+            attributeValueIds: z.array(z.string().uuid()).default([])
+        })
+    )
+});
+
+export type TBulkSyncProductVariants = z.infer<typeof BulkSyncProductVariantsSchema>;

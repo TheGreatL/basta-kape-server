@@ -2,7 +2,14 @@ import { ProductRepository } from './product.repository';
 import { ProductSettingsRepository } from '@/feature/product-settings/product-settings.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, ConflictException } from '@/exceptions';
-import type { TCreateProduct, TUpdateProduct, TCreateProductVariant, TUpdateProductVariant, TGetProductListQuery } from './product.types';
+import type {
+    TCreateProduct,
+    TUpdateProduct,
+    TCreateProductVariant,
+    TUpdateProductVariant,
+    TGetProductListQuery,
+    TBulkSyncProductVariants
+} from './product.types';
 
 export class ProductService {
     private repository: ProductRepository;
@@ -202,6 +209,21 @@ export class ProductService {
             actorId,
             title: 'Delete Product Variant',
             details: `Successfully deleted variant (SKU: ${variant.sku || 'N/A'}) for product: ${variant.product.name}.`
+        });
+    }
+
+    async syncVariants(productId: string, data: TBulkSyncProductVariants, actorId: string) {
+        // 1. Ensure product exists
+        const product = await this.getProductById(productId);
+
+        // 2. Perform bulk sync
+        await this.repository.syncVariants(productId, data, actorId);
+
+        // 3. Log activity
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Bulk Sync Product Variants',
+            details: `Successfully bulk synchronized variants for product: ${product.name}.`
         });
     }
 

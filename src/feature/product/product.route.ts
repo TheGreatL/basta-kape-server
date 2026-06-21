@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { registry } from '@/docs/swagger';
+import { z } from 'zod';
 import { ProductService } from './product.service';
 import { requireAccess } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
@@ -11,7 +12,8 @@ import {
     UpdateProductVariantSchema,
     ProductResponseSchema,
     ProductVariantResponseSchema,
-    PaginatedProductResponseSchema
+    PaginatedProductResponseSchema,
+    BulkSyncProductVariantsSchema
 } from './product.types';
 
 const router = Router();
@@ -262,6 +264,48 @@ router.post(
             const body = CreateProductVariantSchema.parse(req.body);
             const result = await service.createVariant(req.params.productId as string, body, req.user!.sub);
             res.status(201).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// PUT /products/:productId/variants/bulk
+registry.registerPath({
+    method: 'put',
+    path: '/products/{productId}/variants/bulk',
+    tags: ['Product Variants'],
+    summary: 'Bulk synchronize variants for a product',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: BulkSyncProductVariantsSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Product variants synchronized successfully',
+            content: {
+                'application/json': {
+                    schema: z.object({ message: z.string() })
+                }
+            }
+        }
+    }
+});
+
+router.put(
+    '/:productId/variants/bulk',
+    requireAccess(appModules.PRODUCTS_MANAGEMENT, appPermissions.UPDATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = BulkSyncProductVariantsSchema.parse(req.body);
+            await service.syncVariants(req.params.productId as string, body, req.user!.sub);
+            res.json({ message: 'Product variants synchronized successfully' });
         } catch (error) {
             next(error);
         }
