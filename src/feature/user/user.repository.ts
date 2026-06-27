@@ -6,7 +6,7 @@ import { BaseRepository } from '@/repository/base.repository';
 
 import type { IPaginatedResult } from '@/types/base.types';
 import { Prisma } from '@prisma/client';
-import { TCreateUser, TGetUserListQuery, TUpdateUser } from './user.types';
+import { TCreateUser, TGetUserListQuery, TUpdateUser, TUpdateSelfProfile } from './user.types';
 
 const SALT_ROUNDS = 12;
 
@@ -293,6 +293,60 @@ export class UserRepository extends BaseRepository {
                 updatedAt: true,
                 deletedAt: true,
                 userRoles: {
+                    select: {
+                        role: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Checks if email or username is already taken, excluding a specific user.
+     */
+    async findConflictExcluding(email: string | undefined, username: string | undefined, excludeUserId: string) {
+        const orConditions: Prisma.UserWhereInput[] = [];
+        if (email) orConditions.push({ email });
+        if (username) orConditions.push({ username });
+
+        if (orConditions.length === 0) return null;
+
+        return prisma.user.findFirst({
+            where: {
+                OR: orConditions,
+                id: { not: excludeUserId },
+                deletedAt: null
+            },
+            select: { email: true, username: true }
+        });
+    }
+
+    /**
+     * Updates a user's own profile fields (no role changes).
+     */
+    async updateSelfProfile(id: string, data: TUpdateSelfProfile) {
+        return prisma.user.update({
+            where: { id },
+            data,
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                phoneNumber: true,
+                profilePhoto: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                userRoles: {
+                    where: { deletedAt: null },
                     select: {
                         role: {
                             select: {

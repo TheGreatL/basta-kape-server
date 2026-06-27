@@ -2,7 +2,7 @@ import { UserRepository } from './user.repository';
 import { UploadService } from '@/feature/upload/upload.service';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException } from '@/exceptions';
-import type { TGetUserListQuery, TUpdateUser } from './user.types';
+import type { TGetUserListQuery, TUpdateUser, TUpdateSelfProfile } from './user.types';
 
 export class UserService {
     private userRepository: UserRepository;
@@ -61,6 +61,33 @@ export class UserService {
             actorId,
             title: 'Update User',
             details: `Successfully updated user details for ${user.username} (${user.email}).`
+        });
+
+        return updatedUser;
+    }
+
+    async updateSelfProfile(userId: string, data: TUpdateSelfProfile) {
+        // Ensure user exists
+        await this.getUserById(userId);
+
+        // Check for email/username conflicts (excluding current user)
+        if (data.email || data.username) {
+            const conflict = await this.userRepository.findConflictExcluding(data.email, data.username, userId);
+            if (conflict) {
+                const { ConflictException } = await import('@/exceptions');
+                if (data.email && conflict.email === data.email) {
+                    throw new ConflictException('An account with this email already exists.');
+                }
+                throw new ConflictException('An account with this username already exists.');
+            }
+        }
+
+        const updatedUser = await this.userRepository.updateSelfProfile(userId, data);
+
+        await this.activityLogService.logActivity({
+            actorId: userId,
+            title: 'Update Profile',
+            details: `Successfully updated own profile details.`
         });
 
         return updatedUser;

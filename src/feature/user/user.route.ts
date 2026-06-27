@@ -4,7 +4,14 @@ import { registry } from '@/docs/swagger';
 import { UserService } from './user.service';
 import { requireAccess, authenticate } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
-import { GetUserListQuerySchema, CreateUserSchema, UpdateUserSchema, PaginatedUserResponseSchema, UserResponseSchema } from './user.types';
+import {
+    GetUserListQuerySchema,
+    CreateUserSchema,
+    UpdateUserSchema,
+    UpdateSelfProfileSchema,
+    PaginatedUserResponseSchema,
+    UserResponseSchema
+} from './user.types';
 import { UserRepository } from './user.repository';
 import { ForbiddenException, UnauthorizedException } from '@/exceptions';
 
@@ -76,6 +83,42 @@ router.get('/list', requireAccess(appModules.USERS_MANAGEMENT, appPermissions.RE
     try {
         const query = GetUserListQuerySchema.parse(req.query);
         const result = await userService.getList(query);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ==========================================
+// PUT /users/me
+// ==========================================
+registry.registerPath({
+    method: 'put',
+    path: '/users/me',
+    tags: ['Users'],
+    summary: 'Update own profile',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: UpdateSelfProfileSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Profile updated successfully',
+            content: { 'application/json': { schema: UserResponseSchema } }
+        }
+    }
+});
+
+router.put('/me', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const body = UpdateSelfProfileSchema.parse(req.body);
+        const result = await userService.updateSelfProfile(req.user!.sub, body);
         res.json(result);
     } catch (error) {
         next(error);

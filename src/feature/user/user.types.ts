@@ -37,6 +37,17 @@ export const UpdateUserSchema = z.object({
 
 export type TUpdateUser = z.infer<typeof UpdateUserSchema>;
 
+export const UpdateSelfProfileSchema = z.object({
+    firstName: z.string().min(2).optional(),
+    lastName: z.string().min(2).optional(),
+    middleName: z.string().nullable().optional(),
+    phoneNumber: z.string().nullable().optional(),
+    email: z.string().email().optional(),
+    username: z.string().min(3).max(50).optional()
+});
+
+export type TUpdateSelfProfile = z.infer<typeof UpdateSelfProfileSchema>;
+
 // Shared user response to omit passwords
 export const UserResponseSchema = z.object({
     id: z.string(),
