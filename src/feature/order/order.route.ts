@@ -125,7 +125,10 @@ registry.registerPath({
 
 router.patch(
     '/:id/status',
-    requireAccess(appModules.ORDERS_MANAGEMENT, appPermissions.UPDATE),
+    requireAccess([
+        { module: appModules.ORDERS_MANAGEMENT, permission: appPermissions.UPDATE },
+        { module: appModules.ORDER_QUEUE, permission: appPermissions.UPDATE }
+    ]),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const body = UpdateOrderStatusSchema.parse(req.body);

@@ -201,7 +201,12 @@ export async function seedUsers(prisma: PrismaClient) {
 
     const ownerRole = await prisma.role.upsert({
         where: { name: 'Owner' },
-        update: {},
+        update: {
+            rolePermissions: {
+                deleteMany: {},
+                create: allSystemPerms
+            }
+        },
         create: {
             name: 'Owner',
             description: 'Business Owner with Full System Access (Dashboard, Reports)',
@@ -212,7 +217,12 @@ export async function seedUsers(prisma: PrismaClient) {
 
     const adminRole = await prisma.role.upsert({
         where: { name: 'Administrator' },
-        update: {},
+        update: {
+            rolePermissions: {
+                deleteMany: {},
+                create: allSystemPerms
+            }
+        },
         create: {
             name: 'Administrator',
             description: 'Manager of Menu, Inventory, and Staff Accounts',
@@ -223,7 +233,12 @@ export async function seedUsers(prisma: PrismaClient) {
 
     const managerRole = await prisma.role.upsert({
         where: { name: 'Manager' },
-        update: {},
+        update: {
+            rolePermissions: {
+                deleteMany: {},
+                create: allSystemPerms
+            }
+        },
         create: {
             name: 'Manager',
             description: 'Store Manager who can override transactions and manage operations',
@@ -234,7 +249,12 @@ export async function seedUsers(prisma: PrismaClient) {
 
     const supervisorRole = await prisma.role.upsert({
         where: { name: 'Supervisor' },
-        update: {},
+        update: {
+            rolePermissions: {
+                deleteMany: {},
+                create: allSystemPerms
+            }
+        },
         create: {
             name: 'Supervisor',
             description: 'Shift Supervisor who can authorize voids and refunds',
@@ -245,7 +265,26 @@ export async function seedUsers(prisma: PrismaClient) {
 
     const cashierRole = await prisma.role.upsert({
         where: { name: 'Cashier' },
-        update: {},
+        update: {
+            rolePermissions: {
+                deleteMany: {},
+                create: [
+                    mpPosCreateStore,
+                    mpPosReadStore,
+                    mpPosUpdateStore,
+                    mpPosDeleteStore,
+                    mpOrdersCreateStore,
+                    mpOrdersReadStore,
+                    mpOrdersUpdateStore,
+                    mpTransactionHistoryReadStore,
+                    mpSalesCreateStore,
+                    mpSalesReadStore,
+                    mpMenuReadStore,
+                    mpProductsReadStore,
+                    mpInventoryReadStore
+                ]
+            }
+        },
         create: {
             name: 'Cashier',
             description: 'Handles POS, shift balancing, and transaction viewing',
@@ -272,20 +311,44 @@ export async function seedUsers(prisma: PrismaClient) {
 
     const baristaRole = await prisma.role.upsert({
         where: { name: 'Barista' },
-        update: {},
+        update: {
+            rolePermissions: {
+                deleteMany: {},
+                create: [
+                    mpOrderQueueReadStore,
+                    mpOrderQueueUpdateStore,
+                    mpOrdersReadStore,
+                    mpMenuReadStore,
+                    mpProductsReadStore,
+                    mpInventoryReadStore
+                ]
+            }
+        },
         create: {
             name: 'Barista',
             description: 'Handles Kitchen Display / Order Queue and views station stock',
             isSystem: true,
             rolePermissions: {
-                create: [mpOrderQueueReadStore, mpOrderQueueUpdateStore, mpMenuReadStore, mpProductsReadStore, mpInventoryReadStore]
+                create: [
+                    mpOrderQueueReadStore,
+                    mpOrderQueueUpdateStore,
+                    mpOrdersReadStore,
+                    mpMenuReadStore,
+                    mpProductsReadStore,
+                    mpInventoryReadStore
+                ]
             }
         }
     });
 
     const customerRole = await prisma.role.upsert({
         where: { name: 'Customer' },
-        update: {},
+        update: {
+            rolePermissions: {
+                deleteMany: {},
+                create: [mpMenuReadALL, mpOrdersCreateOwn, mpOrdersReadOwn, mpCustomersReadOwn, mpCustomersUpdateOwn]
+            }
+        },
         create: {
             name: 'Customer',
             description: 'Online ordering patron',

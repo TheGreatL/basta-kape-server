@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "vitest run",
+        "test": "vitest run --no-file-parallelism",
         "test:watch": "vitest",
         "dev": "nodemon -r tsconfig-paths/register --exec ts-node src/server.ts",
         "build": "tsc && tsc-alias",
