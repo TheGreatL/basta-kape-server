@@ -8,7 +8,7 @@ vi.mock('@/middleware/rbac.middleware', () => ({
             sub: 'test-deduct-user-id',
             email: 'testdeduct@example.com',
             username: 'testdeductuser',
-            roles: ['Manager']
+            roles: ['Administrator']
         };
         req.rbacScope = 'All';
         next();
@@ -18,7 +18,7 @@ vi.mock('@/middleware/rbac.middleware', () => ({
             sub: 'test-deduct-user-id',
             email: 'testdeduct@example.com',
             username: 'testdeductuser',
-            roles: ['Manager']
+            roles: ['Administrator']
         };
         next();
     })

@@ -231,38 +231,6 @@ export async function seedUsers(prisma: PrismaClient) {
         }
     });
 
-    const managerRole = await prisma.role.upsert({
-        where: { name: 'Manager' },
-        update: {
-            rolePermissions: {
-                deleteMany: {},
-                create: allSystemPerms
-            }
-        },
-        create: {
-            name: 'Manager',
-            description: 'Store Manager who can override transactions and manage operations',
-            isSystem: true,
-            rolePermissions: { create: allSystemPerms }
-        }
-    });
-
-    const supervisorRole = await prisma.role.upsert({
-        where: { name: 'Supervisor' },
-        update: {
-            rolePermissions: {
-                deleteMany: {},
-                create: allSystemPerms
-            }
-        },
-        create: {
-            name: 'Supervisor',
-            description: 'Shift Supervisor who can authorize voids and refunds',
-            isSystem: true,
-            rolePermissions: { create: allSystemPerms }
-        }
-    });
-
     const cashierRole = await prisma.role.upsert({
         where: { name: 'Cashier' },
         update: {
@@ -394,32 +362,6 @@ export async function seedUsers(prisma: PrismaClient) {
             firstName: 'System',
             lastName: 'Manager',
             userRoles: { create: [{ roleId: adminRole.id }] }
-        }
-    });
-
-    await prisma.user.upsert({
-        where: { email: 'manager@bastakape.com' },
-        update: {},
-        create: {
-            email: 'manager@bastakape.com',
-            username: 'managerUser',
-            password: defaultPassword,
-            firstName: 'Manny',
-            lastName: 'Manager',
-            userRoles: { create: [{ roleId: managerRole.id }] }
-        }
-    });
-
-    await prisma.user.upsert({
-        where: { email: 'supervisor@bastakape.com' },
-        update: {},
-        create: {
-            email: 'supervisor@bastakape.com',
-            username: 'supervisorUser',
-            password: defaultPassword,
-            firstName: 'Sally',
-            lastName: 'Supervisor',
-            userRoles: { create: [{ roleId: supervisorRole.id }] }
         }
     });
 
