@@ -54,6 +54,18 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
+    const categorySignature = await prisma.productCategory.upsert({
+        where: { id: '11111111-1111-4111-a111-111111111114' },
+        update: {},
+        create: {
+            id: '11111111-1111-4111-a111-111111111114',
+            name: 'Signature Drinks',
+            description: 'Basta Kape signature drinks and specialty lattes',
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
     const typeIced = await prisma.productType.upsert({
         where: { id: '22222222-2222-4222-a222-222222222221' },
         update: {},
@@ -61,18 +73,6 @@ export async function seedProduct(prisma: PrismaClient) {
             id: '22222222-2222-4222-a222-222222222221',
             name: 'Iced Drinks',
             description: 'Chilled beverages served over ice',
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const typeHot = await prisma.productType.upsert({
-        where: { id: '22222222-2222-4222-a222-222222222222' },
-        update: {},
-        create: {
-            id: '22222222-2222-4222-a222-222222222222',
-            name: 'Hot Drinks',
-            description: 'Warm beverages brewed to perfection',
             createdById: adminId,
             updatedById: adminId
         }
@@ -180,7 +180,6 @@ export async function seedProduct(prisma: PrismaClient) {
     // ==========================================
     // 5. SEED INGREDIENTS & CURRENT INVENTORIES
     // ==========================================
-    // Helper to create ingredient and initialize inventory status
     async function createIngredientWithInventory(
         id: string,
         name: string,
@@ -480,145 +479,7 @@ export async function seedProduct(prisma: PrismaClient) {
     });
 
     // ==========================================
-    // 8. SEED PRODUCTS
-    // ==========================================
-    const prodAmericano = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888881' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888881',
-            name: 'Café Americano',
-            description: 'Rich, full-bodied signature espresso shot combined with filtered hot/iced water',
-            photo: '/uploads/images/americano.jpg',
-            productCategoryId: categoryCoffee.id,
-            productTypeId: typeIced.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodLatte = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888882' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888882',
-            name: 'Café Latte',
-            description: 'Velvety espresso combined with perfectly steamed milk and a thin microfoam layer',
-            photo: '/uploads/images/cafe-lattle.jpg',
-            productCategoryId: categoryCoffee.id,
-            productTypeId: typeIced.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodSpanishLatte = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888883' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888883',
-            name: 'Spanish Latte',
-            description: 'Sweet, creamy, espresso-forward latte sweetened with rich condensed milk',
-            photo: '/uploads/images/spanish-lattle.jpg',
-            productCategoryId: categoryCoffee.id,
-            productTypeId: typeIced.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodCaramelMacchiato = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888884' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888884',
-            name: 'Caramel Macchiato',
-            description: 'Vanilla-flavored syrup marked with espresso, milk, and topped with buttery caramel drizzle',
-            photo: '/uploads/images/caramel-macchiato.jpg',
-            productCategoryId: categoryCoffee.id,
-            productTypeId: typeIced.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodMatchaLatte = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888885' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888885',
-            name: 'Uji Matcha Latte',
-            description: 'Premium Japanese stone-ground matcha tea whisked and sweetened over creamy milk',
-            photo: '/uploads/images/uji-macha-lattle.png',
-            productCategoryId: categoryNonCoffee.id,
-            productTypeId: typeIced.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodChocolate = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888886' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888886',
-            name: 'Signature Hot Chocolate',
-            description: 'Decadent dark cocoa melted into steamed whole milk for the ultimate comfort drink',
-            photo: '/uploads/images/signature-hot-chocolate.jpg',
-            productCategoryId: categoryNonCoffee.id,
-            productTypeId: typeHot.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodCroissant = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888887' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888887',
-            name: 'Classic Butter Croissant',
-            description: 'Flaky, buttery, oven-fresh laminated pastry baked fresh daily',
-            photo: '/uploads/images/classic-butter-croissant.jpg',
-            productCategoryId: categoryPastries.id,
-            productTypeId: typeBaked.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodChocCroissant = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888888' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888888',
-            name: 'Pain au Chocolat',
-            description: 'Rich dark chocolate baton wrapped in buttery, flaky golden layers',
-            photo: '/uploads/images/plain-au-chocolat.jpg',
-            productCategoryId: categoryPastries.id,
-            productTypeId: typeBaked.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    const prodCookie = await prisma.product.upsert({
-        where: { id: '88888888-8888-4888-a888-888888888889' },
-        update: {},
-        create: {
-            id: '88888888-8888-4888-a888-888888888889',
-            name: 'Chocolate Chip Cookie',
-            description: 'Soft-baked, chewy cookie loaded with premium milk and dark chocolate chunks',
-            photo: '/uploads/images/chocolate-chip-cookie.jpg',
-            productCategoryId: categoryPastries.id,
-            productTypeId: typeBaked.id,
-            createdById: adminId,
-            updatedById: adminId
-        }
-    });
-
-    // ==========================================
-    // 9. SEED PRODUCT ATTRIBUTES & VALUES
+    // 8. SEED PRODUCT ATTRIBUTES & VALUES
     // ==========================================
     const attrSize = await prisma.productAttribute.upsert({
         where: { id: '99999999-9999-4999-a999-999999999991' },
@@ -706,10 +567,6 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     });
 
-    // ==========================================
-    // 10. SEED PRODUCT VARIANTS, RECIPES, AND CASING
-    // ==========================================
-
     // Helper to seed a variant, map its size/milk attributes, and create its recipe
     async function seedVariantWithRecipe(
         id: string,
@@ -721,7 +578,6 @@ export async function seedProduct(prisma: PrismaClient) {
         recipeDesc: string,
         ingredients: { ingredientId: string; qty: number; unitId: string }[]
     ) {
-        // Create Variant
         const variant = await prisma.productVariant.upsert({
             where: { id },
             update: { price },
@@ -735,7 +591,6 @@ export async function seedProduct(prisma: PrismaClient) {
             }
         });
 
-        // Map Attributes
         await prisma.productVariantAttribute.deleteMany({
             where: { productVariantId: variant.id }
         });
@@ -752,7 +607,6 @@ export async function seedProduct(prisma: PrismaClient) {
             });
         }
 
-        // Create Recipe
         const recipe = await prisma.recipe.upsert({
             where: { productVariantId: variant.id },
             update: { name: recipeName, description: recipeDesc },
@@ -765,8 +619,6 @@ export async function seedProduct(prisma: PrismaClient) {
             }
         });
 
-        // Seed Recipe Ingredients
-        // First clean up previous recipe ingredients for this recipe to keep it clean and synced
         await prisma.recipeIngredient.deleteMany({
             where: { recipeId: recipe.id }
         });
@@ -786,325 +638,817 @@ export async function seedProduct(prisma: PrismaClient) {
         }
     }
 
+    // ==========================================
+    // 9. SEED PRODUCTS
+    // ==========================================
+
+    // ESPRESSO (Coffee category)
+    const prodAmericano = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888881' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888881',
+            name: 'Café Americano',
+            description: 'Rich, full-bodied signature espresso shot combined with filtered hot/iced water',
+            photo: '/uploads/images/americano.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888882' },
+        update: { name: 'Cappuccino/Latte' },
+        create: {
+            id: '88888888-8888-4888-a888-888888888882',
+            name: 'Cappuccino/Latte',
+            description: 'Velvety espresso combined with perfectly steamed milk and a thin microfoam layer',
+            photo: '/uploads/images/cafe-lattle.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodSpanishLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888883' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888883',
+            name: 'Spanish Latte',
+            description: 'Sweet, creamy, espresso-forward latte sweetened with rich condensed milk',
+            photo: '/uploads/images/spanish-lattle.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodCaramelLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888884' },
+        update: { name: 'Caramel Latte' },
+        create: {
+            id: '88888888-8888-4888-a888-888888888884',
+            name: 'Caramel Latte',
+            description: 'Espresso combined with milk and buttery caramel syrup',
+            photo: '/uploads/images/caramel-macchiato.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodHazelnutLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888890' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888890',
+            name: 'Hazelnut Latte',
+            description: 'Espresso combined with milk and sweet hazelnut syrup',
+            photo: '/uploads/images/hazelnut-latte.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodWhiteMochaLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888891' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888891',
+            name: 'White Mocha Latte',
+            description: 'Espresso combined with milk and sweet white chocolate sauce',
+            photo: '/uploads/images/white-mocha.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodDarkMochaLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888892' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888892',
+            name: 'Dark Mocha Latte',
+            description: 'Espresso combined with milk and rich dark chocolate sauce',
+            photo: '/uploads/images/dark-mocha.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodDirtyMatcha = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888893' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888893',
+            name: 'Dirty Matcha',
+            description: 'Authentic matcha latte marked with a double shot of espresso',
+            photo: '/uploads/images/dirty-matcha.jpg',
+            productCategoryId: categoryCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    // NON-COFFEE
+    const prodMatchaLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888885' },
+        update: { name: 'Matcha Latte' },
+        create: {
+            id: '88888888-8888-4888-a888-888888888885',
+            name: 'Matcha Latte',
+            description: 'Premium Japanese stone-ground matcha tea whisked over creamy milk',
+            photo: '/uploads/images/uji-macha-lattle.png',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodStrawberryMilk = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888894' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888894',
+            name: 'Strawberry Milk',
+            description: 'Creamy milk blended with sweet, real strawberry purée',
+            photo: '/uploads/images/strawberry-milk.jpg',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodStrawberryMatcha = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888895' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888895',
+            name: 'Strawberry Matcha',
+            description: 'Layered drink with strawberry purée, milk, and premium matcha green tea',
+            photo: '/uploads/images/strawberry-matcha.jpg',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodDarkChocolate = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888886' },
+        update: { name: 'Dark Chocolate' },
+        create: {
+            id: '88888888-8888-4888-a888-888888888886',
+            name: 'Dark Chocolate',
+            description: 'Decadent dark cocoa combined with rich milk',
+            photo: '/uploads/images/signature-hot-chocolate.jpg',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodThaiMilktea = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888896' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888896',
+            name: 'Thai Milktea',
+            description: 'Sweet, creamy Thai milk tea served over ice',
+            photo: '/uploads/images/thai-milktea.jpg',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodLemonFruitTea = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888897' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888897',
+            name: 'Lemon Fruit Tea',
+            description: 'Refreshing fruit tea infused with fresh lemon flavor',
+            photo: '/uploads/images/lemon-tea.jpg',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodLycheeFruitTea = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888898' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888898',
+            name: 'Lychee Fruit Tea',
+            description: 'Sweet and crisp fruit tea infused with lychee flavor',
+            photo: '/uploads/images/lychee-tea.jpg',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodBottledWater = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888899' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888899',
+            name: 'Bottled Water',
+            description: 'Fresh, clean bottled drinking water',
+            photo: '/uploads/images/bottled-water.jpg',
+            productCategoryId: categoryNonCoffee.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    // SIGNATURE DRINKS
+    const prodBiscoffLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888900' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888900',
+            name: 'Biscoff Latte',
+            description: 'Espresso and milk infused with caramelized Biscoff cookie spread',
+            photo: '/uploads/images/biscoff-latte.jpg',
+            productCategoryId: categorySignature.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodCreamySeasaltLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888901' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888901',
+            name: 'Creamy Seasalt Latte',
+            description: 'Iced latte topped with our signature creamy seasalt cold foam',
+            photo: '/uploads/images/seasalt-latte.jpg',
+            productCategoryId: categorySignature.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodCinnamonOatLatte = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888902' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888902',
+            name: 'Cinnamon Oat Latte',
+            description: 'Espresso combined with creamy oat milk and a dash of sweet cinnamon',
+            photo: '/uploads/images/cinnamon-oat-latte.jpg',
+            productCategoryId: categorySignature.id,
+            productTypeId: typeIced.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    // PASTRIES
+    const prodCroissant = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888887' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888887',
+            name: 'Classic Butter Croissant',
+            description: 'Flaky, buttery, oven-fresh laminated pastry baked fresh daily',
+            photo: '/uploads/images/classic-butter-croissant.jpg',
+            productCategoryId: categoryPastries.id,
+            productTypeId: typeBaked.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodChocCroissant = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888888' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888888',
+            name: 'Pain au Chocolat',
+            description: 'Rich dark chocolate baton wrapped in buttery, flaky golden layers',
+            photo: '/uploads/images/plain-au-chocolat.jpg',
+            productCategoryId: categoryPastries.id,
+            productTypeId: typeBaked.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    const prodCookie = await prisma.product.upsert({
+        where: { id: '88888888-8888-4888-a888-888888888889' },
+        update: {},
+        create: {
+            id: '88888888-8888-4888-a888-888888888889',
+            name: 'Chocolate Chip Cookie',
+            description: 'Soft-baked, chewy cookie loaded with premium milk and dark chocolate chunks',
+            photo: '/uploads/images/chocolate-chip-cookie.jpg',
+            productCategoryId: categoryPastries.id,
+            productTypeId: typeBaked.id,
+            createdById: adminId,
+            updatedById: adminId
+        }
+    });
+
+    // ==========================================
+    // 10. SEED PRODUCT VARIANTS & RECIPES
+    // ==========================================
+
     // A. CAFÉ AMERICANO
-    // Variant: 12oz
     await seedVariantWithRecipe(
         'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb1',
         prodAmericano.id,
         'BK-AME-12',
-        110.0,
+        75.0,
         [valSize12.id],
-        '12oz Café Americano Recipe',
-        'Double shot pull (18g beans) with 200ml hot/cold water base',
+        '12oz Café Americano',
+        'Double shot pull (18g beans) with 200ml hot water base',
         [{ ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }]
     );
-    // Variant: 16oz
     await seedVariantWithRecipe(
         'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb2',
         prodAmericano.id,
         'BK-AME-16',
-        125.0,
+        80.0,
         [valSize16.id],
-        '16oz Café Americano Recipe',
-        'Double shot pull (18g beans) with 300ml hot/cold water base',
+        '16oz Café Americano',
+        'Double shot pull (18g beans) with 300ml iced water base',
         [{ ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }]
     );
 
-    // B. CAFÉ LATTE
-    // Variant: 12oz Whole Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb3',
-        prodLatte.id,
-        'BK-LAT-12-WM',
-        135.0,
-        [valSize12.id, valMilkWhole.id],
-        '12oz Café Latte (Whole Milk)',
-        'Double shot pull (18g beans) with 220ml steamed whole milk and light foam',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 16oz Whole Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb4',
-        prodLatte.id,
-        'BK-LAT-16-WM',
-        150.0,
-        [valSize16.id, valMilkWhole.id],
-        '16oz Café Latte (Whole Milk)',
-        'Double shot pull (18g beans) with 280ml steamed whole milk and light foam',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 12oz Oat Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb5',
-        prodLatte.id,
-        'BK-LAT-12-OM',
-        165.0,
-        [valSize12.id, valMilkOat.id],
-        '12oz Café Latte (Oat Milk)',
-        'Double shot pull (18g beans) with 220ml steamed plant oat milk',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingOatMilk.id, qty: 220.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 16oz Oat Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb6',
-        prodLatte.id,
-        'BK-LAT-16-OM',
-        180.0,
-        [valSize16.id, valMilkOat.id],
-        '16oz Café Latte (Oat Milk)',
-        'Double shot pull (18g beans) with 280ml steamed plant oat milk',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 12oz Almond Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb7',
-        prodLatte.id,
-        'BK-LAT-12-AM',
-        165.0,
-        [valSize12.id, valMilkAlmond.id],
-        '12oz Café Latte (Almond Milk)',
-        'Double shot pull (18g beans) with 220ml steamed plant almond milk',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingAlmondMilk.id, qty: 220.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 16oz Almond Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb8',
-        prodLatte.id,
-        'BK-LAT-16-AM',
-        180.0,
-        [valSize16.id, valMilkAlmond.id],
-        '16oz Café Latte (Almond Milk)',
-        'Double shot pull (18g beans) with 280ml steamed plant almond milk',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingAlmondMilk.id, qty: 280.0, unitId: unitMilliliters.id }
-        ]
-    );
+    // Helper to generate milk-combination variants for Latte-based drinks
+    async function seedLatteVariants(params: {
+        productId: string;
+        skuPrefix: string;
+        baseHotPrice: number;
+        baseIcedPrice: number;
+        namePrefix: string;
+        beansQty: number;
+        condensedQty?: number;
+        ids: {
+            hotWM: string;
+            icedWM: string;
+            hotOM: string;
+            icedOM: string;
+            hotAM: string;
+            icedAM: string;
+        };
+    }) {
+        const { productId, skuPrefix, baseHotPrice, baseIcedPrice, namePrefix, beansQty, condensedQty = 0, ids } = params;
+
+        const sizes = [
+            { id: valSize12.id, label: '12oz Hot', price: baseHotPrice, sku: '12' },
+            { id: valSize16.id, label: '16oz Iced', price: baseIcedPrice, sku: '16' }
+        ];
+
+        const milks = [
+            { id: valMilkWhole.id, label: 'Whole Milk', sku: 'WM', extra: 0, ing: ingWholeMilk.id, ids: { '12': ids.hotWM, '16': ids.icedWM } },
+            { id: valMilkOat.id, label: 'Oat Milk', sku: 'OM', extra: 55, ing: ingOatMilk.id, ids: { '12': ids.hotOM, '16': ids.icedOM } },
+            { id: valMilkAlmond.id, label: 'Almond Milk', sku: 'AM', extra: 55, ing: ingAlmondMilk.id, ids: { '12': ids.hotAM, '16': ids.icedAM } }
+        ];
+
+        for (const size of sizes) {
+            for (const milk of milks) {
+                const variantId = size.sku === '12' ? milk.ids['12'] : milk.ids['16'];
+                const ingredients = [
+                    { ingredientId: ingBeans.id, qty: beansQty, unitId: unitGrams.id },
+                    { ingredientId: milk.ing, qty: size.sku === '12' ? 220 : 280, unitId: unitMilliliters.id }
+                ];
+                if (condensedQty > 0) {
+                    ingredients.push({
+                        ingredientId: ingCondensed.id,
+                        qty: size.sku === '12' ? condensedQty : condensedQty + 10,
+                        unitId: unitGrams.id
+                    });
+                }
+
+                await seedVariantWithRecipe(
+                    variantId,
+                    productId,
+                    `BK-${skuPrefix}-${size.sku}-${milk.sku}`,
+                    size.price + milk.extra,
+                    [size.id, milk.id],
+                    `${size.label} ${namePrefix} (${milk.label})`,
+                    `Double shot pull (${beansQty}g beans) with ${size.sku === '12' ? 220 : 280}ml steamed/chilled ${milk.label.toLowerCase()}`,
+                    ingredients
+                );
+            }
+        }
+    }
+
+    // B. CAPPUCCINO/LATTE
+    await seedLatteVariants({
+        productId: prodLatte.id,
+        skuPrefix: 'LAT',
+        baseHotPrice: 80.0,
+        baseIcedPrice: 90.0,
+        namePrefix: 'Cappuccino/Latte',
+        beansQty: 18.0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb3',
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb4',
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb5',
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb6',
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb7',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb8'
+        }
+    });
 
     // C. SPANISH LATTE
-    // Variant: 12oz Whole Milk
+    await seedLatteVariants({
+        productId: prodSpanishLatte.id,
+        skuPrefix: 'SL',
+        baseHotPrice: 95.0,
+        baseIcedPrice: 105.0,
+        namePrefix: 'Spanish Latte',
+        beansQty: 18.0,
+        condensedQty: 25.0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb9',
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb10',
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb61', // New IDs
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb11', // Original ID
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb62',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb63'
+        }
+    });
+
+    // D. CARAMEL LATTE
+    await seedLatteVariants({
+        productId: prodCaramelLatte.id,
+        skuPrefix: 'CL',
+        baseHotPrice: 105.0,
+        baseIcedPrice: 115.0,
+        namePrefix: 'Caramel Latte',
+        beansQty: 18.0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb12', // Original
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb13', // Original
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb64',
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb14', // Original
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb65',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb66'
+        }
+    });
+
+    // E. HAZELNUT LATTE
+    await seedLatteVariants({
+        productId: prodHazelnutLatte.id,
+        skuPrefix: 'HL',
+        baseHotPrice: 95.0,
+        baseIcedPrice: 105.0,
+        namePrefix: 'Hazelnut Latte',
+        beansQty: 18.0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb23',
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb24',
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb25',
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb26',
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb27',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb28'
+        }
+    });
+
+    // F. WHITE MOCHA LATTE
+    await seedLatteVariants({
+        productId: prodWhiteMochaLatte.id,
+        skuPrefix: 'WML',
+        baseHotPrice: 100.0,
+        baseIcedPrice: 110.0,
+        namePrefix: 'White Mocha Latte',
+        beansQty: 18.0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb29',
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb30',
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb31',
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb32',
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb33',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb34'
+        }
+    });
+
+    // G. DARK MOCHA LATTE
+    await seedLatteVariants({
+        productId: prodDarkMochaLatte.id,
+        skuPrefix: 'DML',
+        baseHotPrice: 95.0,
+        baseIcedPrice: 105.0,
+        namePrefix: 'Dark Mocha Latte',
+        beansQty: 18.0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb35',
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb36',
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb37',
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb38',
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb39',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb40'
+        }
+    });
+
+    // H. DIRTY MATCHA
+    await seedLatteVariants({
+        productId: prodDirtyMatcha.id,
+        skuPrefix: 'DIR-MAT',
+        baseHotPrice: 110.0,
+        baseIcedPrice: 120.0,
+        namePrefix: 'Dirty Matcha',
+        beansQty: 18.0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb41',
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb42',
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb43',
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb44',
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb45',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb46'
+        }
+    });
+
+    // NON-COFFEE: MATCHA LATTE
+    await seedLatteVariants({
+        productId: prodMatchaLatte.id,
+        skuPrefix: 'MAT',
+        baseHotPrice: 95.0,
+        baseIcedPrice: 105.0,
+        namePrefix: 'Matcha Latte',
+        beansQty: 0,
+        ids: {
+            hotWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb15',
+            icedWM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb16',
+            hotOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb67',
+            icedOM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb17',
+            hotAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb68',
+            icedAM: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb69'
+        }
+    });
+
+    // NON-COFFEE: STRAWBERRY MILK
     await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbb9',
-        prodSpanishLatte.id,
-        'BK-SL-12-WM',
-        145.0,
-        [valSize12.id, valMilkWhole.id],
-        '12oz Spanish Latte (Whole Milk)',
-        'Steamed whole milk sweetened with 25g condensed milk, marked with double espresso',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 200.0, unitId: unitMilliliters.id },
-            { ingredientId: ingCondensed.id, qty: 25.0, unitId: unitGrams.id }
-        ]
-    );
-    // Variant: 16oz Whole Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb10',
-        prodSpanishLatte.id,
-        'BK-SL-16-WM',
-        160.0,
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb47',
+        prodStrawberryMilk.id,
+        'BK-SWM-16-WM',
+        95.0,
         [valSize16.id, valMilkWhole.id],
-        '16oz Spanish Latte (Whole Milk)',
-        'Steamed whole milk sweetened with 35g condensed milk, marked with double espresso',
+        '16oz Iced Strawberry Milk',
+        'Real strawberry purée topped with chilled whole milk',
+        [{ ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id }]
+    );
+
+    // NON-COFFEE: STRAWBERRY MATCHA
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb48',
+        prodStrawberryMatcha.id,
+        'BK-SWM-MAT-16-WM',
+        120.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Iced Strawberry Matcha',
+        'Strawberry purée base, whole milk, and premium matcha green tea layer',
         [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
             { ingredientId: ingWholeMilk.id, qty: 250.0, unitId: unitMilliliters.id },
-            { ingredientId: ingCondensed.id, qty: 35.0, unitId: unitGrams.id }
-        ]
-    );
-    // Variant: 16oz Oat Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb11',
-        prodSpanishLatte.id,
-        'BK-SL-16-OM',
-        190.0,
-        [valSize16.id, valMilkOat.id],
-        '16oz Spanish Latte (Oat Milk)',
-        'Steamed oat milk sweetened with 35g condensed milk, marked with double espresso',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingOatMilk.id, qty: 250.0, unitId: unitMilliliters.id },
-            { ingredientId: ingCondensed.id, qty: 35.0, unitId: unitGrams.id }
+            { ingredientId: ingMatcha.id, qty: 6.0, unitId: unitGrams.id }
         ]
     );
 
-    // D. CARAMEL MACCHIATO
-    // Variant: 12oz Whole Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb12',
-        prodCaramelMacchiato.id,
-        'BK-CM-12-WM',
-        155.0,
-        [valSize12.id, valMilkWhole.id],
-        '12oz Caramel Macchiato (Whole Milk)',
-        'Double shot pull, 220ml whole milk, 15ml vanilla syrup, topped with 10ml caramel drizzle',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id },
-            { ingredientId: ingVanilla.id, qty: 15.0, unitId: unitMilliliters.id },
-            { ingredientId: ingCaramel.id, qty: 10.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 16oz Whole Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb13',
-        prodCaramelMacchiato.id,
-        'BK-CM-16-WM',
-        170.0,
-        [valSize16.id, valMilkWhole.id],
-        '16oz Caramel Macchiato (Whole Milk)',
-        'Double shot pull, 280ml whole milk, 20ml vanilla syrup, topped with 15ml caramel drizzle',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id },
-            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id },
-            { ingredientId: ingCaramel.id, qty: 15.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 16oz Oat Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb14',
-        prodCaramelMacchiato.id,
-        'BK-CM-16-OM',
-        200.0,
-        [valSize16.id, valMilkOat.id],
-        '16oz Caramel Macchiato (Oat Milk)',
-        'Double shot pull, 280ml oat milk, 20ml vanilla syrup, topped with 15ml caramel drizzle',
-        [
-            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id },
-            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id },
-            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id },
-            { ingredientId: ingCaramel.id, qty: 15.0, unitId: unitMilliliters.id }
-        ]
-    );
-
-    // E. UJI MATCHA LATTE
-    // Variant: 12oz Whole Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb15',
-        prodMatchaLatte.id,
-        'BK-MAT-12-WM',
-        150.0,
-        [valSize12.id, valMilkWhole.id],
-        '12oz Uji Matcha Latte (Whole Milk)',
-        '6g premium green tea powder blended with 15ml vanilla syrup and 220ml whole milk',
-        [
-            { ingredientId: ingMatcha.id, qty: 6.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id },
-            { ingredientId: ingVanilla.id, qty: 15.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 16oz Whole Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb16',
-        prodMatchaLatte.id,
-        'BK-MAT-16-WM',
-        165.0,
-        [valSize16.id, valMilkWhole.id],
-        '16oz Uji Matcha Latte (Whole Milk)',
-        '8g premium green tea powder blended with 20ml vanilla syrup and 280ml whole milk',
-        [
-            { ingredientId: ingMatcha.id, qty: 8.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id },
-            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id }
-        ]
-    );
-    // Variant: 16oz Oat Milk
-    await seedVariantWithRecipe(
-        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb17',
-        prodMatchaLatte.id,
-        'BK-MAT-16-OM',
-        195.0,
-        [valSize16.id, valMilkOat.id],
-        '16oz Uji Matcha Latte (Oat Milk)',
-        '8g premium green tea powder blended with 20ml vanilla syrup and 280ml plant oat milk',
-        [
-            { ingredientId: ingMatcha.id, qty: 8.0, unitId: unitGrams.id },
-            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id },
-            { ingredientId: ingVanilla.id, qty: 20.0, unitId: unitMilliliters.id }
-        ]
-    );
-
-    // F. SIGNATURE HOT CHOCOLATE
-    // Variant: 12oz Whole Milk
+    // NON-COFFEE: DARK CHOCOLATE
     await seedVariantWithRecipe(
         'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb18',
-        prodChocolate.id,
-        'BK-CHO-12-WM',
-        140.0,
+        prodDarkChocolate.id,
+        'BK-DCH-12-WM',
+        70.0,
         [valSize12.id, valMilkWhole.id],
-        '12oz Signature Hot Chocolate',
-        '30g rich dark chocolate sauce combined with 220ml steamed whole milk',
+        '12oz Hot Dark Chocolate',
+        'Steamed whole milk blended with premium dark chocolate sauce',
         [
-            { ingredientId: ingChocolate.id, qty: 30.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id }
+            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id },
+            { ingredientId: ingChocolate.id, qty: 30.0, unitId: unitGrams.id }
         ]
     );
-    // Variant: 16oz Whole Milk
     await seedVariantWithRecipe(
         'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb19',
-        prodChocolate.id,
-        'BK-CHO-16-WM',
-        155.0,
+        prodDarkChocolate.id,
+        'BK-DCH-16-WM',
+        80.0,
         [valSize16.id, valMilkWhole.id],
-        '16oz Signature Hot Chocolate',
-        '40g rich dark chocolate sauce combined with 280ml steamed whole milk',
+        '16oz Iced Dark Chocolate',
+        'Chilled whole milk blended with premium dark chocolate sauce and served over ice',
         [
-            { ingredientId: ingChocolate.id, qty: 40.0, unitId: unitGrams.id },
-            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id }
+            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingChocolate.id, qty: 40.0, unitId: unitGrams.id }
         ]
     );
 
-    // G. CLASSIC BUTTER CROISSANT
-    // Variant: Standard
+    // NON-COFFEE: THAI MILKTEA
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb49',
+        prodThaiMilktea.id,
+        'BK-TMT-16-WM',
+        90.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Iced Thai Milktea',
+        'Brewed sweet Thai tea leaves sweetened with condensed milk and whole milk',
+        [{ ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id }]
+    );
+
+    // NON-COFFEE: LEMON FRUIT TEA
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb50',
+        prodLemonFruitTea.id,
+        'BK-LFT-16',
+        80.0,
+        [valSize16.id],
+        '16oz Iced Lemon Fruit Tea',
+        'Refreshing iced black tea infused with lemon syrup',
+        []
+    );
+
+    // NON-COFFEE: LYCHEE FRUIT TEA
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb51',
+        prodLycheeFruitTea.id,
+        'BK-LYFT-16',
+        80.0,
+        [valSize16.id],
+        '16oz Iced Lychee Fruit Tea',
+        'Refreshing iced black tea infused with lychee syrup',
+        []
+    );
+
+    // NON-COFFEE: BOTTLED WATER
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb52',
+        prodBottledWater.id,
+        'BK-WTR-STD',
+        15.0,
+        [],
+        'Bottled Water',
+        '500ml purified bottled drinking water',
+        []
+    );
+
+    // SIGNATURE DRINKS: BISCOFF LATTE
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb53',
+        prodBiscoffLatte.id,
+        'BK-BIS-12-WM',
+        135.0,
+        [valSize12.id, valMilkWhole.id],
+        '12oz Hot Biscoff Latte',
+        'Caramelized Lotus Biscoff spread melted into steamed whole milk and double espresso',
+        [
+            { ingredientId: ingWholeMilk.id, qty: 220.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb54',
+        prodBiscoffLatte.id,
+        'BK-BIS-16-WM',
+        145.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Iced Biscoff Latte',
+        'Caramelized Lotus Biscoff spread melted into chilled whole milk and double espresso',
+        [
+            { ingredientId: ingWholeMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+    // Oat milk variants for Biscoff Latte
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb55',
+        prodBiscoffLatte.id,
+        'BK-BIS-12-OM',
+        190.0,
+        [valSize12.id, valMilkOat.id],
+        '12oz Hot Biscoff Latte (Oat Milk)',
+        'Caramelized Lotus Biscoff spread melted into steamed plant oat milk and double espresso',
+        [
+            { ingredientId: ingOatMilk.id, qty: 220.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb56',
+        prodBiscoffLatte.id,
+        'BK-BIS-16-OM',
+        200.0,
+        [valSize16.id, valMilkOat.id],
+        '16oz Iced Biscoff Latte (Oat Milk)',
+        'Caramelized Lotus Biscoff spread melted into chilled plant oat milk and double espresso',
+        [
+            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+
+    // SIGNATURE DRINKS: CREAMY SEASALT LATTE
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb57',
+        prodCreamySeasaltLatte.id,
+        'BK-CSSL-16-WM',
+        140.0,
+        [valSize16.id, valMilkWhole.id],
+        '16oz Iced Creamy Seasalt Latte',
+        'Chilled whole milk and double espresso topped with signature seasalt cold foam',
+        [
+            { ingredientId: ingWholeMilk.id, qty: 250.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb58',
+        prodCreamySeasaltLatte.id,
+        'BK-CSSL-16-OM',
+        195.0,
+        [valSize16.id, valMilkOat.id],
+        '16oz Iced Creamy Seasalt Latte (Oat Milk)',
+        'Chilled plant oat milk and double espresso topped with signature seasalt cold foam',
+        [
+            { ingredientId: ingOatMilk.id, qty: 250.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+
+    // SIGNATURE DRINKS: CINNAMON OAT LATTE
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb59',
+        prodCinnamonOatLatte.id,
+        'BK-COL-12-OM',
+        130.0,
+        [valSize12.id, valMilkOat.id],
+        '12oz Hot Cinnamon Oat Latte',
+        'Steamed plant oat milk combined with a shot of cinnamon and double espresso',
+        [
+            { ingredientId: ingOatMilk.id, qty: 220.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+    await seedVariantWithRecipe(
+        'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb60',
+        prodCinnamonOatLatte.id,
+        'BK-COL-16-OM',
+        140.0,
+        [valSize16.id, valMilkOat.id],
+        '16oz Iced Cinnamon Oat Latte',
+        'Chilled plant oat milk combined with a shot of cinnamon and double espresso served over ice',
+        [
+            { ingredientId: ingOatMilk.id, qty: 280.0, unitId: unitMilliliters.id },
+            { ingredientId: ingBeans.id, qty: 18.0, unitId: unitGrams.id }
+        ]
+    );
+
+    // PASTRIES
     await seedVariantWithRecipe(
         'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb20',
         prodCroissant.id,
         'BK-CR-STD',
         110.0,
         [],
-        'Classic Butter Croissant Recipe',
+        'Classic Butter Croissant',
         '1 piece frozen butter croissant dough baked in oven',
         [{ ingredientId: ingCroissant.id, qty: 1.0, unitId: unitPieces.id }]
     );
-
-    // H. PAIN AU CHOCOLAT (CHOCOLATE CROISSANT)
-    // Variant: Standard
     await seedVariantWithRecipe(
         'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb21',
         prodChocCroissant.id,
         'BK-PAC-STD',
         125.0,
         [],
-        'Pain au Chocolat Recipe',
+        'Pain au Chocolat',
         '1 piece frozen chocolate croissant dough baked in oven',
         [{ ingredientId: ingChocCroissant.id, qty: 1.0, unitId: unitPieces.id }]
     );
-
-    // I. CHOCOLATE CHIP COOKIE
-    // Variant: Standard
     await seedVariantWithRecipe(
         'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb22',
         prodCookie.id,
         'BK-CK-STD',
         85.0,
         [],
-        'Chocolate Chip Cookie Recipe',
+        'Chocolate Chip Cookie',
         '1 piece frozen cookie dough baked soft in oven',
         [{ ingredientId: ingCookie.id, qty: 1.0, unitId: unitPieces.id }]
     );
@@ -1127,25 +1471,49 @@ export async function seedProduct(prisma: PrismaClient) {
                 connect: [
                     { id: prodLatte.id },
                     { id: prodSpanishLatte.id },
-                    { id: prodCaramelMacchiato.id },
+                    { id: prodCaramelLatte.id },
+                    { id: prodHazelnutLatte.id },
+                    { id: prodWhiteMochaLatte.id },
+                    { id: prodDarkMochaLatte.id },
+                    { id: prodDirtyMatcha.id },
                     { id: prodMatchaLatte.id },
-                    { id: prodChocolate.id }
+                    { id: prodBiscoffLatte.id },
+                    { id: prodCreamySeasaltLatte.id }
                 ]
             }
         }
     });
 
-    const modgSyrups = await prisma.modifierGroup.upsert({
+    const modgAddons = await prisma.modifierGroup.upsert({
         where: { id: 'cccccccc-cccc-4ccc-accc-cccccccccccd' },
-        update: {},
+        update: { name: 'Add-ons' },
         create: {
             id: 'cccccccc-cccc-4ccc-accc-cccccccccccd',
-            name: 'Add-on Syrups',
+            name: 'Add-ons',
             isRequired: false,
             minSelect: 0,
-            maxSelect: 3,
+            maxSelect: 4,
             products: {
-                connect: [{ id: prodAmericano.id }, { id: prodLatte.id }, { id: prodSpanishLatte.id }, { id: prodCaramelMacchiato.id }]
+                connect: [
+                    { id: prodAmericano.id },
+                    { id: prodLatte.id },
+                    { id: prodSpanishLatte.id },
+                    { id: prodCaramelLatte.id },
+                    { id: prodHazelnutLatte.id },
+                    { id: prodWhiteMochaLatte.id },
+                    { id: prodDarkMochaLatte.id },
+                    { id: prodDirtyMatcha.id },
+                    { id: prodMatchaLatte.id },
+                    { id: prodStrawberryMilk.id },
+                    { id: prodStrawberryMatcha.id },
+                    { id: prodDarkChocolate.id },
+                    { id: prodThaiMilktea.id },
+                    { id: prodLemonFruitTea.id },
+                    { id: prodLycheeFruitTea.id },
+                    { id: prodBiscoffLatte.id },
+                    { id: prodCreamySeasaltLatte.id },
+                    { id: prodCinnamonOatLatte.id }
+                ]
             }
         }
     });
@@ -1153,23 +1521,23 @@ export async function seedProduct(prisma: PrismaClient) {
     // Modifier options
     const modoOatMilk = await prisma.modifierOption.upsert({
         where: { id: 'dddddddd-dddd-4ddd-addd-dddddddddddd' },
-        update: {},
+        update: { price: 55.0 },
         create: {
             id: 'dddddddd-dddd-4ddd-addd-dddddddddddd',
             modifierGroupId: modgMilk.id,
             name: 'Oat Milk Add-on',
-            price: 30.0
+            price: 55.0
         }
     });
 
     const modoAlmondMilk = await prisma.modifierOption.upsert({
         where: { id: 'dddddddd-dddd-4ddd-addd-ddddddddddde' },
-        update: {},
+        update: { price: 55.0 },
         create: {
             id: 'dddddddd-dddd-4ddd-addd-ddddddddddde',
             modifierGroupId: modgMilk.id,
             name: 'Almond Milk Add-on',
-            price: 30.0
+            price: 55.0
         }
     });
 
@@ -1178,7 +1546,7 @@ export async function seedProduct(prisma: PrismaClient) {
         update: {},
         create: {
             id: 'dddddddd-dddd-4ddd-addd-dddddddddddf',
-            modifierGroupId: modgSyrups.id,
+            modifierGroupId: modgAddons.id,
             name: 'Vanilla Syrup Shot',
             price: 20.0
         }
@@ -1189,9 +1557,42 @@ export async function seedProduct(prisma: PrismaClient) {
         update: {},
         create: {
             id: 'dddddddd-dddd-4ddd-addd-dddddddddd01',
-            modifierGroupId: modgSyrups.id,
+            modifierGroupId: modgAddons.id,
             name: 'Extra Caramel Drizzle',
             price: 20.0
+        }
+    });
+
+    const modoEspressoShot = await prisma.modifierOption.upsert({
+        where: { id: 'dddddddd-dddd-4ddd-addd-dddddddddd02' },
+        update: {},
+        create: {
+            id: 'dddddddd-dddd-4ddd-addd-dddddddddd02',
+            modifierGroupId: modgAddons.id,
+            name: 'Espresso Shot',
+            price: 35.0
+        }
+    });
+
+    const modoWhippedCream = await prisma.modifierOption.upsert({
+        where: { id: 'dddddddd-dddd-4ddd-addd-dddddddddd03' },
+        update: {},
+        create: {
+            id: 'dddddddd-dddd-4ddd-addd-dddddddddd03',
+            modifierGroupId: modgAddons.id,
+            name: 'Whipped Cream',
+            price: 30.0
+        }
+    });
+
+    const modoSeasaltCream = await prisma.modifierOption.upsert({
+        where: { id: 'dddddddd-dddd-4ddd-addd-dddddddddd04' },
+        update: {},
+        create: {
+            id: 'dddddddd-dddd-4ddd-addd-dddddddddd04',
+            modifierGroupId: modgAddons.id,
+            name: 'Seasalt Cream',
+            price: 25.0
         }
     });
 
@@ -1258,6 +1659,13 @@ export async function seedProduct(prisma: PrismaClient) {
     await seedModifierRecipe('eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeec', modoCaramel.id, 'Caramel Drizzle Modifier Recipe', '15ml of caramel drizzle', [
         { ingredientId: ingCaramel.id, qty: 15.0, unitId: unitMilliliters.id }
     ]);
+
+    await seedModifierRecipe('eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeed', modoEspressoShot.id, 'Espresso Shot Modifier Recipe', '9g of espresso beans', [
+        { ingredientId: ingBeans.id, qty: 9.0, unitId: unitGrams.id }
+    ]);
+
+    await seedModifierRecipe('eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee2', modoWhippedCream.id, 'Whipped Cream Modifier Recipe', '30g whipped cream', []);
+    await seedModifierRecipe('eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee3', modoSeasaltCream.id, 'Seasalt Cream Modifier Recipe', '25g seasalt cream', []);
 
     // ==========================================
     // SEED PURCHASE ORDERS
