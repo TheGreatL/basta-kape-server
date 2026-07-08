@@ -17,8 +17,6 @@ model Permission {
 enum AccessScope {
   ALL
   OWN
-  BRANCH
-  STORE
 }
 
 model ModulePermission {

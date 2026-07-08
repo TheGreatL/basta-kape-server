@@ -345,7 +345,7 @@ describe('Customer Feature CRUD', () => {
                     customerId: testCustomerId,
                     queueNumber: '#099',
                     orderType: 'DINE_IN',
-                    orderSource: 'MOBILE_APP',
+                    orderSource: 'WEBSITE',
                     subtotal: 150.0,
                     taxAmount: 16.07,
                     netTotal: 150.0,

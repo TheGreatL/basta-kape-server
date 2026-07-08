@@ -166,27 +166,27 @@ export async function seedUsers(prisma: PrismaClient) {
         allSystemPerms.push(await ensureModPerm(m.id, deletePerm.id, AccessScope.ALL));
     }
 
-    // Specific explicit nodes for limited roles (AccessScope.STORE for staff)
-    const mpPosCreateStore = await ensureModPerm(posMod.id, create.id, AccessScope.STORE);
-    const mpPosReadStore = await ensureModPerm(posMod.id, read.id, AccessScope.STORE);
-    const mpPosUpdateStore = await ensureModPerm(posMod.id, update.id, AccessScope.STORE);
-    const mpPosDeleteStore = await ensureModPerm(posMod.id, deletePerm.id, AccessScope.STORE);
+    // Specific explicit nodes for limited roles (AccessScope.ALL for staff)
+    const mpPosCreateStore = await ensureModPerm(posMod.id, create.id, AccessScope.ALL);
+    const mpPosReadStore = await ensureModPerm(posMod.id, read.id, AccessScope.ALL);
+    const mpPosUpdateStore = await ensureModPerm(posMod.id, update.id, AccessScope.ALL);
+    const mpPosDeleteStore = await ensureModPerm(posMod.id, deletePerm.id, AccessScope.ALL);
 
-    const mpOrdersCreateStore = await ensureModPerm(ordersMod.id, create.id, AccessScope.STORE);
-    const mpOrdersReadStore = await ensureModPerm(ordersMod.id, read.id, AccessScope.STORE);
-    const mpOrdersUpdateStore = await ensureModPerm(ordersMod.id, update.id, AccessScope.STORE);
+    const mpOrdersCreateStore = await ensureModPerm(ordersMod.id, create.id, AccessScope.ALL);
+    const mpOrdersReadStore = await ensureModPerm(ordersMod.id, read.id, AccessScope.ALL);
+    const mpOrdersUpdateStore = await ensureModPerm(ordersMod.id, update.id, AccessScope.ALL);
 
-    const mpTransactionHistoryReadStore = await ensureModPerm(transactionHistoryMod.id, read.id, AccessScope.STORE);
+    const mpTransactionHistoryReadStore = await ensureModPerm(transactionHistoryMod.id, read.id, AccessScope.ALL);
 
-    const mpSalesCreateStore = await ensureModPerm(salesMod.id, create.id, AccessScope.STORE);
-    const mpSalesReadStore = await ensureModPerm(salesMod.id, read.id, AccessScope.STORE);
+    const mpSalesCreateStore = await ensureModPerm(salesMod.id, create.id, AccessScope.ALL);
+    const mpSalesReadStore = await ensureModPerm(salesMod.id, read.id, AccessScope.ALL);
 
-    const mpMenuReadStore = await ensureModPerm(menuMod.id, read.id, AccessScope.STORE);
-    const mpProductsReadStore = await ensureModPerm(productsMod.id, read.id, AccessScope.STORE);
-    const mpInventoryReadStore = await ensureModPerm(inventoryMod.id, read.id, AccessScope.STORE);
+    const mpMenuReadStore = await ensureModPerm(menuMod.id, read.id, AccessScope.ALL);
+    const mpProductsReadStore = await ensureModPerm(productsMod.id, read.id, AccessScope.ALL);
+    const mpInventoryReadStore = await ensureModPerm(inventoryMod.id, read.id, AccessScope.ALL);
 
-    const mpOrderQueueReadStore = await ensureModPerm(orderQueueMod.id, read.id, AccessScope.STORE);
-    const mpOrderQueueUpdateStore = await ensureModPerm(orderQueueMod.id, update.id, AccessScope.STORE);
+    const mpOrderQueueReadStore = await ensureModPerm(orderQueueMod.id, read.id, AccessScope.ALL);
+    const mpOrderQueueUpdateStore = await ensureModPerm(orderQueueMod.id, update.id, AccessScope.ALL);
 
     // Customers should only access their OWN data (AccessScope.OWN)
     const mpOrdersCreateOwn = await ensureModPerm(ordersMod.id, create.id, AccessScope.OWN);

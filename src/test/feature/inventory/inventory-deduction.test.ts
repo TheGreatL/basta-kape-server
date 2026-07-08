@@ -357,7 +357,7 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
         it('should place an order without immediately deducting stock (PENDING status)', async () => {
             const orderPayload = {
                 orderType: 'TAKE_OUT',
-                orderSource: 'MOBILE_APP',
+                orderSource: 'WEBSITE',
                 customerId: testCustomerId,
                 customerName: 'Test Buyer',
                 items: [
@@ -457,7 +457,7 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
             // Reorder point is 50. So it should become CRITICAL!
             const orderPayload2 = {
                 orderType: 'TAKE_OUT',
-                orderSource: 'MOBILE_APP',
+                orderSource: 'WEBSITE',
                 customerId: testCustomerId,
                 customerName: 'Test Buyer 2',
                 items: [
@@ -490,7 +490,7 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
             // Status should become OUT_OF_STOCK.
             const orderPayload3 = {
                 orderType: 'TAKE_OUT',
-                orderSource: 'MOBILE_APP',
+                orderSource: 'WEBSITE',
                 customerId: testCustomerId,
                 customerName: 'Test Buyer 3',
                 items: [

@@ -14,9 +14,7 @@ enum OrderType {
 
 enum OrderSource {
   POS
-  MOBILE_APP
   WEBSITE
-  DELIVERY_PARTNER
 }
 
 enum PaymentMethod {

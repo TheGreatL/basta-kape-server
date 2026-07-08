@@ -7,7 +7,7 @@ export type TOrderStatus = z.infer<typeof OrderStatusEnum>;
 export const OrderTypeEnum = z.enum(['DINE_IN', 'TAKE_OUT', 'DELIVERY']);
 export type TOrderType = z.infer<typeof OrderTypeEnum>;
 
-export const OrderSourceEnum = z.enum(['POS', 'MOBILE_APP', 'WEBSITE', 'DELIVERY_PARTNER']);
+export const OrderSourceEnum = z.enum(['POS', 'WEBSITE']);
 export type TOrderSource = z.infer<typeof OrderSourceEnum>;
 
 export const CreateOrderItemSchema = z.object({
@@ -41,7 +41,7 @@ export const CreateOrderSchema = z
                     path: ['gcashReferenceNumber']
                 });
             }
-            if (data.orderSource === 'WEBSITE' || data.orderSource === 'MOBILE_APP') {
+            if (data.orderSource === 'WEBSITE') {
                 if (!data.paymentProofPhoto || !data.paymentProofPhoto.trim()) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
