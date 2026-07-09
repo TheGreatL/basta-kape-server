@@ -17,7 +17,6 @@ type TCreateOrderRepoData = {
     netTotal: number;
     customerId?: string | null;
     customerName?: string | null;
-    cashierSessionId?: string | null;
     actorId: string;
     items: {
         productVariantId: string;
@@ -69,7 +68,6 @@ export class OrderRepository extends BaseRepository {
                     netTotal: data.netTotal,
                     customerId: data.customerId ?? null,
                     customerName: data.customerName ?? null,
-                    cashierSessionId: data.cashierSessionId ?? null,
                     items: {
                         create: data.items.map((item) => ({
                             productVariantId: item.productVariantId,

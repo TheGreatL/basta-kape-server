@@ -109,7 +109,6 @@ export const OrderResponseSchema = z.object({
     netTotal: z.number(),
     customerId: z.string().nullable(),
     customerName: z.string().nullable(),
-    cashierSessionId: z.string().nullable(),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     items: z.array(OrderItemResponseSchema).optional(),

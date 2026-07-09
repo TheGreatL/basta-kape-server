@@ -49,7 +49,6 @@ describe('Order Feature CRUD', () => {
     let testTypeId: string;
     let testProductId: string;
     let testVariantId: string;
-    let activeShiftId: string;
     let createdOrderId: string;
     let testModifierGroupId: string;
     let testModifierOptionId: string;
@@ -165,15 +164,6 @@ describe('Order Feature CRUD', () => {
                 vatRate: 12.0
             }
         });
-
-        // 5. Open a Register Shift for user
-        const shift = await prisma.registerShift.create({
-            data: {
-                cashierId: 'test-order-user-id',
-                startBalance: 1000
-            }
-        });
-        activeShiftId = shift.id;
     });
 
     afterAll(async () => {
@@ -220,7 +210,7 @@ describe('Order Feature CRUD', () => {
                 }
             }
         });
-        await prisma.registerShift.deleteMany({ where: { cashierId: 'test-order-user-id' } });
+
         await prisma.productVariant.deleteMany({ where: { createdById: 'test-order-user-id' } });
         await prisma.product.deleteMany({ where: { createdById: 'test-order-user-id' } });
         await prisma.productCategory.deleteMany({ where: { createdById: 'test-order-user-id' } });
@@ -252,7 +242,6 @@ describe('Order Feature CRUD', () => {
             expect(res.body).toHaveProperty('id');
             expect(res.body.queueNumber).not.toBeNull();
             expect(res.body.status).toBe('PENDING');
-            expect(res.body.cashierSessionId).toBe(activeShiftId);
 
             // Price verification
             // subtotal: 150.00 * 2 = 300.00

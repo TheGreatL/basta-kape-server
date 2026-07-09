@@ -48,7 +48,6 @@ describe('Discount Feature Integration Tests', () => {
     let testTypeId: string;
     let testProductId: string;
     let testVariantId: string;
-    let activeShiftId: string;
 
     beforeAll(async () => {
         prisma = new PrismaClient();
@@ -127,64 +126,24 @@ describe('Discount Feature Integration Tests', () => {
             }
         });
         testVariantId = variant.id;
-
-        // 4. Create active register shift
-        const shift = await prisma.registerShift.create({
-            data: {
-                cashierId: 'test-discount-user-id',
-                startBalance: 5000.0
-            }
-        });
-        activeShiftId = shift.id;
     });
 
     afterAll(async () => {
         // Cleanup test data
         await prisma.orderDiscount.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: 'test-discount-user-id'
-                    }
-                }
-            }
+            where: { order: { items: { some: { productVariantId: testVariantId } } } }
         });
         await prisma.orderPayment.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: 'test-discount-user-id'
-                    }
-                }
-            }
+            where: { order: { items: { some: { productVariantId: testVariantId } } } }
         });
         await prisma.orderStatusHistory.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: 'test-discount-user-id'
-                    }
-                }
-            }
+            where: { order: { items: { some: { productVariantId: testVariantId } } } }
         });
         await prisma.orderItem.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: 'test-discount-user-id'
-                    }
-                }
-            }
+            where: { productVariantId: testVariantId }
         });
         await prisma.order.deleteMany({
-            where: {
-                cashierSession: {
-                    cashierId: 'test-discount-user-id'
-                }
-            }
-        });
-        await prisma.registerShift.deleteMany({
-            where: { cashierId: 'test-discount-user-id' }
+            where: { items: { some: { productVariantId: testVariantId } } }
         });
         if (testProductId) {
             await prisma.productVariant.deleteMany({
@@ -230,7 +189,6 @@ describe('Discount Feature Integration Tests', () => {
                 subtotal: 100.0,
                 taxAmount: 10.71,
                 netTotal: 100.0,
-                cashierSessionId: orderSource === 'POS' ? activeShiftId : null,
                 status,
                 items: {
                     create: {
@@ -371,7 +329,6 @@ describe('Discount Feature Integration Tests', () => {
                     subtotal: 112.0,
                     taxAmount: 12.0,
                     netTotal: 112.0,
-                    cashierSessionId: activeShiftId,
                     status: 'PENDING',
                     items: {
                         create: {

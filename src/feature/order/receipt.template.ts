@@ -28,11 +28,6 @@ export function generateTextReceipt(
                     discount: true;
                 };
             };
-            cashierSession: {
-                include: {
-                    cashier: true;
-                };
-            };
         };
     }>,
     storeSetting: StoreSetting
@@ -68,12 +63,7 @@ export function generateTextReceipt(
     );
     lines.push(leftRight(`Receipt ID: ${order.id.slice(0, 8).toUpperCase()}`, `Type: ${order.orderType}`));
     lines.push(leftRight(`Src: ${order.orderSource}`, ''));
-    if (order.cashierSession?.cashier) {
-        const cashierName =
-            `${order.cashierSession.cashier.firstName || ''} ${order.cashierSession.cashier.lastName || ''}`.trim() ||
-            order.cashierSession.cashier.username;
-        lines.push(leftRight(`Server: ${cashierName}`, ''));
-    }
+
     lines.push(divider);
 
     // Items list
@@ -167,19 +157,11 @@ export function generateHtmlReceipt(
                     discount: true;
                 };
             };
-            cashierSession: {
-                include: {
-                    cashier: true;
-                };
-            };
         };
     }>,
     storeSetting: StoreSetting
 ): string {
-    const cashierName = order.cashierSession?.cashier
-        ? `${order.cashierSession.cashier.firstName || ''} ${order.cashierSession.cashier.lastName || ''}`.trim() ||
-          order.cashierSession.cashier.username
-        : 'System';
+    const cashierName = 'System';
 
     const dateStr = new Date(order.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -602,11 +584,6 @@ export async function generatePdfReceipt(
                     discount: true;
                 };
             };
-            cashierSession: {
-                include: {
-                    cashier: true;
-                };
-            };
         };
     }>,
     storeSetting: StoreSetting
@@ -703,15 +680,6 @@ export async function generatePdfReceipt(
         doc.text('Dining Type:', 15, y);
         doc.text(`${order.orderType} (${order.orderSource})`, 75, y, { align: 'right', width: 136 });
         y += 11;
-
-        if (order.cashierSession?.cashier) {
-            const cashierName =
-                `${order.cashierSession.cashier.firstName || ''} ${order.cashierSession.cashier.lastName || ''}`.trim() ||
-                order.cashierSession.cashier.username;
-            doc.text('Server:', 15, y);
-            doc.text(cashierName, 75, y, { align: 'right', width: 136 });
-            y += 11;
-        }
 
         y += 4;
         drawDashedLine(y);

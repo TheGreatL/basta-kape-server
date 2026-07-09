@@ -51,7 +51,6 @@ describe('Void Feature Integration Tests', () => {
     let testTypeId: string;
     let testProductId: string;
     let testVariantId: string;
-    let activeShiftId: string;
 
     beforeAll(async () => {
         prisma = new PrismaClient();
@@ -74,41 +73,16 @@ describe('Void Feature Integration Tests', () => {
 
         // 1. Clean up potential previous test data
         await prisma.orderVoidLog.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                    }
-                }
-            }
+            where: { order: { queueNumber: '#V01' } }
         });
         await prisma.orderStatusHistory.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                    }
-                }
-            }
+            where: { order: { queueNumber: '#V01' } }
         });
         await prisma.orderItem.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                    }
-                }
-            }
+            where: { order: { queueNumber: '#V01' } }
         });
         await prisma.order.deleteMany({
-            where: {
-                cashierSession: {
-                    cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                }
-            }
-        });
-        await prisma.registerShift.deleteMany({
-            where: { cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] } }
+            where: { queueNumber: '#V01' }
         });
         await prisma.userRole.deleteMany({
             where: { userId: { in: ['test-void-admin-id', 'test-void-cashier-id'] } }
@@ -267,55 +241,21 @@ describe('Void Feature Integration Tests', () => {
             }
         });
         testVariantId = variant.id;
-
-        // 4. Create Register Shift
-        const shift = await prisma.registerShift.create({
-            data: {
-                cashierId: 'test-void-admin-id',
-                startBalance: 5000.0
-            }
-        });
-        activeShiftId = shift.id;
     });
 
     afterAll(async () => {
         // Cleanup all records created by tests
         await prisma.orderVoidLog.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                    }
-                }
-            }
+            where: { order: { queueNumber: '#V01' } }
         });
         await prisma.orderStatusHistory.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                    }
-                }
-            }
+            where: { order: { queueNumber: '#V01' } }
         });
         await prisma.orderItem.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                    }
-                }
-            }
+            where: { order: { queueNumber: '#V01' } }
         });
         await prisma.order.deleteMany({
-            where: {
-                cashierSession: {
-                    cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] }
-                }
-            }
-        });
-        await prisma.registerShift.deleteMany({
-            where: { cashierId: { in: ['test-void-admin-id', 'test-void-cashier-id'] } }
+            where: { queueNumber: '#V01' }
         });
         if (testProductId) {
             await prisma.productVariant.deleteMany({
@@ -356,7 +296,6 @@ describe('Void Feature Integration Tests', () => {
                 subtotal: 150.0,
                 taxAmount: 16.07,
                 netTotal: 150.0,
-                cashierSessionId: activeShiftId,
                 status,
                 items: {
                     create: {

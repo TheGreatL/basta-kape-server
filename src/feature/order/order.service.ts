@@ -1,6 +1,5 @@
 import { OrderRepository } from './order.repository';
 import { StoreSettingsService } from '@/feature/store-settings/store-settings.service';
-import { RegisterShiftService } from '@/feature/register-shift/register-shift.service';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { prisma } from '@/lib/prisma';
 import { NotFoundException, BadRequestException } from '@/exceptions';
@@ -11,20 +10,17 @@ import { generateHtmlReceipt, generateTextReceipt, generatePdfReceipt } from './
 type OrderServiceConstructor = {
     orderRepository?: OrderRepository;
     storeSettingsService?: StoreSettingsService;
-    registerShiftService?: RegisterShiftService;
     activityLogService?: ActivityLogService;
 };
 
 export class OrderService {
     private repository: OrderRepository;
     private storeSettingsService: StoreSettingsService;
-    private registerShiftService: RegisterShiftService;
     private activityLogService: ActivityLogService;
 
     constructor(deps: OrderServiceConstructor = {}) {
         this.repository = deps.orderRepository ?? new OrderRepository();
         this.storeSettingsService = deps.storeSettingsService ?? new StoreSettingsService();
-        this.registerShiftService = deps.registerShiftService ?? new RegisterShiftService();
         this.activityLogService = deps.activityLogService ?? new ActivityLogService();
     }
 
@@ -41,18 +37,6 @@ export class OrderService {
     }
 
     async createOrder(data: TCreateOrder, actorId: string) {
-        let cashierSessionId: string | null = null;
-
-        // POS orders require an active cashier session/shift
-        if (data.orderSource === 'POS') {
-            try {
-                const activeShift = await this.registerShiftService.getActiveShift(actorId);
-                cashierSessionId = activeShift.id;
-            } catch {
-                throw new BadRequestException('An active register shift is required to place POS orders. Please open a shift first.');
-            }
-        }
-
         // Fetch active settings to get VAT rate
         const settings = await this.storeSettingsService.getActiveSettings();
         const vatRate = settings?.vatRate ?? 12.0;
@@ -196,7 +180,6 @@ export class OrderService {
             netTotal,
             customerId: data.customerId,
             customerName: data.customerName,
-            cashierSessionId,
             actorId,
             items: itemDetails,
             paymentDetails

@@ -160,19 +160,7 @@ export class DashboardService {
         // POINT OF SALE / ACTIVE REGISTER SHIFT
         const canReadPOS = hasPermission(appModules.POINT_OF_SALE, appPermissions.READ);
         if (canReadPOS) {
-            const activeShift = await prisma.registerShift.findFirst({
-                where: {
-                    cashierId: userId,
-                    closedAt: null
-                },
-                select: {
-                    id: true,
-                    openedAt: true,
-                    startBalance: true
-                }
-            });
-
-            summary.activeShift = activeShift || null;
+            summary.activeShift = null;
         }
 
         return summary;

@@ -1,5 +1,4 @@
 import { PaymentRepository } from './payment.repository';
-import { RegisterShiftService } from '@/feature/register-shift/register-shift.service';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, BadRequestException, ConflictException } from '@/exceptions';
 import type { TCreatePayment } from './payment.types';
@@ -8,18 +7,15 @@ import { prisma } from '@/lib/prisma';
 
 type PaymentServiceConstructor = {
     paymentRepository?: PaymentRepository;
-    registerShiftService?: RegisterShiftService;
     activityLogService?: ActivityLogService;
 };
 
 export class PaymentService {
     private repository: PaymentRepository;
-    private registerShiftService: RegisterShiftService;
     private activityLogService: ActivityLogService;
 
     constructor(deps: PaymentServiceConstructor = {}) {
         this.repository = deps.paymentRepository ?? new PaymentRepository();
-        this.registerShiftService = deps.registerShiftService ?? new RegisterShiftService();
         this.activityLogService = deps.activityLogService ?? new ActivityLogService();
     }
 
@@ -50,15 +46,6 @@ export class PaymentService {
         const existingPaidPayment = await this.repository.findPaidPaymentByOrderId(orderId);
         if (existingPaidPayment) {
             throw new ConflictException('Order has already been paid.');
-        }
-
-        // 4. POS orders require an active cashier shift
-        if (order.orderSource === 'POS') {
-            try {
-                await this.registerShiftService.getActiveShift(actorId);
-            } catch {
-                throw new BadRequestException('An active register shift is required to process POS payments. Please open a shift first.');
-            }
         }
 
         let amountTendered: number | null = null;

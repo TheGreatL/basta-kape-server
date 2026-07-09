@@ -31,21 +31,7 @@ enum PaymentStatus {
   REFUNDED
 }
 
-// 1. RegisterShift: Cashier drawer sessions
-model RegisterShift {
-  id            String    @id @default(uuid())
-  cashierId     String
-  cashier       User      @relation(fields: [cashierId], references: [id])
-  openedAt      DateTime  @default(now())
-  closedAt      DateTime?
-  startBalance  Float     @default(0)
-  endBalance    Float?
-  actualBalance Float?
-  notes         String?
-  orders        Order[]
 
-  @@index([cashierId])
-}
 
 // 2. Order: Master order entity
 model Order {
@@ -68,9 +54,7 @@ model Order {
   customer     Customer? @relation(fields: [customerId], references: [id])
   customerName String? // Custom walk-in customer name
 
-  // Cashier shift assignment
-  cashierSessionId String?
-  cashierSession   RegisterShift? @relation(fields: [cashierSessionId], references: [id])
+
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
@@ -87,7 +71,7 @@ model Order {
   @@index([orderSource])
   @@index([createdAt])
   @@index([customerId])
-  @@index([cashierSessionId])
+
   @@index([deletedAt])
 }
 

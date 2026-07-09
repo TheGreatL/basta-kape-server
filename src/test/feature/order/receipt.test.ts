@@ -49,7 +49,6 @@ describe('Order Receipt Integration Tests', () => {
     let testVariantId: string;
     let testModifierGroupId: string;
     let testModifierOptionId: string;
-    let activeShiftId: string;
     let testOrderId: string;
     let testDiscountId: string;
     let originalStoreSettings: StoreSetting[] = [];
@@ -158,15 +157,6 @@ describe('Order Receipt Integration Tests', () => {
             }
         });
 
-        // 6. Open register shift
-        const shift = await prisma.registerShift.create({
-            data: {
-                cashierId: 'test-receipt-user-id',
-                startBalance: 1000
-            }
-        });
-        activeShiftId = shift.id;
-
         // 7. Seed order discount configuration
         const discount = await prisma.discount.create({
             data: {
@@ -188,7 +178,6 @@ describe('Order Receipt Integration Tests', () => {
                 taxAmount: 14.46, // inclusive VAT of (150 - 15) = 135 * 12 / 112 = 14.46
                 discountAmount: 15.0, // 10% of 150
                 netTotal: 135.0,
-                cashierSessionId: activeShiftId,
                 status: 'COMPLETED',
                 items: {
                     create: {
@@ -241,7 +230,7 @@ describe('Order Receipt Integration Tests', () => {
         });
         await prisma.orderItem.deleteMany({ where: { orderId: testOrderId } });
         await prisma.order.deleteMany({ where: { id: testOrderId } });
-        await prisma.registerShift.deleteMany({ where: { id: activeShiftId } });
+
         await prisma.modifierOption.deleteMany({ where: { modifierGroupId: testModifierGroupId } });
         await prisma.modifierGroup.deleteMany({ where: { id: testModifierGroupId } });
         await prisma.productVariant.deleteMany({ where: { id: testVariantId } });

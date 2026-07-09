@@ -106,7 +106,7 @@ model User {
   createdInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentCreatedBy")
   updatedInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentUpdatedBy")
 
-  registerShifts        RegisterShift[]
+
   statusChanges         OrderStatusHistory[]
   voidedOrders          OrderVoidLog[]
   createdPurchaseOrders PurchaseOrder[]      @relation("PurchaseOrderCreatedBy")

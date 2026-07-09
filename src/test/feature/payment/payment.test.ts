@@ -48,7 +48,6 @@ describe('Payment Feature Integration Tests', () => {
     let testTypeId: string;
     let testProductId: string;
     let testVariantId: string;
-    let activeShiftId: string;
 
     beforeAll(async () => {
         prisma = new PrismaClient();
@@ -126,55 +125,21 @@ describe('Payment Feature Integration Tests', () => {
             }
         });
         testVariantId = variant.id;
-
-        // 4. Create active register shift
-        const shift = await prisma.registerShift.create({
-            data: {
-                cashierId: 'test-payment-user-id',
-                startBalance: 5000.0
-            }
-        });
-        activeShiftId = shift.id;
     });
 
     afterAll(async () => {
         // Cleanup test data
         await prisma.orderPayment.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: 'test-payment-user-id'
-                    }
-                }
-            }
+            where: { order: { items: { some: { productVariantId: testVariantId } } } }
         });
         await prisma.orderStatusHistory.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: 'test-payment-user-id'
-                    }
-                }
-            }
+            where: { order: { items: { some: { productVariantId: testVariantId } } } }
         });
         await prisma.orderItem.deleteMany({
-            where: {
-                order: {
-                    cashierSession: {
-                        cashierId: 'test-payment-user-id'
-                    }
-                }
-            }
+            where: { productVariantId: testVariantId }
         });
         await prisma.order.deleteMany({
-            where: {
-                cashierSession: {
-                    cashierId: 'test-payment-user-id'
-                }
-            }
-        });
-        await prisma.registerShift.deleteMany({
-            where: { cashierId: 'test-payment-user-id' }
+            where: { items: { some: { productVariantId: testVariantId } } }
         });
         if (testProductId) {
             await prisma.productVariant.deleteMany({
@@ -212,7 +177,6 @@ describe('Payment Feature Integration Tests', () => {
                 subtotal: 120.0,
                 taxAmount: 12.86,
                 netTotal: 120.0,
-                cashierSessionId: orderSource === 'POS' ? activeShiftId : null,
                 status,
                 items: {
                     create: {
@@ -354,34 +318,6 @@ describe('Payment Feature Integration Tests', () => {
             const resCompleted = await request(app).post(`/orders/${completedOrder.id}/payments`).send(payload);
             expect(resCompleted.status).toBe(400);
             expect(resCompleted.body.error).toBe('Cannot process payment for a completed order.');
-        });
-
-        it('should fail if POS order and cashier has no active register shift', async () => {
-            // Close active shift
-            await prisma.registerShift.update({
-                where: { id: activeShiftId },
-                data: { closedAt: new Date() }
-            });
-
-            const order = await createTestOrder('POS', 'PENDING');
-            const payload = {
-                paymentMethod: 'CASH',
-                amountTendered: 200.0
-            };
-
-            const res = await request(app).post(`/orders/${order.id}/payments`).send(payload);
-
-            expect(res.status).toBe(400);
-            expect(res.body.error).toContain('active register shift');
-
-            // Re-open register shift for subsequent actions/cleanup
-            const shift = await prisma.registerShift.create({
-                data: {
-                    cashierId: 'test-payment-user-id',
-                    startBalance: 5000.0
-                }
-            });
-            activeShiftId = shift.id;
         });
     });
 
