@@ -554,7 +554,6 @@ export class ReportRepository extends BaseRepository {
                 discountAmount: true,
                 netTotal: true,
                 payments: {
-                    where: { paymentStatus: 'PAID' },
                     select: {
                         paymentMethod: true,
                         amount: true

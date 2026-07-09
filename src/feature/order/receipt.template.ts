@@ -105,7 +105,7 @@ export function generateTextReceipt(
     lines.push(divider);
 
     // Payments
-    const paidPayments = order.payments.filter((p: OrderPayment) => p.paymentStatus === PaymentStatus.PAID);
+    const paidPayments = order.paymentStatus === PaymentStatus.PAID ? order.payments : [];
     if (paidPayments.length > 0) {
         lines.push('PAYMENTS:');
         for (const payment of paidPayments) {
@@ -258,8 +258,7 @@ export function generateHtmlReceipt(
         )
         .join('');
 
-    const paymentsHtml = order.payments
-        .filter((p: OrderPayment) => p.paymentStatus === PaymentStatus.PAID)
+    const paymentsHtml = (order.paymentStatus === PaymentStatus.PAID ? order.payments : [])
         .map((payment: OrderPayment) => {
             let details = '';
             if (payment.paymentMethod === PaymentMethod.CASH) {
@@ -610,7 +609,7 @@ export async function generatePdfReceipt(
             ) => acc + (item.modifiers?.length || 0),
             0
         );
-        const paymentsCount = order.payments.filter((p: OrderPayment) => p.paymentStatus === PaymentStatus.PAID).length;
+        const paymentsCount = order.paymentStatus === PaymentStatus.PAID ? order.payments.length : 0;
         const discountsCount = order.discounts.length;
 
         // Custom point height computation for continuous thermal paper size mapping
@@ -751,7 +750,7 @@ export async function generatePdfReceipt(
         doc.font('Helvetica-Bold').fontSize(10).text('NET TOTAL:', 15, y);
         doc.text(`PHP ${order.netTotal.toFixed(2)}`, 100, y, { align: 'right', width: 111 });
         y += 14;
-        const paidPayments = order.payments.filter((p: OrderPayment) => p.paymentStatus === PaymentStatus.PAID);
+        const paidPayments = order.paymentStatus === PaymentStatus.PAID ? order.payments : [];
         // Payments auditing
         if (paidPayments.length > 0) {
             y += 4;

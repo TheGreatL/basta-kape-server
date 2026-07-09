@@ -10,19 +10,27 @@ export class PaymentRepository extends BaseRepository {
     }
 
     async findPaidPaymentByOrderId(orderId: string) {
-        return prisma.orderPayment.findFirst({
-            where: {
-                orderId,
-                paymentStatus: PaymentStatus.PAID
-            }
+        const order = await prisma.order.findUnique({
+            where: { id: orderId }
         });
+        if (order?.paymentStatus === PaymentStatus.PAID) {
+            return prisma.orderPayment.findFirst({
+                where: { orderId }
+            });
+        }
+        return null;
     }
 
     async findPaymentsByOrderId(orderId: string) {
-        return prisma.orderPayment.findMany({
+        const payments = await prisma.orderPayment.findMany({
             where: { orderId },
+            include: { order: { select: { paymentStatus: true } } },
             orderBy: { createdAt: 'desc' }
         });
+        return payments.map((p) => ({
+            ...p,
+            paymentStatus: p.order.paymentStatus
+        }));
     }
 
     async createPayment(
@@ -43,12 +51,19 @@ export class PaymentRepository extends BaseRepository {
                 data: {
                     orderId,
                     paymentMethod: data.paymentMethod,
-                    paymentStatus: data.paymentStatus,
                     amount: data.amount,
                     amountTendered: data.amountTendered ?? null,
                     amountChange: data.amountChange ?? null,
                     gcashReferenceNumber: data.gcashReferenceNumber ?? null,
                     paymentProofPhoto: data.paymentProofPhoto ?? null
+                }
+            });
+
+            await tx.order.update({
+                where: { id: orderId },
+                data: {
+                    paymentStatus: data.paymentStatus,
+                    totalPaid: { increment: data.amount }
                 }
             });
 
@@ -73,7 +88,10 @@ export class PaymentRepository extends BaseRepository {
                 });
             }
 
-            return payment;
+            return {
+                ...payment,
+                paymentStatus: data.paymentStatus
+            };
         });
     }
 
@@ -96,7 +114,9 @@ export class PaymentRepository extends BaseRepository {
         }
 
         if (params.paymentStatus) {
-            where.paymentStatus = params.paymentStatus;
+            where.order = {
+                paymentStatus: params.paymentStatus
+            };
         }
 
         if (params.search) {
@@ -133,7 +153,8 @@ export class PaymentRepository extends BaseRepository {
                             status: true,
                             orderType: true,
                             orderSource: true,
-                            cashierSessionId: true
+                            cashierSessionId: true,
+                            paymentStatus: true
                         }
                     }
                 }
@@ -143,8 +164,13 @@ export class PaymentRepository extends BaseRepository {
 
         const pageCount = Math.ceil(total / limit) || 1;
 
+        const mappedData = data.map((p) => ({
+            ...p,
+            paymentStatus: p.order.paymentStatus
+        }));
+
         return {
-            data,
+            data: mappedData,
             meta: {
                 total,
                 page,
@@ -161,11 +187,18 @@ export class PaymentRepository extends BaseRepository {
                 where: { id: paymentId },
                 data: {
                     paymentProofPhoto: data.paymentProofPhoto,
-                    gcashReferenceNumber: data.gcashReferenceNumber,
-                    paymentStatus: PaymentStatus.PAID
+                    gcashReferenceNumber: data.gcashReferenceNumber
                 },
                 include: {
                     order: true
+                }
+            });
+
+            await tx.order.update({
+                where: { id: payment.orderId },
+                data: {
+                    paymentStatus: PaymentStatus.PAID,
+                    totalPaid: { increment: payment.amount }
                 }
             });
 
@@ -185,7 +218,10 @@ export class PaymentRepository extends BaseRepository {
                 });
             }
 
-            return payment;
+            return {
+                ...payment,
+                paymentStatus: PaymentStatus.PAID
+            };
         });
     }
 }

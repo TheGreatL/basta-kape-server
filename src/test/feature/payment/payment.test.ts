@@ -281,11 +281,14 @@ describe('Payment Feature Integration Tests', () => {
 
         it('should fail if order has already been paid', async () => {
             const order = await createTestOrder();
+            await prisma.order.update({
+                where: { id: order.id },
+                data: { paymentStatus: 'PAID', totalPaid: 120.0 }
+            });
             await prisma.orderPayment.create({
                 data: {
                     orderId: order.id,
                     paymentMethod: 'CASH',
-                    paymentStatus: 'PAID',
                     amount: 120.0
                 }
             });
@@ -323,11 +326,14 @@ describe('Payment Feature Integration Tests', () => {
     describe('GET /orders/:orderId/payments', () => {
         it('should retrieve list of payments for an order', async () => {
             const order = await createTestOrder();
+            await prisma.order.update({
+                where: { id: order.id },
+                data: { paymentStatus: 'PAID', totalPaid: 120.0 }
+            });
             await prisma.orderPayment.create({
                 data: {
                     orderId: order.id,
                     paymentMethod: 'CASH',
-                    paymentStatus: 'PAID',
                     amount: 120.0,
                     amountTendered: 150.0,
                     amountChange: 30.0

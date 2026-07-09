@@ -84,7 +84,7 @@ export class DiscountService {
             throw new BadRequestException('Discounts can only be applied to pending orders.');
         }
 
-        const isPaid = order.payments.some((p) => p.paymentStatus === PaymentStatus.PAID);
+        const isPaid = order.paymentStatus === PaymentStatus.PAID;
         if (isPaid) {
             throw new ConflictException('Cannot apply discount to a paid order.');
         }
@@ -187,7 +187,7 @@ export class DiscountService {
             throw new BadRequestException('Discounts can only be removed from pending orders.');
         }
 
-        const isPaid = order.payments.some((p) => p.paymentStatus === PaymentStatus.PAID);
+        const isPaid = order.paymentStatus === PaymentStatus.PAID;
         if (isPaid) {
             throw new ConflictException('Cannot modify discounts on a paid order.');
         }

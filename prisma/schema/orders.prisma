@@ -31,8 +31,6 @@ enum PaymentStatus {
   REFUNDED
 }
 
-
-
 // 2. Order: Master order entity
 model Order {
   id          String      @id @default(uuid())
@@ -54,7 +52,8 @@ model Order {
   customer     Customer? @relation(fields: [customerId], references: [id])
   customerName String? // Custom walk-in customer name
 
-
+  paymentStatus PaymentStatus @default(PENDING)
+  totalPaid     Float         @default(0)
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
@@ -71,8 +70,8 @@ model Order {
   @@index([orderSource])
   @@index([createdAt])
   @@index([customerId])
-
   @@index([deletedAt])
+  @@index([paymentStatus])
 }
 
 // 3. OrderItem: Individual items in the order
@@ -156,7 +155,6 @@ model OrderPayment {
   orderId       String
   order         Order         @relation(fields: [orderId], references: [id])
   paymentMethod PaymentMethod @default(CASH)
-  paymentStatus PaymentStatus @default(PENDING)
   amount        Float         @default(0)
 
   // GCash / Digital verification
@@ -171,7 +169,6 @@ model OrderPayment {
   updatedAt DateTime @updatedAt
 
   @@index([orderId])
-  @@index([paymentStatus])
   @@index([createdAt])
 }
 

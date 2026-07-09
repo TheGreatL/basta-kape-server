@@ -412,8 +412,12 @@ describe('Discount Feature Integration Tests', () => {
 
         it('should fail if order is not pending or is already paid', async () => {
             const orderPaid = await createTestOrder();
+            await prisma.order.update({
+                where: { id: orderPaid.id },
+                data: { paymentStatus: 'PAID', totalPaid: 100.0 }
+            });
             await prisma.orderPayment.create({
-                data: { orderId: orderPaid.id, paymentMethod: 'CASH', paymentStatus: 'PAID', amount: 100.0 }
+                data: { orderId: orderPaid.id, paymentMethod: 'CASH', amount: 100.0 }
             });
 
             const orderCompleted = await createTestOrder('POS', 'COMPLETED');

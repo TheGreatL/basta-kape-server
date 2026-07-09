@@ -178,6 +178,8 @@ describe('Order Receipt Integration Tests', () => {
                 discountAmount: 15.0, // 10% of 150
                 netTotal: 135.0,
                 status: 'COMPLETED',
+                paymentStatus: 'PAID',
+                totalPaid: 135.0,
                 items: {
                     create: {
                         productVariantId: testVariantId,
@@ -195,7 +197,6 @@ describe('Order Receipt Integration Tests', () => {
                 payments: {
                     create: {
                         paymentMethod: 'CASH',
-                        paymentStatus: 'PAID',
                         amount: 135.0,
                         amountTendered: 150.0,
                         amountChange: 15.0

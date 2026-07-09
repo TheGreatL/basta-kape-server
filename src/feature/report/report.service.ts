@@ -322,9 +322,9 @@ export class ReportService {
             const paymentRows = (await prisma.orderPayment.groupBy({
                 by: ['paymentMethod'],
                 where: {
-                    paymentStatus: PaymentStatus.PAID,
                     order: {
-                        is: orderWhere
+                        paymentStatus: PaymentStatus.PAID,
+                        ...orderWhere
                     }
                 },
                 _count: { id: true },
@@ -360,11 +360,11 @@ export class ReportService {
                     netTotal: true,
                     createdAt: true,
                     status: true,
+                    paymentStatus: true,
                     payments: {
                         select: {
                             id: true,
                             paymentMethod: true,
-                            paymentStatus: true,
                             amount: true,
                             gcashReferenceNumber: true,
                             paymentProofPhoto: true
@@ -386,7 +386,7 @@ export class ReportService {
                     payments: order.payments.map((payment) => ({
                         id: payment.id,
                         paymentMethod: payment.paymentMethod,
-                        paymentStatus: payment.paymentStatus,
+                        paymentStatus: order.paymentStatus,
                         amount: payment.amount,
                         gcashReferenceNumber: payment.gcashReferenceNumber,
                         paymentProofPhoto: payment.paymentProofPhoto
@@ -408,9 +408,9 @@ export class ReportService {
         const paymentRows = (await prisma.orderPayment.groupBy({
             by: ['paymentMethod'],
             where: {
-                paymentStatus: PaymentStatus.PAID,
                 order: {
-                    is: orderWhere
+                    paymentStatus: PaymentStatus.PAID,
+                    ...orderWhere
                 }
             },
             _count: { id: true },
@@ -466,11 +466,11 @@ export class ReportService {
                 netTotal: true,
                 createdAt: true,
                 status: true,
+                paymentStatus: true,
                 payments: {
                     select: {
                         id: true,
                         paymentMethod: true,
-                        paymentStatus: true,
                         amount: true,
                         gcashReferenceNumber: true,
                         paymentProofPhoto: true
@@ -569,7 +569,7 @@ export class ReportService {
                 payments: order.payments.map((payment) => ({
                     id: payment.id,
                     paymentMethod: payment.paymentMethod,
-                    paymentStatus: payment.paymentStatus,
+                    paymentStatus: order.paymentStatus,
                     amount: payment.amount,
                     gcashReferenceNumber: payment.gcashReferenceNumber,
                     paymentProofPhoto: payment.paymentProofPhoto

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
-import { Prisma, OrderStatus, OrderType, OrderSource, PaymentMethod, PaymentStatus } from '@prisma/client';
+import { Prisma, OrderStatus, OrderType, OrderSource, PaymentMethod } from '@prisma/client';
 import type { TGetOrderListQuery } from './order.types';
 import type { IPaginatedResult } from '@/types/base.types';
 import { formatOrderWithReference, formatOrdersWithReference } from './order.utils';
@@ -109,7 +109,6 @@ export class OrderRepository extends BaseRepository {
                     data: {
                         orderId: order.id,
                         paymentMethod: data.paymentDetails.paymentMethod,
-                        paymentStatus: PaymentStatus.PENDING,
                         amount: data.netTotal,
                         gcashReferenceNumber: data.paymentDetails.gcashReferenceNumber ?? null,
                         paymentProofPhoto: data.paymentDetails.paymentProofPhoto ?? null
@@ -227,6 +226,7 @@ export class OrderRepository extends BaseRepository {
                 take,
                 orderBy: { createdAt: 'desc' },
                 include: {
+                    payments: true,
                     items: {
                         include: {
                             variant: {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OrderPaymentResponseSchema } from '@/feature/payment/payment.types';
+import { OrderPaymentResponseSchema, PaymentStatusEnum } from '@/feature/payment/payment.types';
 
 export const OrderStatusEnum = z.enum(['PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED']);
 export type TOrderStatus = z.infer<typeof OrderStatusEnum>;
@@ -109,6 +109,8 @@ export const OrderResponseSchema = z.object({
     netTotal: z.number(),
     customerId: z.string().nullable(),
     customerName: z.string().nullable(),
+    paymentStatus: PaymentStatusEnum,
+    totalPaid: z.number(),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     items: z.array(OrderItemResponseSchema).optional(),

@@ -89,13 +89,14 @@ describe('Report Feature', () => {
         const order = await prisma.order.create({
             data: {
                 status: 'COMPLETED',
+                paymentStatus: 'PAID',
+                totalPaid: 130.0,
                 subtotal: 150.0,
                 discountAmount: 20.0,
                 netTotal: 130.0,
                 payments: {
                     create: {
                         paymentMethod: 'CASH',
-                        paymentStatus: 'PAID',
                         amount: 130.0
                     }
                 }
