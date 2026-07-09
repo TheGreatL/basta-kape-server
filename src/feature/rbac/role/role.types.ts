@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { AccessScope } from '@prisma/client';
 import type { IPaginationParams } from '@/types/base.types';
 import { TDataStatus, dataStatusEnum } from '@/constant';
 
@@ -16,8 +15,7 @@ export const GetRoleListQuerySchema = z.object({
 });
 
 export const RolePermissionAssignSchema = z.object({
-    modulePermissionId: z.uuid(),
-    scope: z.enum(Object.values(AccessScope) as [string, ...string[]])
+    modulePermissionId: z.uuid()
 });
 
 export const CreateRoleSchema = z.object({
@@ -46,7 +44,6 @@ export const RoleDetailResponseSchema = RoleResponseSchema.extend({
         z.object({
             modulePermission: z.object({
                 id: z.string(),
-                accessScope: z.enum(Object.values(AccessScope) as [string, ...string[]]),
                 module: z.object({
                     id: z.string(),
                     name: z.string()
@@ -80,12 +77,7 @@ export const SelectionTreeResponseSchema = z.array(
             z.object({
                 permissionId: z.string(),
                 permissionName: z.string(),
-                modulePermissions: z.array(
-                    z.object({
-                        modulePermissionId: z.string(),
-                        scope: z.enum(Object.values(AccessScope) as [string, ...string[]])
-                    })
-                )
+                modulePermissionId: z.string()
             })
         )
     })

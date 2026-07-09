@@ -35,8 +35,7 @@ const formatUser = (user: Awaited<ReturnType<UserRepository['findUserByIdentifie
             name: ur.role.name,
             permissions: ur.role.rolePermissions.map((rp) => ({
                 module: rp.modulePermission.module.name,
-                permission: rp.modulePermission.permission.name,
-                scope: rp.modulePermission.accessScope
+                permission: rp.modulePermission.permission.name
             }))
         }))
     };

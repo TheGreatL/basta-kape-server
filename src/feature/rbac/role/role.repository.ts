@@ -25,7 +25,6 @@ const roleWithPermissionsSelect = {
             modulePermission: {
                 select: {
                     id: true,
-                    accessScope: true,
                     module: { select: { name: true, description: true } },
                     permission: { select: { name: true, description: true } }
                 }

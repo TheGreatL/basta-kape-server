@@ -14,20 +14,16 @@ model Permission {
   modulePermissions ModulePermission[]
 }
 
-enum AccessScope {
-  ALL
-  OWN
-}
-
 model ModulePermission {
   id              String           @id @default(uuid())
   moduleId        String
   permissionId    String
   module          Module           @relation(fields: [moduleId], references: [id])
   permission      Permission       @relation(fields: [permissionId], references: [id])
-  accessScope     AccessScope      @default(ALL)
   createdAt       DateTime         @default(now())
   rolePermissions RolePermission[]
+
+  @@unique([moduleId, permissionId])
 }
 
 model Role {

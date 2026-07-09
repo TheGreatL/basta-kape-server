@@ -33,7 +33,6 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
  * if the user holds a role that grants the requested `module` and `permission`.
  *
  * It accepts either a single module/permission combo or an array of alternative combos (acting as an OR check).
- * If granted, it attaches the `accessScope` (e.g., 'Global', 'Owned') to `req.rbacScope`.
  */
 export function requireAccess(
     requiredModule: TAppModule | { module: TAppModule; permission: TAppPermission }[],
@@ -59,7 +58,6 @@ export function requireAccess(
             }
 
             let hasPermission = false;
-            let grantedScope = null;
 
             // Normalize requirements to an array of { module, permission }
             const requirements = Array.isArray(requiredModule) ? requiredModule : [{ module: requiredModule, permission: requiredPermission! }];
@@ -73,7 +71,6 @@ export function requireAccess(
                     );
                     if (matchesRequirement) {
                         hasPermission = true;
-                        grantedScope = rp.modulePermission.accessScope;
                         break;
                     }
                 }
@@ -88,7 +85,6 @@ export function requireAccess(
                 throw new ForbiddenException(`You do not have permission to perform this action. Required: ${reqDetails}`);
             }
 
-            req.rbacScope = grantedScope as string;
             next();
         } catch (error) {
             next(error);

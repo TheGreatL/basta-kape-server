@@ -10,7 +10,6 @@ vi.mock('@/middleware/rbac.middleware', () => ({
             username: 'testpaymentuser',
             roles: ['Administrator']
         };
-        req.rbacScope = 'All';
         next();
     }),
     authenticate: vi.fn((req: Request, res: Response, next: NextFunction) => {

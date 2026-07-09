@@ -10,7 +10,6 @@ vi.mock('@/middleware/rbac.middleware', () => ({
             username: 'testvoidadmin',
             roles: ['Administrator']
         };
-        req.rbacScope = 'All';
         next();
     }),
     authenticate: vi.fn((req: Request, res: Response, next: NextFunction) => {
@@ -126,16 +125,14 @@ describe('Void Feature Integration Tests', () => {
         let posDeleteMP = await prisma.modulePermission.findFirst({
             where: {
                 moduleId: posModule.id,
-                permissionId: deletePermission.id,
-                accessScope: 'ALL'
+                permissionId: deletePermission.id
             }
         });
         if (!posDeleteMP) {
             posDeleteMP = await prisma.modulePermission.create({
                 data: {
                     moduleId: posModule.id,
-                    permissionId: deletePermission.id,
-                    accessScope: 'ALL'
+                    permissionId: deletePermission.id
                 }
             });
         }

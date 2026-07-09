@@ -399,8 +399,7 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
                                         modulePermission: {
                                             select: {
                                                 module: { select: { name: true } },
-                                                permission: { select: { name: true } },
-                                                accessScope: true
+                                                permission: { select: { name: true } }
                                             }
                                         }
                                     }
@@ -430,8 +429,7 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
                 name: ur.role.name,
                 permissions: ur.role.rolePermissions.map((rp) => ({
                     module: rp.modulePermission.module.name,
-                    permission: rp.modulePermission.permission.name,
-                    scope: rp.modulePermission.accessScope
+                    permission: rp.modulePermission.permission.name
                 }))
             }))
         });

@@ -9,7 +9,6 @@ vi.mock('@/middleware/rbac.middleware', () => ({
             username: 'testuser',
             roles: ['Administrator']
         };
-        req.rbacScope = 'All';
         next();
     })
 }));
@@ -23,7 +22,7 @@ vi.mock('@/feature/activity-log/activity-log.service', () => {
 });
 import request from 'supertest';
 import express from 'express';
-import { PrismaClient, AccessScope } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import roleRouter from '@/feature/rbac/role/role.route';
 import { HttpException } from '@/exceptions/http.exception';
 
@@ -68,11 +67,11 @@ describe('Role Feature (RBAC)', () => {
         }
 
         let mp = await prisma.modulePermission.findFirst({
-            where: { moduleId: module.id, permissionId: permission.id, accessScope: AccessScope.ALL }
+            where: { moduleId: module.id, permissionId: permission.id }
         });
         if (!mp) {
             mp = await prisma.modulePermission.create({
-                data: { moduleId: module.id, permissionId: permission.id, accessScope: AccessScope.ALL }
+                data: { moduleId: module.id, permissionId: permission.id }
             });
         }
         testModulePermissionId = mp.id;
@@ -95,7 +94,7 @@ describe('Role Feature (RBAC)', () => {
             if (res.body.length > 0) {
                 expect(res.body[0]).toHaveProperty('moduleId');
                 expect(res.body[0]).toHaveProperty('permissions');
-                expect(res.body[0].permissions[0]).toHaveProperty('modulePermissions');
+                expect(res.body[0].permissions[0]).toHaveProperty('modulePermissionId');
             }
         });
     });
@@ -107,8 +106,7 @@ describe('Role Feature (RBAC)', () => {
                 description: 'Generated during vitest',
                 permissions: [
                     {
-                        modulePermissionId: testModulePermissionId,
-                        scope: AccessScope.ALL
+                        modulePermissionId: testModulePermissionId
                     }
                 ]
             };

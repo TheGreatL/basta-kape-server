@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma';
-import { AccessScope } from '@prisma/client';
 
 export interface ISelectionTreeResponse {
     moduleId: string;
@@ -7,10 +6,7 @@ export interface ISelectionTreeResponse {
     permissions: {
         permissionId: string;
         permissionName: string;
-        modulePermissions: {
-            modulePermissionId: string;
-            scope: AccessScope;
-        }[];
+        modulePermissionId: string;
     }[];
 }
 
@@ -26,27 +22,22 @@ export class ModulePermissionRepository {
             prisma.permission.findMany({ orderBy: { name: 'asc' } })
         ]);
 
-        const scopes = Object.values(AccessScope);
-
         // Fetch all existing module permissions
         const existingMPs = await prisma.modulePermission.findMany();
-        const mpMap = new Map(existingMPs.map((mp) => [`${mp.moduleId}_${mp.permissionId}_${mp.accessScope}`, mp]));
+        const mpMap = new Map(existingMPs.map((mp) => [`${mp.moduleId}_${mp.permissionId}`, mp]));
 
         // We will build the tree and simultaneously collect any missing records
-        const missingMPsToCreate: { moduleId: string; permissionId: string; accessScope: AccessScope }[] = [];
+        const missingMPsToCreate: { moduleId: string; permissionId: string }[] = [];
 
         // Identify missing combinations
         for (const module of modules) {
             for (const permission of permissions) {
-                for (const scope of scopes) {
-                    const key = `${module.id}_${permission.id}_${scope}`;
-                    if (!mpMap.has(key)) {
-                        missingMPsToCreate.push({
-                            moduleId: module.id,
-                            permissionId: permission.id,
-                            accessScope: scope
-                        });
-                    }
+                const key = `${module.id}_${permission.id}`;
+                if (!mpMap.has(key)) {
+                    missingMPsToCreate.push({
+                        moduleId: module.id,
+                        permissionId: permission.id
+                    });
                 }
             }
         }
@@ -60,13 +51,12 @@ export class ModulePermissionRepository {
                 where: {
                     OR: missingMPsToCreate.map((m) => ({
                         moduleId: m.moduleId,
-                        permissionId: m.permissionId,
-                        accessScope: m.accessScope
+                        permissionId: m.permissionId
                     }))
                 }
             });
             for (const mp of newlyCreated) {
-                mpMap.set(`${mp.moduleId}_${mp.permissionId}_${mp.accessScope}`, mp);
+                mpMap.set(`${mp.moduleId}_${mp.permissionId}`, mp);
             }
         }
 
@@ -74,17 +64,14 @@ export class ModulePermissionRepository {
         return modules.map((module) => ({
             moduleId: module.id,
             moduleName: module.name,
-            permissions: permissions.map((permission) => ({
-                permissionId: permission.id,
-                permissionName: permission.name,
-                modulePermissions: scopes.map((scope) => {
-                    const mp = mpMap.get(`${module.id}_${permission.id}_${scope}`);
-                    return {
-                        modulePermissionId: mp!.id,
-                        scope: scope
-                    };
-                })
-            }))
+            permissions: permissions.map((permission) => {
+                const mp = mpMap.get(`${module.id}_${permission.id}`);
+                return {
+                    permissionId: permission.id,
+                    permissionName: permission.name,
+                    modulePermissionId: mp!.id
+                };
+            })
         }));
     }
 }

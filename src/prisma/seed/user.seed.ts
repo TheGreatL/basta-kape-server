@@ -1,4 +1,4 @@
-import { PrismaClient, AccessScope } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { appModules } from '../../constant';
 
@@ -121,14 +121,14 @@ export async function seedUsers(prisma: PrismaClient) {
     // ==========================================
     // 3. CREATE MODULE PERMISSIONS (Helper)
     // ==========================================
-    // Since there's no unique constraint on ModulePermission, we findFirst before create to remain idempotent
-    async function ensureModPerm(moduleId: string, permissionId: string, accessScope: AccessScope = AccessScope.ALL) {
+    // Since we now have a unique constraint on ModulePermission, we findFirst before create to remain idempotent
+    async function ensureModPerm(moduleId: string, permissionId: string) {
         let mp = await prisma.modulePermission.findFirst({
-            where: { moduleId, permissionId, accessScope }
+            where: { moduleId, permissionId }
         });
         if (!mp) {
             mp = await prisma.modulePermission.create({
-                data: { moduleId, permissionId, accessScope }
+                data: { moduleId, permissionId }
             });
         }
         return { modulePermissionId: mp.id };
@@ -136,7 +136,7 @@ export async function seedUsers(prisma: PrismaClient) {
 
     // Explicitly generate permission nodes we will use for roles:
 
-    // Admin/Owner need an array of ALL nodes (AccessScope.ALL)
+    // Admin/Owner need an array of ALL nodes
     const allModules = [
         usersMod,
         rolesMod,
@@ -160,40 +160,40 @@ export async function seedUsers(prisma: PrismaClient) {
     //@eslint
     const allSystemPerms: { modulePermissionId: string }[] = [];
     for (const m of allModules) {
-        allSystemPerms.push(await ensureModPerm(m.id, create.id, AccessScope.ALL));
-        allSystemPerms.push(await ensureModPerm(m.id, read.id, AccessScope.ALL));
-        allSystemPerms.push(await ensureModPerm(m.id, update.id, AccessScope.ALL));
-        allSystemPerms.push(await ensureModPerm(m.id, deletePerm.id, AccessScope.ALL));
+        allSystemPerms.push(await ensureModPerm(m.id, create.id));
+        allSystemPerms.push(await ensureModPerm(m.id, read.id));
+        allSystemPerms.push(await ensureModPerm(m.id, update.id));
+        allSystemPerms.push(await ensureModPerm(m.id, deletePerm.id));
     }
 
-    // Specific explicit nodes for limited roles (AccessScope.ALL for staff)
-    const mpPosCreateStore = await ensureModPerm(posMod.id, create.id, AccessScope.ALL);
-    const mpPosReadStore = await ensureModPerm(posMod.id, read.id, AccessScope.ALL);
-    const mpPosUpdateStore = await ensureModPerm(posMod.id, update.id, AccessScope.ALL);
-    const mpPosDeleteStore = await ensureModPerm(posMod.id, deletePerm.id, AccessScope.ALL);
+    // Specific explicit nodes for limited roles
+    const mpPosCreateStore = await ensureModPerm(posMod.id, create.id);
+    const mpPosReadStore = await ensureModPerm(posMod.id, read.id);
+    const mpPosUpdateStore = await ensureModPerm(posMod.id, update.id);
+    const mpPosDeleteStore = await ensureModPerm(posMod.id, deletePerm.id);
 
-    const mpOrdersCreateStore = await ensureModPerm(ordersMod.id, create.id, AccessScope.ALL);
-    const mpOrdersReadStore = await ensureModPerm(ordersMod.id, read.id, AccessScope.ALL);
-    const mpOrdersUpdateStore = await ensureModPerm(ordersMod.id, update.id, AccessScope.ALL);
+    const mpOrdersCreateStore = await ensureModPerm(ordersMod.id, create.id);
+    const mpOrdersReadStore = await ensureModPerm(ordersMod.id, read.id);
+    const mpOrdersUpdateStore = await ensureModPerm(ordersMod.id, update.id);
 
-    const mpTransactionHistoryReadStore = await ensureModPerm(transactionHistoryMod.id, read.id, AccessScope.ALL);
+    const mpTransactionHistoryReadStore = await ensureModPerm(transactionHistoryMod.id, read.id);
 
-    const mpSalesCreateStore = await ensureModPerm(salesMod.id, create.id, AccessScope.ALL);
-    const mpSalesReadStore = await ensureModPerm(salesMod.id, read.id, AccessScope.ALL);
+    const mpSalesCreateStore = await ensureModPerm(salesMod.id, create.id);
+    const mpSalesReadStore = await ensureModPerm(salesMod.id, read.id);
 
-    const mpMenuReadStore = await ensureModPerm(menuMod.id, read.id, AccessScope.ALL);
-    const mpProductsReadStore = await ensureModPerm(productsMod.id, read.id, AccessScope.ALL);
-    const mpInventoryReadStore = await ensureModPerm(inventoryMod.id, read.id, AccessScope.ALL);
+    const mpMenuReadStore = await ensureModPerm(menuMod.id, read.id);
+    const mpProductsReadStore = await ensureModPerm(productsMod.id, read.id);
+    const mpInventoryReadStore = await ensureModPerm(inventoryMod.id, read.id);
 
-    const mpOrderQueueReadStore = await ensureModPerm(orderQueueMod.id, read.id, AccessScope.ALL);
-    const mpOrderQueueUpdateStore = await ensureModPerm(orderQueueMod.id, update.id, AccessScope.ALL);
+    const mpOrderQueueReadStore = await ensureModPerm(orderQueueMod.id, read.id);
+    const mpOrderQueueUpdateStore = await ensureModPerm(orderQueueMod.id, update.id);
 
-    // Customers should only access their OWN data (AccessScope.OWN)
-    const mpOrdersCreateOwn = await ensureModPerm(ordersMod.id, create.id, AccessScope.OWN);
-    const mpOrdersReadOwn = await ensureModPerm(ordersMod.id, read.id, AccessScope.OWN);
-    const mpCustomersReadOwn = await ensureModPerm(customersMod.id, read.id, AccessScope.OWN);
-    const mpCustomersUpdateOwn = await ensureModPerm(customersMod.id, update.id, AccessScope.OWN);
-    const mpMenuReadALL = await ensureModPerm(menuMod.id, read.id, AccessScope.ALL); // Menu is public
+    // Customers should only access their own data
+    const mpOrdersCreateOwn = await ensureModPerm(ordersMod.id, create.id);
+    const mpOrdersReadOwn = await ensureModPerm(ordersMod.id, read.id);
+    const mpCustomersReadOwn = await ensureModPerm(customersMod.id, read.id);
+    const mpCustomersUpdateOwn = await ensureModPerm(customersMod.id, update.id);
+    const mpMenuReadALL = await ensureModPerm(menuMod.id, read.id); // Menu is public
 
     // ==========================================
     // 4. CREATE ROLES EXPLICITLY

@@ -29,7 +29,6 @@ const userAuthSelect = {
                         select: {
                             modulePermission: {
                                 select: {
-                                    accessScope: true,
                                     module: { select: { name: true } },
                                     permission: { select: { name: true } }
                                 }
