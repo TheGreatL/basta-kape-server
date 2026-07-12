@@ -3,7 +3,7 @@ import { registry } from '@/docs/swagger';
 import { PurchaseOrderService } from './purchase-order.service';
 import { requireAccess } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
-import { CreatePurchaseOrderSchema, UpdatePurchaseOrderStatusSchema } from './purchase-order.types';
+import { CreatePurchaseOrderSchema, UpdatePurchaseOrderStatusSchema, UpdatePurchaseOrderSchema } from './purchase-order.types';
 import { z } from 'zod';
 import { PurchaseOrderStatus } from '@prisma/client';
 
@@ -183,6 +183,47 @@ router.patch(
         try {
             const body = UpdatePurchaseOrderStatusSchema.parse(req.body);
             const result = await service.updatePurchaseOrderStatus(req.params.id as string, body.status, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// PUT /purchase-orders/:id
+registry.registerPath({
+    method: 'put',
+    path: '/purchase-orders/{id}',
+    tags: ['Purchase Orders'],
+    summary: 'Update a DRAFT purchase order',
+    security: [{ bearerAuth: [] }],
+    request: {
+        params: z.object({
+            id: z.string().uuid()
+        }),
+        body: {
+            content: {
+                'application/json': {
+                    schema: UpdatePurchaseOrderSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Purchase order updated successfully',
+            content: { 'application/json': { schema: PurchaseOrderResponseSchema } }
+        }
+    }
+});
+
+router.put(
+    '/:id',
+    requireAccess(appModules.PURCHASE_ORDERS_MANAGEMENT, appPermissions.UPDATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = UpdatePurchaseOrderSchema.parse(req.body);
+            const result = await service.updatePurchaseOrder(req.params.id as string, body, req.user!.sub);
             res.json(result);
         } catch (error) {
             next(error);

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { PurchaseOrderStatus, InventoryStatus, Prisma } from '@prisma/client';
-import { TCreatePurchaseOrder } from './purchase-order.types';
+import { TCreatePurchaseOrder, TUpdatePurchaseOrder } from './purchase-order.types';
 
 export class PurchaseOrderRepository extends BaseRepository {
     async createPurchaseOrder(data: TCreatePurchaseOrder, actorId: string) {
@@ -264,6 +264,68 @@ export class PurchaseOrderRepository extends BaseRepository {
                         }
                     });
                 }
+            }
+
+            return tx.purchaseOrder.update({
+                where: { id },
+                data: updates,
+                include: {
+                    supplier: true,
+                    createdBy: {
+                        select: {
+                            id: true,
+                            username: true,
+                            firstName: true,
+                            lastName: true
+                        }
+                    },
+                    items: {
+                        include: {
+                            ingredient: {
+                                include: {
+                                    defaultUnit: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    async updatePurchaseOrder(id: string, data: TUpdatePurchaseOrder) {
+        return prisma.$transaction(async (tx) => {
+            const updates: Prisma.PurchaseOrderUpdateInput = {
+                updatedAt: new Date()
+            };
+
+            if (data.notes !== undefined) {
+                updates.notes = data.notes;
+            }
+
+            if (data.supplierId) {
+                updates.supplier = { connect: { id: data.supplierId } };
+            }
+
+            if (data.items) {
+                // Compute new total amount
+                const totalAmount = data.items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
+                updates.totalAmount = totalAmount;
+
+                // Delete existing items
+                await tx.purchaseOrderItem.deleteMany({
+                    where: { purchaseOrderId: id }
+                });
+
+                // Recreate items
+                updates.items = {
+                    create: data.items.map((item) => ({
+                        ingredientId: item.ingredientId,
+                        quantity: item.quantity,
+                        unitCost: item.unitCost,
+                        totalCost: item.quantity * item.unitCost
+                    }))
+                };
             }
 
             return tx.purchaseOrder.update({

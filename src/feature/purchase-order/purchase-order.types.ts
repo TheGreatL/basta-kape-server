@@ -17,5 +17,12 @@ export const UpdatePurchaseOrderStatusSchema = z.object({
     status: z.nativeEnum(PurchaseOrderStatus)
 });
 
+export const UpdatePurchaseOrderSchema = z.object({
+    supplierId: z.string().uuid('Invalid supplier ID').optional(),
+    notes: z.string().max(500, 'Notes must not exceed 500 characters').optional().nullable(),
+    items: z.array(CreatePurchaseOrderItemSchema).min(1, 'Purchase order must contain at least 1 item').optional()
+});
+
 export type TCreatePurchaseOrder = z.infer<typeof CreatePurchaseOrderSchema>;
 export type TUpdatePurchaseOrderStatus = z.infer<typeof UpdatePurchaseOrderStatusSchema>;
+export type TUpdatePurchaseOrder = z.infer<typeof UpdatePurchaseOrderSchema>;
