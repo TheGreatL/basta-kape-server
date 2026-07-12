@@ -224,7 +224,7 @@ describe('Payment Feature Integration Tests', () => {
             const order = await createTestOrder();
             const payload = {
                 paymentMethod: 'GCASH',
-                gcashReferenceNumber: 'REF123456789'
+                paymentReferenceNumber: 'REF123456789'
             };
 
             const res = await request(app).post(`/orders/${order.id}/payments`).send(payload);
@@ -233,7 +233,7 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.body.paymentMethod).toBe('GCASH');
             expect(res.body.paymentStatus).toBe('PAID');
             expect(res.body.amount).toBe(120.0);
-            expect(res.body.gcashReferenceNumber).toBe('REF123456789');
+            expect(res.body.paymentReferenceNumber).toBe('REF123456789');
 
             const updatedOrder = await prisma.order.findUnique({
                 where: { id: order.id }
@@ -258,13 +258,32 @@ describe('Payment Feature Integration Tests', () => {
             const order = await createTestOrder();
             const payload = {
                 paymentMethod: 'GCASH',
-                gcashReferenceNumber: '12'
+                paymentReferenceNumber: '12'
             };
 
             const res = await request(app).post(`/orders/${order.id}/payments`).send(payload);
 
             expect(res.status).toBe(400);
             expect(res.body.error).toBe('Validation failed');
+        });
+
+        it('should fail if paymentReferenceNumber is duplicate for the same paymentMethod', async () => {
+            const order1 = await createTestOrder();
+            const order2 = await createTestOrder();
+
+            const payload = {
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: 'DUPREF12345'
+            };
+
+            // Process first payment successfully
+            const res1 = await request(app).post(`/orders/${order1.id}/payments`).send(payload);
+            expect(res1.status).toBe(201);
+
+            // Process second payment with the same reference number and payment method -> should fail with 409
+            const res2 = await request(app).post(`/orders/${order2.id}/payments`).send(payload);
+            expect(res2.status).toBe(409);
+            expect(res2.body.error).toContain('A payment with this reference number already exists for this payment method.');
         });
 
         it('should fail if order does not exist', async () => {

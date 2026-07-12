@@ -41,7 +41,7 @@ export class PaymentRepository extends BaseRepository {
             amount: number;
             amountTendered?: number | null;
             amountChange?: number | null;
-            gcashReferenceNumber?: string | null;
+            paymentReferenceNumber?: string | null;
             paymentProofPhoto?: string | null;
         },
         actorId: string
@@ -54,7 +54,7 @@ export class PaymentRepository extends BaseRepository {
                     amount: data.amount,
                     amountTendered: data.amountTendered ?? null,
                     amountChange: data.amountChange ?? null,
-                    gcashReferenceNumber: data.gcashReferenceNumber ?? null,
+                    paymentReferenceNumber: data.paymentReferenceNumber ?? null,
                     paymentProofPhoto: data.paymentProofPhoto ?? null
                 }
             });
@@ -121,7 +121,7 @@ export class PaymentRepository extends BaseRepository {
 
         if (params.search) {
             where.OR = [
-                { gcashReferenceNumber: { contains: params.search } },
+                { paymentReferenceNumber: { contains: params.search } },
                 { order: { queueNumber: { contains: params.search } } },
                 { order: { customerName: { contains: params.search } } }
             ];
@@ -181,13 +181,13 @@ export class PaymentRepository extends BaseRepository {
         };
     }
 
-    async updatePaymentReceipt(paymentId: string, data: { paymentProofPhoto?: string; gcashReferenceNumber?: string }, actorId: string) {
+    async updatePaymentReceipt(paymentId: string, data: { paymentProofPhoto?: string; paymentReferenceNumber?: string }, actorId: string) {
         return prisma.$transaction(async (tx) => {
             const payment = await tx.orderPayment.update({
                 where: { id: paymentId },
                 data: {
                     paymentProofPhoto: data.paymentProofPhoto,
-                    gcashReferenceNumber: data.gcashReferenceNumber
+                    paymentReferenceNumber: data.paymentReferenceNumber
                 },
                 include: {
                     order: true

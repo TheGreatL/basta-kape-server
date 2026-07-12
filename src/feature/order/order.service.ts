@@ -2,9 +2,9 @@ import { OrderRepository } from './order.repository';
 import { StoreSettingsService } from '@/feature/store-settings/store-settings.service';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { prisma } from '@/lib/prisma';
-import { NotFoundException, BadRequestException } from '@/exceptions';
+import { NotFoundException, BadRequestException, ConflictException } from '@/exceptions';
 import type { TCreateOrder, TGetOrderListQuery } from './order.types';
-import { OrderStatus, StoreSetting } from '@prisma/client';
+import { OrderStatus, StoreSetting, Prisma } from '@prisma/client';
 import { generateHtmlReceipt, generateTextReceipt, generatePdfReceipt } from './receipt.template';
 
 type OrderServiceConstructor = {
@@ -162,28 +162,36 @@ export class OrderService {
         let paymentDetails = data.paymentMethod
             ? {
                   paymentMethod: data.paymentMethod,
-                  gcashReferenceNumber: data.gcashReferenceNumber,
+                  paymentReferenceNumber: data.paymentReferenceNumber,
                   paymentProofPhoto: data.paymentProofPhoto
               }
             : null;
         if (data.paymentMethod === 'CASH') {
             paymentDetails = null;
         }
-        const order = await this.repository.createOrder({
-            queueNumber,
-            buzzerId: data.buzzerId,
-            orderType: data.orderType,
-            orderSource: data.orderSource,
-            notes: data.notes,
-            subtotal: calculatedSubtotal,
-            taxAmount,
-            netTotal,
-            customerId: data.customerId,
-            customerName: data.customerName,
-            actorId,
-            items: itemDetails,
-            paymentDetails
-        });
+        let order;
+        try {
+            order = await this.repository.createOrder({
+                queueNumber,
+                buzzerId: data.buzzerId,
+                orderType: data.orderType,
+                orderSource: data.orderSource,
+                notes: data.notes,
+                subtotal: calculatedSubtotal,
+                taxAmount,
+                netTotal,
+                customerId: data.customerId,
+                customerName: data.customerName,
+                actorId,
+                items: itemDetails,
+                paymentDetails
+            });
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new ConflictException('A payment with this reference number already exists for this payment method.');
+            }
+            throw error;
+        }
 
         await this.activityLogService.logActivity({
             actorId,

@@ -366,7 +366,7 @@ export class ReportService {
                             id: true,
                             paymentMethod: true,
                             amount: true,
-                            gcashReferenceNumber: true,
+                            paymentReferenceNumber: true,
                             paymentProofPhoto: true
                         }
                     }
@@ -388,7 +388,7 @@ export class ReportService {
                         paymentMethod: payment.paymentMethod,
                         paymentStatus: order.paymentStatus,
                         amount: payment.amount,
-                        gcashReferenceNumber: payment.gcashReferenceNumber,
+                        paymentReferenceNumber: payment.paymentReferenceNumber,
                         paymentProofPhoto: payment.paymentProofPhoto
                     }))
                 }))
@@ -472,7 +472,7 @@ export class ReportService {
                         id: true,
                         paymentMethod: true,
                         amount: true,
-                        gcashReferenceNumber: true,
+                        paymentReferenceNumber: true,
                         paymentProofPhoto: true
                     }
                 }
@@ -571,7 +571,7 @@ export class ReportService {
                     paymentMethod: payment.paymentMethod,
                     paymentStatus: order.paymentStatus,
                     amount: payment.amount,
-                    gcashReferenceNumber: payment.gcashReferenceNumber,
+                    paymentReferenceNumber: payment.paymentReferenceNumber,
                     paymentProofPhoto: payment.paymentProofPhoto
                 }))
             }))

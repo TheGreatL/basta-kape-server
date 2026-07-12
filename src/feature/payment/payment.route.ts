@@ -89,7 +89,7 @@ registry.registerPath({
                 'application/json': {
                     schema: z.object({
                         paymentProofPhoto: z.string().optional(),
-                        gcashReferenceNumber: z.string().optional()
+                        paymentReferenceNumber: z.string().optional()
                     })
                 }
             }

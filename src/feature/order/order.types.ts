@@ -28,17 +28,17 @@ export const CreateOrderSchema = z
         customerName: z.string().max(100).optional().nullable(),
         buzzerId: z.string().max(50).optional().nullable(),
         paymentMethod: z.enum(['CASH', 'GCASH', 'PAYMAYA']).optional().nullable(),
-        gcashReferenceNumber: z.string().max(100).optional().nullable(),
+        paymentReferenceNumber: z.string().max(100).optional().nullable(),
         paymentProofPhoto: z.string().max(1000).optional().nullable(),
         items: z.array(CreateOrderItemSchema).min(1, 'Order must contain at least one item')
     })
     .superRefine((data, ctx) => {
         if (data.paymentMethod === 'GCASH' || data.paymentMethod === 'PAYMAYA') {
-            if (!data.gcashReferenceNumber || !data.gcashReferenceNumber.trim()) {
+            if (!data.paymentReferenceNumber || !data.paymentReferenceNumber.trim()) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
                     message: 'Reference number is required for GCash/Maya payments',
-                    path: ['gcashReferenceNumber']
+                    path: ['paymentReferenceNumber']
                 });
             }
             if (data.orderSource === 'WEBSITE') {

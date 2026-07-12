@@ -2,7 +2,7 @@ import { PaymentRepository } from './payment.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, BadRequestException, ConflictException } from '@/exceptions';
 import type { TCreatePayment } from './payment.types';
-import { PaymentStatus, OrderStatus, PaymentMethod } from '@prisma/client';
+import { PaymentStatus, OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 type PaymentServiceConstructor = {
@@ -50,7 +50,7 @@ export class PaymentService {
 
         let amountTendered: number | null = null;
         let amountChange: number | null = null;
-        let gcashReferenceNumber: string | null = null;
+        let paymentReferenceNumber: string | null = null;
         let paymentProofPhoto: string | null = null;
 
         // 5. Method-specific payment logic
@@ -64,31 +64,39 @@ export class PaymentService {
             amountChange = Math.round((amountTendered - order.netTotal) * 100) / 100;
         } else {
             // GCASH, PAYMAYA, or CREDIT_CARD
-            gcashReferenceNumber = data.gcashReferenceNumber;
+            paymentReferenceNumber = data.paymentReferenceNumber;
             paymentProofPhoto = data.paymentProofPhoto ?? null;
         }
 
         // 6. Record payment in database
-        const payment = await this.repository.createPayment(
-            orderId,
-            {
-                paymentMethod: data.paymentMethod,
-                paymentStatus: PaymentStatus.PAID,
-                amount: order.netTotal,
-                amountTendered,
-                amountChange,
-                gcashReferenceNumber,
-                paymentProofPhoto
-            },
-            actorId
-        );
+        let payment;
+        try {
+            payment = await this.repository.createPayment(
+                orderId,
+                {
+                    paymentMethod: data.paymentMethod,
+                    paymentStatus: PaymentStatus.PAID,
+                    amount: order.netTotal,
+                    amountTendered,
+                    amountChange,
+                    paymentReferenceNumber,
+                    paymentProofPhoto
+                },
+                actorId
+            );
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new ConflictException('A payment with this reference number already exists for this payment method.');
+            }
+            throw error;
+        }
 
         // 7. Log activity
         let logDetails = `Processed ${data.paymentMethod} payment of PHP ${order.netTotal.toFixed(2)} for order ${order.queueNumber ?? orderId}.`;
         if (data.paymentMethod === 'CASH' && amountTendered !== null && amountChange !== null) {
             logDetails += ` Tendered: PHP ${amountTendered.toFixed(2)}, Change: PHP ${amountChange.toFixed(2)}.`;
-        } else if (gcashReferenceNumber) {
-            logDetails += ` Reference: ${gcashReferenceNumber}.`;
+        } else if (paymentReferenceNumber) {
+            logDetails += ` Reference: ${paymentReferenceNumber}.`;
         }
 
         await this.activityLogService.logActivity({
@@ -112,7 +120,7 @@ export class PaymentService {
         return this.repository.getPaymentList(params);
     }
 
-    async updatePaymentReceipt(paymentId: string, data: { paymentProofPhoto?: string; gcashReferenceNumber?: string }, actorId: string) {
+    async updatePaymentReceipt(paymentId: string, data: { paymentProofPhoto?: string; paymentReferenceNumber?: string }, actorId: string) {
         const payment = await prisma.orderPayment.findUnique({
             where: { id: paymentId }
         });
@@ -124,7 +132,15 @@ export class PaymentService {
             throw new BadRequestException('Cannot upload payment receipt for cash transactions.');
         }
 
-        const updated = await this.repository.updatePaymentReceipt(paymentId, data, actorId);
+        let updated;
+        try {
+            updated = await this.repository.updatePaymentReceipt(paymentId, data, actorId);
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new ConflictException('A payment with this reference number already exists for this payment method.');
+            }
+            throw error;
+        }
 
         await this.activityLogService.logActivity({
             actorId,

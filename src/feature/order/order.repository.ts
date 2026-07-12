@@ -31,7 +31,7 @@ type TCreateOrderRepoData = {
     }[];
     paymentDetails?: {
         paymentMethod: PaymentMethod;
-        gcashReferenceNumber?: string | null;
+        paymentReferenceNumber?: string | null;
         paymentProofPhoto?: string | null;
     } | null;
 };
@@ -110,7 +110,7 @@ export class OrderRepository extends BaseRepository {
                         orderId: order.id,
                         paymentMethod: data.paymentDetails.paymentMethod,
                         amount: data.netTotal,
-                        gcashReferenceNumber: data.paymentDetails.gcashReferenceNumber ?? null,
+                        paymentReferenceNumber: data.paymentDetails.paymentReferenceNumber ?? null,
                         paymentProofPhoto: data.paymentDetails.paymentProofPhoto ?? null
                     }
                 });

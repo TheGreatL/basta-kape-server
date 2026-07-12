@@ -117,8 +117,8 @@ export function generateTextReceipt(
                 if (payment.amountChange) {
                     lines.push(leftRight('    Change:', `PHP ${payment.amountChange.toFixed(2)}`));
                 }
-            } else if (payment.gcashReferenceNumber) {
-                lines.push(`    Ref No: ${payment.gcashReferenceNumber}`);
+            } else if (payment.paymentReferenceNumber) {
+                lines.push(`    Ref No: ${payment.paymentReferenceNumber}`);
             }
         }
         lines.push(divider);
@@ -268,8 +268,8 @@ export function generateHtmlReceipt(
                 if (payment.amountChange) {
                     details += `<div class="receipt-total-row detail"><span>&nbsp;&nbsp;Change:</span><span>PHP ${payment.amountChange.toFixed(2)}</span></div>`;
                 }
-            } else if (payment.gcashReferenceNumber) {
-                details += `<div class="receipt-compliance-row"><span>&nbsp;&nbsp;Ref No: ${payment.gcashReferenceNumber}</span></div>`;
+            } else if (payment.paymentReferenceNumber) {
+                details += `<div class="receipt-compliance-row"><span>&nbsp;&nbsp;Ref No: ${payment.paymentReferenceNumber}</span></div>`;
             }
 
             return `
@@ -777,8 +777,8 @@ export async function generatePdfReceipt(
                         y += 11;
                     }
                     doc.fillColor('#1f2937');
-                } else if (payment.gcashReferenceNumber) {
-                    doc.fillColor('#4b5563').text(`  Ref No: ${payment.gcashReferenceNumber}`, 15, y);
+                } else if (payment.paymentReferenceNumber) {
+                    doc.fillColor('#4b5563').text(`  Ref No: ${payment.paymentReferenceNumber}`, 15, y);
                     y += 11;
                     doc.fillColor('#1f2937');
                 }

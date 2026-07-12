@@ -343,6 +343,31 @@ describe('Order Feature CRUD', () => {
             }
         });
 
+        it('should fail to place an order if paymentReferenceNumber is duplicate for the same paymentMethod', async () => {
+            const payload = {
+                orderType: 'DINE_IN',
+                orderSource: 'WEBSITE',
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: 'DUPCREATE999',
+                paymentProofPhoto: 'https://example.com/proof.jpg',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1
+                    }
+                ]
+            };
+
+            // Place first order successfully
+            const res1 = await request(app).post('/orders').send(payload);
+            expect(res1.status).toBe(201);
+
+            // Attempt to place second order with same reference number and payment method -> should fail with 409
+            const res2 = await request(app).post('/orders').send(payload);
+            expect(res2.status).toBe(409);
+            expect(res2.body.error).toContain('A payment with this reference number already exists for this payment method.');
+        });
+
         it('should fetch the list of orders', async () => {
             const res = await request(app).get('/orders?search=Customer%20Jane');
             expect(res.status).toBe(200);

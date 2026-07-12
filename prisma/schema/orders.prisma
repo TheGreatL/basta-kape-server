@@ -158,8 +158,8 @@ model OrderPayment {
   amount        Float         @default(0)
 
   // GCash / Digital verification
-  gcashReferenceNumber String?
-  paymentProofPhoto    String? // Path/URL to GCash screenshot
+  paymentReferenceNumber String?
+  paymentProofPhoto      String? // Path/URL to GCash screenshot
 
   // Cash payment specific
   amountTendered Float?
@@ -168,6 +168,7 @@ model OrderPayment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([paymentReferenceNumber, paymentMethod])
   @@index([orderId])
   @@index([createdAt])
 }
