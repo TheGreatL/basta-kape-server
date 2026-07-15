@@ -39,7 +39,30 @@ export class ModifierRepository extends BaseRepository {
                 include: {
                     options: {
                         where: { deletedAt: null },
-                        orderBy: { name: 'asc' }
+                        orderBy: { name: 'asc' },
+                        include: {
+                            recipe: {
+                                where: { deletedAt: null },
+                                include: {
+                                    ingredients: {
+                                        where: { deletedAt: null },
+                                        include: {
+                                            ingredient: {
+                                                select: {
+                                                    id: true,
+                                                    name: true,
+                                                    inventories: {
+                                                        where: { deletedAt: null },
+                                                        select: { currentQuantity: true }
+                                                    }
+                                                }
+                                            },
+                                            unit: { select: { id: true, name: true, abbreviation: true } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     products: {
                         where: { deletedAt: null }
@@ -58,7 +81,30 @@ export class ModifierRepository extends BaseRepository {
             include: {
                 options: {
                     where: { deletedAt: null },
-                    orderBy: { name: 'asc' }
+                    orderBy: { name: 'asc' },
+                    include: {
+                        recipe: {
+                            where: { deletedAt: null },
+                            include: {
+                                ingredients: {
+                                    where: { deletedAt: null },
+                                    include: {
+                                        ingredient: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                inventories: {
+                                                    where: { deletedAt: null },
+                                                    select: { currentQuantity: true }
+                                                }
+                                            }
+                                        },
+                                        unit: { select: { id: true, name: true, abbreviation: true } }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
                 products: {
                     where: { deletedAt: null }

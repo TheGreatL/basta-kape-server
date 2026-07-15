@@ -15,6 +15,78 @@ type ModifierServiceConstructor = {
     activityLogService?: ActivityLogService;
 };
 
+interface IngredientWithInventory {
+    id: string;
+    name: string;
+    inventories: {
+        currentQuantity: number;
+    }[];
+}
+
+interface RecipeIngredient {
+    ingredientId: string;
+    quantity: number;
+    ingredient?: IngredientWithInventory | null;
+}
+
+interface ModifierRecipe {
+    ingredients: RecipeIngredient[];
+}
+
+interface ModifierOptionWithRecipe {
+    id: string;
+    modifierGroupId: string;
+    name: string;
+    price: number;
+    recipe?: ModifierRecipe | null;
+}
+
+interface ModifierGroupWithOptions {
+    id: string;
+    name: string;
+    isRequired: boolean;
+    minSelect: number;
+    maxSelect: number;
+    options: ModifierOptionWithRecipe[];
+}
+
+function calculateOptionMaxProduceable(option: ModifierOptionWithRecipe): number | null {
+    if (!option.recipe || !option.recipe.ingredients || option.recipe.ingredients.length === 0) {
+        return null;
+    }
+
+    let maxProduceable = Infinity;
+
+    for (const ri of option.recipe.ingredients) {
+        const inventories = ri.ingredient?.inventories || [];
+        const inventory = inventories[0];
+        const currentQty = inventory ? inventory.currentQuantity : 0;
+        const requiredQty = ri.quantity;
+
+        if (requiredQty > 0) {
+            const canProduce = Math.floor(currentQty / requiredQty);
+            if (canProduce < maxProduceable) {
+                maxProduceable = canProduce;
+            }
+        }
+    }
+
+    return maxProduceable === Infinity ? null : maxProduceable;
+}
+
+function formatModifierGroup(group: ModifierGroupWithOptions) {
+    return {
+        ...group,
+        options: (group.options || []).map((option: ModifierOptionWithRecipe) => {
+            const maxProduceable = calculateOptionMaxProduceable(option);
+            return {
+                ...option,
+                maxProduceable
+            };
+        })
+    };
+}
+
 export class ModifierService {
     private repository: ModifierRepository;
     private activityLogService: ActivityLogService;
@@ -25,7 +97,9 @@ export class ModifierService {
     }
 
     async getModifierGroupList(params: TGetModifierGroupListQuery) {
-        return this.repository.getModifierGroupList(params);
+        const result = await this.repository.getModifierGroupList(params);
+        result.data = ((result.data as ModifierGroupWithOptions[]) || []).map((group) => formatModifierGroup(group));
+        return result;
     }
 
     async getModifierGroupById(id: string) {
@@ -33,7 +107,7 @@ export class ModifierService {
         if (!group) {
             throw new NotFoundException('Modifier group not found');
         }
-        return group;
+        return formatModifierGroup(group as unknown as ModifierGroupWithOptions);
     }
 
     async getModifierOptionById(id: string) {
