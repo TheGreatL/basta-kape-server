@@ -54,6 +54,14 @@ describe('Order Feature CRUD', () => {
 
     beforeAll(async () => {
         prisma = new PrismaClient();
+
+        // Clean up any leftover payments with this test reference to avoid collisions
+        await prisma.orderPayment.deleteMany({
+            where: {
+                paymentReferenceNumber: 'DUPCREATE999'
+            }
+        });
+
         app = express();
 
         app.use(express.json());
@@ -188,6 +196,17 @@ describe('Order Feature CRUD', () => {
         });
 
         // Cleanup order histories, payments, voids, items, shifts, variants, products, categories, types, store settings, and users in correct dependency order
+        await prisma.orderPayment.deleteMany({
+            where: {
+                order: {
+                    items: {
+                        some: {
+                            productVariantId: testVariantId
+                        }
+                    }
+                }
+            }
+        });
         await prisma.orderStatusHistory.deleteMany({
             where: {
                 order: {

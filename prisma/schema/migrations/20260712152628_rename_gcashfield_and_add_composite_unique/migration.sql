@@ -6,7 +6,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `orderpayment` DROP COLUMN `gcashReferenceNumber`,
+ALTER TABLE `OrderPayment` DROP COLUMN `gcashReferenceNumber`,
     ADD COLUMN `paymentReferenceNumber` VARCHAR(191) NULL;
 
 -- CreateIndex

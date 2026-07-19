@@ -153,7 +153,6 @@ export class PaymentRepository extends BaseRepository {
                             status: true,
                             orderType: true,
                             orderSource: true,
-                            cashierSessionId: true,
                             paymentStatus: true
                         }
                     }

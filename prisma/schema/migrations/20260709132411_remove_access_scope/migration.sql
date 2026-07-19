@@ -6,7 +6,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `modulepermission` DROP COLUMN `accessScope`;
+ALTER TABLE `ModulePermission` DROP COLUMN `accessScope`;
 
 -- CreateIndex
 CREATE UNIQUE INDEX `ModulePermission_moduleId_permissionId_key` ON `ModulePermission`(`moduleId`, `permissionId`);

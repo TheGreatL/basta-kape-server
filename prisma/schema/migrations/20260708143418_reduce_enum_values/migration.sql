@@ -6,7 +6,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `modulepermission` MODIFY `accessScope` ENUM('ALL', 'OWN') NOT NULL DEFAULT 'ALL';
+ALTER TABLE `ModulePermission` MODIFY `accessScope` ENUM('ALL', 'OWN') NOT NULL DEFAULT 'ALL';
 
 -- AlterTable
-ALTER TABLE `order` MODIFY `orderSource` ENUM('POS', 'WEBSITE') NOT NULL DEFAULT 'POS';
+ALTER TABLE `Order` MODIFY `orderSource` ENUM('POS', 'WEBSITE') NOT NULL DEFAULT 'POS';

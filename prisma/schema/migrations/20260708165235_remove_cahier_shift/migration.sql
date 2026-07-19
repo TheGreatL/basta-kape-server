@@ -6,16 +6,16 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `order` DROP FOREIGN KEY `Order_cashierSessionId_fkey`;
+ALTER TABLE `Order` DROP FOREIGN KEY `Order_cashierSessionId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `registershift` DROP FOREIGN KEY `RegisterShift_cashierId_fkey`;
+ALTER TABLE `RegisterShift` DROP FOREIGN KEY `RegisterShift_cashierId_fkey`;
 
 -- DropIndex
-DROP INDEX `Order_cashierSessionId_idx` ON `order`;
+DROP INDEX `Order_cashierSessionId_idx` ON `Order`;
 
 -- AlterTable
-ALTER TABLE `order` DROP COLUMN `cashierSessionId`;
+ALTER TABLE `Order` DROP COLUMN `cashierSessionId`;
 
 -- DropTable
-DROP TABLE `registershift`;
+DROP TABLE `RegisterShift`;

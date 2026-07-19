@@ -5,14 +5,14 @@
 
 */
 -- DropIndex
-DROP INDEX `OrderPayment_paymentStatus_idx` ON `orderpayment`;
+DROP INDEX `OrderPayment_paymentStatus_idx` ON `OrderPayment`;
 
 -- AlterTable
-ALTER TABLE `order` ADD COLUMN `paymentStatus` ENUM('PENDING', 'PAID', 'FAILED', 'REFUNDED') NOT NULL DEFAULT 'PENDING',
+ALTER TABLE `Order` ADD COLUMN `paymentStatus` ENUM('PENDING', 'PAID', 'FAILED', 'REFUNDED') NOT NULL DEFAULT 'PENDING',
     ADD COLUMN `totalPaid` DOUBLE NOT NULL DEFAULT 0;
 
 -- AlterTable
-ALTER TABLE `orderpayment` DROP COLUMN `paymentStatus`;
+ALTER TABLE `OrderPayment` DROP COLUMN `paymentStatus`;
 
 -- CreateIndex
 CREATE INDEX `Order_paymentStatus_idx` ON `Order`(`paymentStatus`);
