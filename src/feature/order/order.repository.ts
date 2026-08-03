@@ -5,6 +5,7 @@ import type { TGetOrderListQuery } from './order.types';
 import type { IPaginatedResult } from '@/types/base.types';
 import { formatOrderWithReference, formatOrdersWithReference } from './order.utils';
 import { InventoryRepository } from '@/feature/inventory/inventory.repository';
+import { BadRequestException } from '@/exceptions';
 
 type TCreateOrderRepoData = {
     queueNumber: string;
@@ -56,6 +57,23 @@ export class OrderRepository extends BaseRepository {
 
     async createOrder(data: TCreateOrderRepoData) {
         const createdOrder = await prisma.$transaction(async (tx) => {
+            const inventoryRepo = new InventoryRepository();
+
+            // 1. Calculate required ingredient stock for order items
+            const ingredientRequirements = await this.calculateIngredientRequirements(tx, data.items);
+
+            // 2. Check stock sufficiency before creating the order
+            if (ingredientRequirements.size > 0) {
+                const check = await inventoryRepo.checkIngredientStockAvailability(tx, ingredientRequirements);
+                if (!check.sufficient) {
+                    const details = check.insufficientIngredients
+                        .map((i) => `${i.ingredientName} (Required: ${i.required}${i.unit}, Available: ${i.available}${i.unit})`)
+                        .join(', ');
+                    throw new BadRequestException(`Insufficient stock to complete order: ${details}`);
+                }
+            }
+
+            // 3. Create the order in database
             const order = await tx.order.create({
                 data: {
                     queueNumber: data.queueNumber,
@@ -116,8 +134,21 @@ export class OrderRepository extends BaseRepository {
                 });
             }
 
+            // 4. Deduct ingredient stock immediately upon order creation (holding stock)
+            for (const [ingredientId, quantity] of ingredientRequirements.entries()) {
+                await inventoryRepo.deductIngredientStockFEFO(
+                    tx,
+                    ingredientId,
+                    quantity,
+                    'SALE',
+                    `Order stock reservation for Order ${data.queueNumber}`,
+                    data.actorId
+                );
+            }
+
             return order;
         });
+
         return formatOrderWithReference(createdOrder);
     }
 
@@ -286,21 +317,52 @@ export class OrderRepository extends BaseRepository {
                 }
             });
 
-            if (currentOrder.status !== OrderStatus.COMPLETED && status === OrderStatus.COMPLETED) {
-                await this.deductInventoryForOrder(tx, order, actorId);
+            const inventoryRepo = new InventoryRepository();
+
+            // Handle Order Cancellation: Restore Stock
+            if (currentOrder.status !== OrderStatus.CANCELLED && status === OrderStatus.CANCELLED) {
+                await this.restoreInventoryForOrder(tx, order, actorId);
+            }
+
+            // Handle Re-opening a Cancelled Order: Re-check & Deduct Stock
+            if (currentOrder.status === OrderStatus.CANCELLED && status !== OrderStatus.CANCELLED) {
+                const ingredientRequirements = await this.calculateIngredientRequirements(tx, order.items);
+                if (ingredientRequirements.size > 0) {
+                    const check = await inventoryRepo.checkIngredientStockAvailability(tx, ingredientRequirements);
+                    if (!check.sufficient) {
+                        const details = check.insufficientIngredients
+                            .map((i) => `${i.ingredientName} (Required: ${i.required}${i.unit}, Available: ${i.available}${i.unit})`)
+                            .join(', ');
+                        throw new BadRequestException(`Cannot re-open order due to insufficient stock: ${details}`);
+                    }
+
+                    for (const [ingredientId, quantity] of ingredientRequirements.entries()) {
+                        await inventoryRepo.deductIngredientStockFEFO(
+                            tx,
+                            ingredientId,
+                            quantity,
+                            'SALE',
+                            `Stock re-deducted for un-cancelled Order ${order.queueNumber}`,
+                            actorId
+                        );
+                    }
+                }
             }
 
             return order;
         });
     }
 
-    private async deductInventoryForOrder(
+    private async calculateIngredientRequirements(
         tx: Prisma.TransactionClient,
-        order: Prisma.OrderGetPayload<{ include: { items: { include: { modifiers: true } } } }>,
-        actorId: string
-    ) {
-        const variantIds = [...new Set(order.items.map((item) => item.productVariantId))];
-        const modifierOptionIds = [...new Set(order.items.flatMap((item) => item.modifiers.map((modifier) => modifier.modifierOptionId)))];
+        items: {
+            productVariantId: string;
+            quantity: number;
+            modifiers?: { modifierOptionId: string }[];
+        }[]
+    ): Promise<Map<string, number>> {
+        const variantIds = [...new Set(items.map((item) => item.productVariantId))];
+        const modifierOptionIds = [...new Set(items.flatMap((item) => item.modifiers?.map((m) => m.modifierOptionId) ?? []))];
 
         const [variantRecipes, modifierRecipes] = await Promise.all([
             tx.recipe.findMany({
@@ -323,43 +385,54 @@ export class OrderRepository extends BaseRepository {
                 : Promise.resolve([])
         ]);
 
-        const ingredientDeductions = new Map<string, number>();
+        const ingredientRequirements = new Map<string, number>();
 
-        const accumulateDeduction = (ingredientId: string, quantity: number) => {
-            ingredientDeductions.set(ingredientId, (ingredientDeductions.get(ingredientId) ?? 0) + quantity);
+        const accumulateRequirement = (ingredientId: string, quantity: number) => {
+            ingredientRequirements.set(ingredientId, (ingredientRequirements.get(ingredientId) ?? 0) + quantity);
         };
 
-        for (const item of order.items) {
+        for (const item of items) {
             const variantRecipe = variantRecipes.find((recipe) => recipe.productVariantId === item.productVariantId);
             if (variantRecipe) {
                 for (const ingredient of variantRecipe.ingredients) {
-                    accumulateDeduction(ingredient.ingredientId, ingredient.quantity * item.quantity);
+                    accumulateRequirement(ingredient.ingredientId, ingredient.quantity * item.quantity);
                 }
             }
 
-            for (const itemMod of item.modifiers) {
-                const modifierRecipe = modifierRecipes.find((recipe) => recipe.modifierOptionId === itemMod.modifierOptionId);
-                if (modifierRecipe) {
-                    for (const ingredient of modifierRecipe.ingredients) {
-                        accumulateDeduction(ingredient.ingredientId, ingredient.quantity * item.quantity);
+            if (item.modifiers) {
+                for (const itemMod of item.modifiers) {
+                    const modifierRecipe = modifierRecipes.find((recipe) => recipe.modifierOptionId === itemMod.modifierOptionId);
+                    if (modifierRecipe) {
+                        for (const ingredient of modifierRecipe.ingredients) {
+                            accumulateRequirement(ingredient.ingredientId, ingredient.quantity * item.quantity);
+                        }
                     }
                 }
             }
         }
 
-        if (ingredientDeductions.size === 0) {
+        return ingredientRequirements;
+    }
+
+    private async restoreInventoryForOrder(
+        tx: Prisma.TransactionClient,
+        order: Prisma.OrderGetPayload<{ include: { items: { include: { modifiers: true } } } }>,
+        actorId: string
+    ) {
+        const ingredientRequirements = await this.calculateIngredientRequirements(tx, order.items);
+        if (ingredientRequirements.size === 0) {
             return;
         }
 
         const inventoryRepo = new InventoryRepository();
 
-        for (const [ingredientId, deductionQuantity] of ingredientDeductions.entries()) {
-            await inventoryRepo.deductIngredientStockFEFO(
+        for (const [ingredientId, quantity] of ingredientRequirements.entries()) {
+            await inventoryRepo.addIngredientStockLatest(
                 tx,
                 ingredientId,
-                deductionQuantity,
-                'SALE',
-                `Order completion stock deduction for Order ${order.queueNumber}`,
+                quantity,
+                'PHYSICAL_COUNT_CORRECTION',
+                `Stock returned for cancelled Order ${order.queueNumber}`,
                 actorId
             );
         }

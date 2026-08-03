@@ -148,6 +148,18 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
                 updatedById: 'test-deduct-user-id'
             }
         });
+        await prisma.ingredientBatch.create({
+            data: {
+                ingredientId: testBeansIngredientId,
+                quantityReceived: 200.0,
+                currentQuantity: 200.0,
+                unitCost: 1.0,
+                totalCost: 200.0,
+                batchNumber: 'TEST-BATCH-BEANS',
+                createdById: 'test-deduct-user-id',
+                updatedById: 'test-deduct-user-id'
+            }
+        });
 
         // Oat Milk
         const milk = await prisma.ingredient.create({
@@ -168,6 +180,18 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
                 ingredientId: testMilkIngredientId,
                 currentQuantity: 5000.0,
                 status: 'SAFE',
+                createdById: 'test-deduct-user-id',
+                updatedById: 'test-deduct-user-id'
+            }
+        });
+        await prisma.ingredientBatch.create({
+            data: {
+                ingredientId: testMilkIngredientId,
+                quantityReceived: 5000.0,
+                currentQuantity: 5000.0,
+                unitCost: 1.0,
+                totalCost: 5000.0,
+                batchNumber: 'TEST-BATCH-MILK',
                 createdById: 'test-deduct-user-id',
                 updatedById: 'test-deduct-user-id'
             }
@@ -353,7 +377,7 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
     describe('Automatic Stock Deduction', () => {
         let orderId: string;
 
-        it('should place an order without immediately deducting stock (PENDING status)', async () => {
+        it('should place an order and immediately deduct stock (PENDING status)', async () => {
             const orderPayload = {
                 orderType: 'TAKE_OUT',
                 orderSource: 'WEBSITE',
@@ -377,7 +401,9 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
             expect(res.body).toHaveProperty('id');
             orderId = res.body.id;
 
-            // Verify stocks are STILL 200 and 5000
+            // Verify stock levels are immediately deducted upon order creation
+            // Beans deduction: 18 * 2 = 36 -> 200 - 36 = 164
+            // Milk deduction: 200 * 2 = 400 -> 5000 - 400 = 4600
             const beansInv = await prisma.ingredientInventory.findFirst({
                 where: { ingredientId: testBeansIngredientId }
             });
@@ -385,11 +411,11 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
                 where: { ingredientId: testMilkIngredientId }
             });
 
-            expect(beansInv?.currentQuantity).toBe(200);
-            expect(milkInv?.currentQuantity).toBe(5000);
+            expect(beansInv?.currentQuantity).toBe(164);
+            expect(milkInv?.currentQuantity).toBe(4600);
         });
 
-        it('should deduct ingredients when the order status changes to COMPLETED', async () => {
+        it('should retain stock levels when order status changes to COMPLETED (no duplicate deduction)', async () => {
             // Update order status to COMPLETED
             const res = await request(app).patch(`/orders/${orderId}/status`).send({
                 status: 'COMPLETED',
@@ -403,38 +429,6 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
             expect(res.status).toBe(200);
             expect(res.body.status).toBe('COMPLETED');
 
-            // Verify stock levels are now deducted correctly
-            // Beans deduction: 18 * 2 = 36 -> 200 - 36 = 164
-            // Milk deduction: 200 * 2 = 400 -> 5000 - 400 = 4600
-            const beansInv = await prisma.ingredientInventory.findFirst({
-                where: { ingredientId: testBeansIngredientId }
-            });
-            const milkInv = await prisma.ingredientInventory.findFirst({
-                where: { ingredientId: testMilkIngredientId }
-            });
-
-            expect(beansInv?.currentQuantity).toBe(164);
-            expect(milkInv?.currentQuantity).toBe(4600);
-
-            // Reorder checks:
-            // Beans: 164 > 50 (SAFE)
-            // Milk: 4600 > 1000 (SAFE)
-            expect(beansInv?.status).toBe('SAFE');
-            expect(milkInv?.status).toBe('SAFE');
-        });
-
-        it('should not perform duplicate stock deductions if updated to COMPLETED again', async () => {
-            // Re-update to COMPLETED
-            const res = await request(app).patch(`/orders/${orderId}/status`).send({
-                status: 'COMPLETED',
-                notes: 'Redundant update check'
-            });
-
-            if (res.status !== 200) {
-                console.error('Redundant Status Update Error:', res.body);
-            }
-            expect(res.status).toBe(200);
-
             // Verify stocks remained identical (no duplicate deduction)
             const beansInv = await prisma.ingredientInventory.findFirst({
                 where: { ingredientId: testBeansIngredientId }
@@ -445,77 +439,77 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
 
             expect(beansInv?.currentQuantity).toBe(164);
             expect(milkInv?.currentQuantity).toBe(4600);
+            expect(beansInv?.status).toBe('SAFE');
+            expect(milkInv?.status).toBe('SAFE');
         });
 
-        it('should update inventory status to CRITICAL or OUT_OF_STOCK if deductions cross reorder point', async () => {
-            // Let's create another order that will exhaust beans:
-            // Beans required per espresso item: 18
-            // Stock remaining: 164.
-            // If we order 8 units: 18 * 8 = 144 units.
-            // Remaining Beans stock: 164 - 144 = 20.
-            // Reorder point is 50. So it should become CRITICAL!
-            const orderPayload2 = {
+        it('should reject order creation when ingredient stock is insufficient', async () => {
+            // Beans remaining: 164. Reorder point: 50.
+            // Attempting to order 15 units requires 18 * 15 = 270 beans (exceeding available 164)
+            const orderPayloadExcess = {
                 orderType: 'TAKE_OUT',
                 orderSource: 'WEBSITE',
                 customerId: testCustomerId,
-                customerName: 'Test Buyer 2',
+                customerName: 'Excess Buyer',
                 items: [
                     {
                         productVariantId: testVariantId,
-                        quantity: 8,
+                        quantity: 15,
                         modifierOptionIds: []
                     }
                 ]
             };
 
-            const resOrder = await request(app).post('/orders').send(orderPayload2);
-            expect(resOrder.status).toBe(201);
-            const orderId2 = resOrder.body.id;
+            const res = await request(app).post('/orders').send(orderPayloadExcess);
+            expect(res.status).toBe(400);
+            const errMsg = res.body.error || res.body.message;
+            expect(errMsg).toContain('Insufficient stock');
 
-            // Complete the order
-            const resComplete2 = await request(app).patch(`/orders/${orderId2}/status`).send({
-                status: 'COMPLETED'
-            });
-            expect(resComplete2.status).toBe(200);
-
+            // Verify stock remained unchanged at 164
             const beansInv = await prisma.ingredientInventory.findFirst({
                 where: { ingredientId: testBeansIngredientId }
             });
-            expect(beansInv?.currentQuantity).toBe(20);
-            expect(beansInv?.status).toBe('CRITICAL');
+            expect(beansInv?.currentQuantity).toBe(164);
+        });
 
-            // Let's order another 2 units: 18 * 2 = 36 units.
-            // Current quantity is 20, so 20 - 36 = -16 -> guarded to 0.
-            // Status should become OUT_OF_STOCK.
-            const orderPayload3 = {
+        it('should restore ingredient stock when an order is CANCELLED', async () => {
+            // Place a new order of 5 units (18 * 5 = 90 beans). Stock becomes 164 - 90 = 74.
+            const orderPayloadCancel = {
                 orderType: 'TAKE_OUT',
                 orderSource: 'WEBSITE',
                 customerId: testCustomerId,
-                customerName: 'Test Buyer 3',
+                customerName: 'Cancel Buyer',
                 items: [
                     {
                         productVariantId: testVariantId,
-                        quantity: 2,
+                        quantity: 5,
                         modifierOptionIds: []
                     }
                 ]
             };
 
-            const resOrder3 = await request(app).post('/orders').send(orderPayload3);
-            expect(resOrder3.status).toBe(201);
-            const orderId3 = resOrder3.body.id;
+            const resOrder = await request(app).post('/orders').send(orderPayloadCancel);
+            expect(resOrder.status).toBe(201);
+            const cancelOrderId = resOrder.body.id;
 
-            // Complete the order
-            const resComplete3 = await request(app).patch(`/orders/${orderId3}/status`).send({
-                status: 'COMPLETED'
-            });
-            expect(resComplete3.status).toBe(200);
-
-            const beansInvFinal = await prisma.ingredientInventory.findFirst({
+            const beansInvBeforeCancel = await prisma.ingredientInventory.findFirst({
                 where: { ingredientId: testBeansIngredientId }
             });
-            expect(beansInvFinal?.currentQuantity).toBe(0);
-            expect(beansInvFinal?.status).toBe('OUT_OF_STOCK');
+            expect(beansInvBeforeCancel?.currentQuantity).toBe(74);
+
+            // Cancel the order
+            const resCancel = await request(app).patch(`/orders/${cancelOrderId}/status`).send({
+                status: 'CANCELLED',
+                notes: 'Customer changed mind'
+            });
+            expect(resCancel.status).toBe(200);
+            expect(resCancel.body.status).toBe('CANCELLED');
+
+            // Verify stock restored back to 164
+            const beansInvAfterCancel = await prisma.ingredientInventory.findFirst({
+                where: { ingredientId: testBeansIngredientId }
+            });
+            expect(beansInvAfterCancel?.currentQuantity).toBe(164);
         });
     });
 });

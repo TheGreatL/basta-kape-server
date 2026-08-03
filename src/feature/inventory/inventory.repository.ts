@@ -313,6 +313,55 @@ export class InventoryRepository extends BaseRepository {
     // 4. TRANSACTION: SYNC STOCK & STATUS ALERTS
     // ==========================================
 
+    async checkIngredientStockAvailability(tx: Prisma.TransactionClient, requirements: Map<string, number>) {
+        const insufficientIngredients: {
+            ingredientId: string;
+            ingredientName: string;
+            required: number;
+            available: number;
+            unit: string;
+        }[] = [];
+
+        for (const [ingredientId, requiredQty] of requirements.entries()) {
+            const ingredient = await tx.ingredient.findUnique({
+                where: { id: ingredientId },
+                include: {
+                    defaultUnit: true,
+                    batches: {
+                        where: { deletedAt: null, currentQuantity: { gt: 0 } }
+                    }
+                }
+            });
+
+            if (!ingredient) {
+                insufficientIngredients.push({
+                    ingredientId,
+                    ingredientName: 'Unknown Ingredient',
+                    required: requiredQty,
+                    available: 0,
+                    unit: ''
+                });
+                continue;
+            }
+
+            const availableQty = ingredient.batches.reduce((sum, b) => sum + Math.max(0, b.currentQuantity), 0);
+            if (availableQty < requiredQty) {
+                insufficientIngredients.push({
+                    ingredientId,
+                    ingredientName: ingredient.name,
+                    required: requiredQty,
+                    available: availableQty,
+                    unit: ingredient.defaultUnit?.abbreviation ?? ingredient.defaultUnit?.name ?? ''
+                });
+            }
+        }
+
+        return {
+            sufficient: insufficientIngredients.length === 0,
+            insufficientIngredients
+        };
+    }
+
     async deductIngredientStockFEFO(
         tx: Prisma.TransactionClient,
         ingredientId: string,
