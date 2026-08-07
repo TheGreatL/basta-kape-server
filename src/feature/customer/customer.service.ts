@@ -174,12 +174,12 @@ export class CustomerService {
             throw new NotFoundException('Cart item not found in customer cart');
         }
 
-        const updatedItem = await this.customerRepository.updateCartItem(customer.id, cartItemId, data.quantity);
+        const updatedItem = await this.customerRepository.updateCartItem(customer.id, cartItemId, data);
 
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Cart Item',
-            details: `Updated cart item quantity to ${data.quantity} for customer ${customer.user.username}.`
+            details: `Updated cart item for customer ${customer.user.username}.`
         });
 
         return updatedItem;

@@ -81,6 +81,11 @@ export async function seedProduct(prisma: PrismaClient) {
             ingredient = await prisma.ingredient.create({
                 data: { name, description, ingredientUnitId: unitId, reorderPoint, createdById: adminId, updatedById: adminId }
             });
+        } else {
+            ingredient = await prisma.ingredient.update({
+                where: { id: ingredient.id },
+                data: { reorderPoint, updatedById: adminId }
+            });
         }
 
         // Ensure inventory exists
@@ -92,6 +97,15 @@ export async function seedProduct(prisma: PrismaClient) {
                     currentQuantity: initialStock,
                     status: initialStock > reorderPoint ? InventoryStatus.SAFE : InventoryStatus.CRITICAL,
                     createdById: adminId,
+                    updatedById: adminId
+                }
+            });
+        } else {
+            await prisma.ingredientInventory.update({
+                where: { id: inventory.id },
+                data: {
+                    currentQuantity: initialStock,
+                    status: initialStock > reorderPoint ? InventoryStatus.SAFE : InventoryStatus.CRITICAL,
                     updatedById: adminId
                 }
             });
@@ -121,6 +135,16 @@ export async function seedProduct(prisma: PrismaClient) {
                     type: 'DELIVERY',
                     reason: 'Initial seed delivery',
                     createdById: adminId
+                }
+            });
+        } else if (batch) {
+            await prisma.ingredientBatch.update({
+                where: { id: batch.id },
+                data: {
+                    quantityReceived: initialStock,
+                    currentQuantity: initialStock,
+                    totalCost: initialStock * batch.unitCost,
+                    updatedById: adminId
                 }
             });
         }
@@ -243,31 +267,31 @@ export async function seedProduct(prisma: PrismaClient) {
     const unitPcs = await getOrCreateUnit('Pieces', 'pcs');
 
     // ==========================================
-    // 4. SEED INGREDIENTS & INITIAL STOCK
+    // 4. SEED INGREDIENTS & INITIAL STOCK (TYPICAL 1-DAY CAFE CONSUMPTION)
     // ==========================================
-    const ingBeans = await getOrCreateIngredient('Espresso Beans', 'Premium roasted coffee beans', unitG.id, 1000, 10000, supplier.id);
-    const ingFreshMilk = await getOrCreateIngredient('Fresh Milk', 'Whole cow milk', unitMl.id, 2000, 20000, supplier.id);
-    const ingOatMilk = await getOrCreateIngredient('Oat Milk', 'Premium barista edition oat milk', unitMl.id, 2000, 15000, supplier.id);
-    const ingCondensedMilk = await getOrCreateIngredient('Condensed Milk', 'Sweetened condensed milk', unitMl.id, 1000, 8000, supplier.id);
-    const ingMatcha = await getOrCreateIngredient('Matcha Powder', 'Ceremonial grade green tea powder', unitG.id, 500, 3000, supplier.id);
-    const ingChocolate = await getOrCreateIngredient('Chocolate Powder', 'Rich dark chocolate cocoa blend', unitG.id, 500, 5000, supplier.id);
-    const ingThaiTea = await getOrCreateIngredient('Thai Tea Leaves', 'Traditional Thai red tea leaves blend', unitG.id, 500, 4000, supplier.id);
-    const ingStrawberry = await getOrCreateIngredient('Strawberry Puree', 'Sweetened strawberry fruit puree', unitMl.id, 1000, 10000, supplier.id);
-    const ingLemonSyrup = await getOrCreateIngredient('Lemon Fruit Syrup', 'Concentrated lemon juice syrup', unitMl.id, 500, 5000, supplier.id);
-    const ingLycheeSyrup = await getOrCreateIngredient('Lychee Fruit Syrup', 'Sweet lychee fruit syrup', unitMl.id, 500, 5000, supplier.id);
-    const ingBiscoffSpread = await getOrCreateIngredient('Biscoff Spread', 'Smooth caramelized cookie butter', unitG.id, 500, 4000, supplier.id);
-    const ingBiscoffCrumbs = await getOrCreateIngredient('Biscoff Crumbs', 'Crushed Biscoff caramel biscuits', unitG.id, 200, 2000, supplier.id);
-    const ingCinnamon = await getOrCreateIngredient('Cinnamon Powder', 'Aromatic ground cinnamon spice', unitG.id, 100, 1000, supplier.id);
-    const ingWhippedCream = await getOrCreateIngredient('Whipped Cream', 'Aerosol/liquid whipping cream', unitMl.id, 500, 5000, supplier.id);
+    const ingBeans = await getOrCreateIngredient('Espresso Beans', 'Premium roasted coffee beans', unitG.id, 500, 2500, supplier.id);
+    const ingFreshMilk = await getOrCreateIngredient('Fresh Milk', 'Whole cow milk', unitMl.id, 2000, 10000, supplier.id);
+    const ingOatMilk = await getOrCreateIngredient('Oat Milk', 'Premium barista edition oat milk', unitMl.id, 600, 3000, supplier.id);
+    const ingCondensedMilk = await getOrCreateIngredient('Condensed Milk', 'Sweetened condensed milk', unitMl.id, 250, 1000, supplier.id);
+    const ingMatcha = await getOrCreateIngredient('Matcha Powder', 'Ceremonial grade green tea powder', unitG.id, 40, 180, supplier.id);
+    const ingChocolate = await getOrCreateIngredient('Chocolate Powder', 'Rich dark chocolate cocoa blend', unitG.id, 100, 400, supplier.id);
+    const ingThaiTea = await getOrCreateIngredient('Thai Tea Leaves', 'Traditional Thai red tea leaves blend', unitG.id, 75, 300, supplier.id);
+    const ingStrawberry = await getOrCreateIngredient('Strawberry Puree', 'Sweetened strawberry fruit puree', unitMl.id, 150, 600, supplier.id);
+    const ingLemonSyrup = await getOrCreateIngredient('Lemon Fruit Syrup', 'Concentrated lemon juice syrup', unitMl.id, 100, 400, supplier.id);
+    const ingLycheeSyrup = await getOrCreateIngredient('Lychee Fruit Syrup', 'Sweet lychee fruit syrup', unitMl.id, 100, 400, supplier.id);
+    const ingBiscoffSpread = await getOrCreateIngredient('Biscoff Spread', 'Smooth caramelized cookie butter', unitG.id, 80, 300, supplier.id);
+    const ingBiscoffCrumbs = await getOrCreateIngredient('Biscoff Crumbs', 'Crushed Biscoff caramel biscuits', unitG.id, 25, 100, supplier.id);
+    const ingCinnamon = await getOrCreateIngredient('Cinnamon Powder', 'Aromatic ground cinnamon spice', unitG.id, 15, 50, supplier.id);
+    const ingWhippedCream = await getOrCreateIngredient('Whipped Cream', 'Aerosol/liquid whipping cream', unitMl.id, 100, 450, supplier.id);
     const ingSeasaltCream = await getOrCreateIngredient(
         'Seasalt Cream Foam',
         'Signature savory-sweet seasalt cream',
         unitMl.id,
-        500,
-        5000,
+        150,
+        600,
         supplier.id
     );
-    const ingWaterBottle = await getOrCreateIngredient('Water Bottle 500ml', 'Bottled purified drinking water', unitPcs.id, 24, 240, supplier.id);
+    const ingWaterBottle = await getOrCreateIngredient('Water Bottle 500ml', 'Bottled purified drinking water', unitPcs.id, 12, 48, supplier.id);
 
     // ==========================================
     // 5. SEED CATEGORIES, TYPES, & ATTRIBUTES

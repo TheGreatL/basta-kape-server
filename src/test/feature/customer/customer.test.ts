@@ -123,11 +123,34 @@ describe('Customer Feature CRUD', () => {
                 price: 150.0
             }
         });
+
+        await prisma.modifierGroup.upsert({
+            where: { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15' },
+            update: {},
+            create: {
+                id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15',
+                name: 'Test Extra Shot Group'
+            }
+        });
+
+        await prisma.modifierOption.upsert({
+            where: { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16' },
+            update: {},
+            create: {
+                id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16',
+                modifierGroupId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15',
+                name: 'Extra Espresso Shot',
+                price: 30.0
+            }
+        });
     });
 
     afterAll(async () => {
         // Cleanup all records created
         if (testCustomerId) {
+            await prisma.customerCartModifier.deleteMany({
+                where: { customerCart: { customerId: testCustomerId } }
+            });
             await prisma.customerCart.deleteMany({
                 where: { customerId: testCustomerId }
             });
@@ -154,6 +177,15 @@ describe('Customer Feature CRUD', () => {
             });
         }
 
+        await prisma.customerCartModifier.deleteMany({
+            where: { modifierOptionId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16' }
+        });
+        await prisma.modifierOption.deleteMany({
+            where: { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16' }
+        });
+        await prisma.modifierGroup.deleteMany({
+            where: { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15' }
+        });
         await prisma.productVariant.deleteMany({
             where: { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14' }
         });
@@ -301,6 +333,51 @@ describe('Customer Feature CRUD', () => {
             // Fetch to check total
             const cartRes = await request(app).get(`/customers/${testCustomerId}/cart`);
             expect(cartRes.body.totalAmount).toBe(750.0);
+        });
+
+        it('should update cart item modifier options successfully', async () => {
+            const payload = {
+                modifierOptionIds: ['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16']
+            };
+
+            const res = await request(app).put(`/customers/${testCustomerId}/cart/${testCartItemId}`).send(payload);
+            expect(res.status).toBe(200);
+            expect(res.body.cartModifiers).toHaveLength(1);
+            expect(res.body.cartModifiers[0].modifierOptionId).toBe('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16');
+
+            // Fetch cart to verify cart modifiers are returned
+            const cartRes = await request(app).get(`/customers/${testCustomerId}/cart`);
+            expect(cartRes.body.items[0].cartModifiers).toHaveLength(1);
+            expect(cartRes.body.items[0].cartModifiers[0].modifierOption.name).toBe('Extra Espresso Shot');
+        });
+
+        it('should merge duplicate cart items into one item with combined quantity when modifiers become identical', async () => {
+            // Add a second cart item for the same variant with NO modifiers
+            const secondItemRes = await request(app).post(`/customers/${testCustomerId}/cart`).send({
+                productVariantId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14',
+                quantity: 2,
+                modifierOptionIds: []
+            });
+            expect(secondItemRes.status).toBe(201);
+            const secondItemId = secondItemRes.body.id;
+
+            // Verify we now have 2 distinct cart items
+            const cartBefore = await request(app).get(`/customers/${testCustomerId}/cart`);
+            expect(cartBefore.body.items).toHaveLength(2);
+
+            // Update the second item's modifiers to match the first item ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16')
+            const updateRes = await request(app)
+                .put(`/customers/${testCustomerId}/cart/${secondItemId}`)
+                .send({
+                    modifierOptionIds: ['a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16']
+                });
+            expect(updateRes.status).toBe(200);
+
+            // Fetch cart: items should have been merged into 1 item with quantity = 5 + 2 = 7!
+            const cartAfter = await request(app).get(`/customers/${testCustomerId}/cart`);
+            expect(cartAfter.body.items).toHaveLength(1);
+            expect(cartAfter.body.items[0].quantity).toBe(7);
+            testCartItemId = cartAfter.body.items[0].id;
         });
 
         it('should remove a specific item from the cart', async () => {

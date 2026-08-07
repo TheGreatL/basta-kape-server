@@ -158,7 +158,6 @@ model CustomerCart {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  @@unique([customerId, productVariantId])
   @@index([productVariantId])
   @@index([customerId])
 }

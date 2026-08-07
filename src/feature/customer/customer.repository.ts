@@ -271,39 +271,39 @@ export class CustomerRepository extends BaseRepository {
     }
 
     /**
-     * Adds an item to the customer's cart. Upserts quantity if already exists.
+     * Adds an item to the customer's cart. Increments quantity if an active item with exact same variant & modifiers exists; otherwise creates a separate cart item.
      */
     async addCartItem(customerId: string, productVariantId: string, quantity: number, unitPrice: number, modifierOptionIds: string[] = []) {
-        const existing = await prisma.customerCart.findUnique({
+        const activeItems = await prisma.customerCart.findMany({
             where: {
-                customerId_productVariantId: { customerId, productVariantId }
+                customerId,
+                productVariantId,
+                deletedAt: null
+            },
+            include: {
+                cartModifiers: true
             }
         });
 
+        const sortedIncoming = [...modifierOptionIds].sort();
+
+        const matchingItem = activeItems.find((item) => {
+            const existingModifierIds = item.cartModifiers.map((cm) => cm.modifierOptionId).sort();
+            if (existingModifierIds.length !== sortedIncoming.length) return false;
+            return existingModifierIds.every((id, idx) => id === sortedIncoming[idx]);
+        });
+
         let cartItem: { id: string };
-        if (existing) {
-            if (existing.deletedAt !== null) {
-                // If soft-deleted previously, reset deletedAt and set quantity directly
-                cartItem = await prisma.customerCart.update({
-                    where: { id: existing.id },
-                    data: {
-                        deletedAt: null,
-                        quantity,
-                        unitPrice
-                    }
-                });
-            } else {
-                // Increment quantity
-                cartItem = await prisma.customerCart.update({
-                    where: { id: existing.id },
-                    data: {
-                        quantity: existing.quantity + quantity,
-                        unitPrice
-                    }
-                });
-            }
+
+        if (matchingItem) {
+            cartItem = await prisma.customerCart.update({
+                where: { id: matchingItem.id },
+                data: {
+                    quantity: matchingItem.quantity + quantity,
+                    unitPrice
+                }
+            });
         } else {
-            // Create fresh
             cartItem = await prisma.customerCart.create({
                 data: {
                     customerId,
@@ -312,21 +312,15 @@ export class CustomerRepository extends BaseRepository {
                     unitPrice
                 }
             });
-        }
 
-        // Clean up previous cart modifiers if any
-        await prisma.customerCartModifier.deleteMany({
-            where: { customerCartId: cartItem.id }
-        });
-
-        // Create new ones
-        if (modifierOptionIds.length > 0) {
-            await prisma.customerCartModifier.createMany({
-                data: modifierOptionIds.map((optId) => ({
-                    customerCartId: cartItem.id,
-                    modifierOptionId: optId
-                }))
-            });
+            if (modifierOptionIds.length > 0) {
+                await prisma.customerCartModifier.createMany({
+                    data: modifierOptionIds.map((optId) => ({
+                        customerCartId: cartItem.id,
+                        modifierOptionId: optId
+                    }))
+                });
+            }
         }
 
         // Fetch the final record with all includes
@@ -346,26 +340,93 @@ export class CustomerRepository extends BaseRepository {
     }
 
     /**
-     * Updates the quantity of a specific cart item.
+     * Updates the quantity and/or modifiers of a specific cart item, merging duplicates if modifier changes match an existing active cart item.
      */
-    async updateCartItem(customerId: string, cartItemId: string, quantity: number) {
-        return prisma.customerCart.update({
-            where: {
-                id: cartItemId,
-                customerId,
-                deletedAt: null
-            },
-            data: { quantity },
-            include: {
-                productVariant: {
-                    include: productVariantInclude
-                },
-                cartModifiers: {
-                    include: {
-                        modifierOption: true
-                    }
+    async updateCartItem(customerId: string, cartItemId: string, data: { quantity?: number; modifierOptionIds?: string[] }) {
+        return prisma.$transaction(async (tx) => {
+            const targetItem = await tx.customerCart.findUniqueOrThrow({
+                where: {
+                    id: cartItemId,
+                    customerId,
+                    deletedAt: null
+                }
+            });
+
+            if (data.quantity !== undefined) {
+                await tx.customerCart.update({
+                    where: { id: cartItemId },
+                    data: { quantity: data.quantity }
+                });
+            }
+
+            if (data.modifierOptionIds !== undefined) {
+                await tx.customerCartModifier.deleteMany({
+                    where: { customerCartId: cartItemId }
+                });
+
+                if (data.modifierOptionIds.length > 0) {
+                    await tx.customerCartModifier.createMany({
+                        data: data.modifierOptionIds.map((optId) => ({
+                            customerCartId: cartItemId,
+                            modifierOptionId: optId
+                        }))
+                    });
                 }
             }
+
+            // Check if another active cart item for this customer has exact same variant and modifier selection
+            const allActiveForVariant = await tx.customerCart.findMany({
+                where: {
+                    customerId,
+                    productVariantId: targetItem.productVariantId,
+                    deletedAt: null
+                },
+                include: {
+                    cartModifiers: true
+                }
+            });
+
+            const currentModifiers = await tx.customerCartModifier.findMany({
+                where: { customerCartId: cartItemId },
+                select: { modifierOptionId: true }
+            });
+            const currentSortedMods = currentModifiers.map((cm) => cm.modifierOptionId).sort();
+
+            const matchingOtherItems = allActiveForVariant.filter((item) => {
+                if (item.id === cartItemId) return false;
+                const otherSortedMods = item.cartModifiers.map((cm) => cm.modifierOptionId).sort();
+                if (otherSortedMods.length !== currentSortedMods.length) return false;
+                return otherSortedMods.every((id, idx) => id === currentSortedMods[idx]);
+            });
+
+            if (matchingOtherItems.length > 0) {
+                const extraQuantity = matchingOtherItems.reduce((sum, item) => sum + item.quantity, 0);
+                const otherItemIds = matchingOtherItems.map((item) => item.id);
+
+                await tx.customerCart.update({
+                    where: { id: cartItemId },
+                    data: { quantity: { increment: extraQuantity } }
+                });
+
+                await tx.customerCart.updateMany({
+                    where: { id: { in: otherItemIds } },
+                    data: { deletedAt: new Date() }
+                });
+            }
+
+            return tx.customerCart.findUniqueOrThrow({
+                where: { id: cartItemId },
+                include: {
+                    productVariant: {
+                        include: productVariantInclude
+                    },
+                    cartModifiers: {
+                        include: {
+                            modifierOption: true
+                        }
+                    }
+                }
+            });
         });
     }
 

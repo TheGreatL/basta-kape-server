@@ -92,9 +92,14 @@ export const AddCartItemSchema = z.object({
 
 export type TAddCartItem = z.infer<typeof AddCartItemSchema>;
 
-export const UpdateCartItemSchema = z.object({
-    quantity: z.number().int().min(1)
-});
+export const UpdateCartItemSchema = z
+    .object({
+        quantity: z.number().int().min(1).optional(),
+        modifierOptionIds: z.array(z.string().uuid()).optional()
+    })
+    .refine((data) => data.quantity !== undefined || data.modifierOptionIds !== undefined, {
+        message: 'At least one of quantity or modifierOptionIds must be provided'
+    });
 
 export type TUpdateCartItem = z.infer<typeof UpdateCartItemSchema>;
 
