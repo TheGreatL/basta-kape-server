@@ -3,6 +3,25 @@ import PDFDocument from 'pdfkit';
 import { getOrderReference } from './order.utils';
 
 /**
+ * Formats the product name and variant SKU for receipt display,
+ * preventing redundant product name repetition (e.g. "Americano (ICED 16OZ)" instead of "Americano (AMERICANO-ICED 16OZ)").
+ */
+function formatReceiptItemName(productName: string, sku?: string | null): string {
+    const name = productName || 'Item';
+    if (!sku) return name;
+
+    const escapedName = name.replace(/[-[\]{}()*+?.:=\\^$|#\s]/g, '\\$&');
+    const cleanSku = sku.replace(new RegExp(`^${escapedName}[-\\s_]*`, 'i'), '').trim();
+
+    if (cleanSku && cleanSku.toLowerCase() !== name.toLowerCase()) {
+        return `${name} (${cleanSku})`;
+    } else if (!cleanSku) {
+        return name;
+    }
+    return `${name} (${sku})`;
+}
+
+/**
  * Generates a plain text thermal layout for the receipt (40-column width)
  */
 export function generateTextReceipt(
@@ -71,17 +90,18 @@ export function generateTextReceipt(
     lines.push(divider);
 
     for (const item of order.items) {
-        const name = item.variant?.product?.name || 'Item';
-        const variantLabel = item.variant?.sku ? ` (${item.variant.sku})` : '';
-        const itemLine = `${name}${variantLabel}`;
-        const priceLabel = `PHP ${item.totalPrice.toFixed(2)}`;
+        const itemLine = formatReceiptItemName(item.variant?.product?.name || 'Item', item.variant?.sku);
+        const modTotalPerUnit = item.modifiers ? item.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+        const baseItemPrice = Math.max(0, item.totalPrice - modTotalPerUnit * item.quantity);
+        const priceLabel = `PHP ${baseItemPrice.toFixed(2)}`;
 
         lines.push(leftRight(itemLine.slice(0, 24), `${item.quantity.toString().padStart(3)}  ${priceLabel}`));
 
         if (item.modifiers && item.modifiers.length > 0) {
             for (const mod of item.modifiers) {
                 const modName = `  + ${mod.modifierOption?.name || 'Option'}`;
-                const modPrice = `PHP ${mod.price.toFixed(2)}`;
+                const modTotalPrice = mod.price * item.quantity;
+                const modPrice = `PHP ${modTotalPrice.toFixed(2)}`;
                 lines.push(leftRight(modName.slice(0, 24), `     ${modPrice}`));
             }
         }
@@ -193,9 +213,9 @@ export function generateHtmlReceipt(
                     };
                 }>
             ) => {
-                const name = item.variant?.product?.name || 'Item';
-                const variantLabel = item.variant?.sku ? ` (${item.variant.sku})` : '';
-                const itemName = `${name}${variantLabel}`;
+                const itemName = formatReceiptItemName(item.variant?.product?.name || 'Item', item.variant?.sku);
+                const modTotalPerUnit = item.modifiers ? item.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+                const baseItemPrice = Math.max(0, item.totalPrice - modTotalPerUnit * item.quantity);
 
                 let modHtml = '';
                 if (item.modifiers && item.modifiers.length > 0) {
@@ -207,12 +227,15 @@ export function generateHtmlReceipt(
                                         modifierOption: true;
                                     };
                                 }>
-                            ) => `
+                            ) => {
+                                const modTotalPrice = mod.price * item.quantity;
+                                return `
                 <div class="receipt-item-modifier">
                     <span>&nbsp;&nbsp;+ ${mod.modifierOption?.name || 'Option'}</span>
-                    <span>PHP ${mod.price.toFixed(2)}</span>
+                    <span>PHP ${modTotalPrice.toFixed(2)}</span>
                 </div>
-            `
+            `;
+                            }
                         )
                         .join('');
                 }
@@ -221,7 +244,7 @@ export function generateHtmlReceipt(
             <div class="receipt-item-row">
                 <span class="item-name">${itemName}</span>
                 <span class="item-qty">${item.quantity}</span>
-                <span class="item-price">PHP ${item.totalPrice.toFixed(2)}</span>
+                <span class="item-price">PHP ${baseItemPrice.toFixed(2)}</span>
             </div>
             ${modHtml}
         `;
@@ -615,11 +638,11 @@ export async function generatePdfReceipt(
         // Custom point height computation for continuous thermal paper size mapping
         const headerHeight = 90;
         const metaHeight = 81;
-        const itemsHeight = 20 + itemsCount * 22 + modifiersCount * 14;
+        const itemsHeight = 20 + itemsCount * 28 + modifiersCount * 16;
         const totalsHeight = 70 + discountsCount * 14;
         const paymentsHeight = paymentsCount > 0 ? 20 + paymentsCount * 25 : 0;
         const footerHeight = 85;
-        const totalHeight = headerHeight + metaHeight + itemsHeight + totalsHeight + paymentsHeight + footerHeight + 40;
+        const totalHeight = headerHeight + metaHeight + itemsHeight + totalsHeight + paymentsHeight + footerHeight + 60;
 
         // 80mm width standard thermal paper maps to ~226 PDF points (1 pt = 1/72 inch)
         const doc = new PDFDocument({
@@ -695,21 +718,42 @@ export async function generatePdfReceipt(
 
         // Items iteration
         for (const item of order.items) {
-            const name = item.variant?.product?.name || 'Item';
-            const variantLabel = item.variant?.sku ? ` (${item.variant.sku})` : '';
-            const itemName = `${name}${variantLabel}`;
+            const itemName = formatReceiptItemName(item.variant?.product?.name || 'Item', item.variant?.sku);
+            const modTotalPerUnit = item.modifiers ? item.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+            const baseItemPrice = Math.max(0, item.totalPrice - modTotalPerUnit * item.quantity);
 
-            doc.font('Helvetica-Bold').fontSize(8).text(itemName, 15, y, { width: 115, lineBreak: false });
-            doc.font('Helvetica').text(item.quantity.toString(), 135, y, { align: 'center', width: 25 });
-            doc.text(`PHP ${item.totalPrice.toFixed(2)}`, 160, y, { align: 'right', width: 51 });
-            y += 12;
+            doc.font('Helvetica-Bold').fontSize(8);
+            const itemNameWidth = 115;
+            const nameHeight = doc.heightOfString(itemName, { width: itemNameWidth });
+
+            const itemStartY = y;
+
+            // Render Item Name (allowing line break so wrapped text is rendered cleanly)
+            doc.fillColor('#1f2937').text(itemName, 15, itemStartY, { width: itemNameWidth, lineBreak: true });
+
+            // Render Qty and Base Item Price aligned to top of item row
+            doc.font('Helvetica').fontSize(8);
+            doc.text(item.quantity.toString(), 135, itemStartY, { align: 'center', width: 25 });
+            doc.text(`PHP ${baseItemPrice.toFixed(2)}`, 160, itemStartY, { align: 'right', width: 51 });
+
+            // Advance Y by the actual height of the item name + padding
+            y = itemStartY + Math.max(12, nameHeight) + 2;
 
             if (item.modifiers && item.modifiers.length > 0) {
                 for (const mod of item.modifiers) {
+                    const modText = `  + ${mod.modifierOption?.name || 'Option'}`;
+                    const modTotalPrice = mod.price * item.quantity;
+                    const modPrice = `PHP ${modTotalPrice.toFixed(2)}`;
+
                     doc.font('Helvetica').fontSize(7.5).fillColor('#4b5563');
-                    doc.text(`  + ${mod.modifierOption?.name || 'Option'}`, 15, y, { width: 130, lineBreak: false });
-                    doc.text(`PHP ${mod.price.toFixed(2)}`, 160, y, { align: 'right', width: 51 });
-                    y += 11;
+                    const modWidth = 130;
+                    const modHeight = doc.heightOfString(modText, { width: modWidth });
+
+                    const modStartY = y;
+                    doc.text(modText, 15, modStartY, { width: modWidth, lineBreak: true });
+                    doc.text(modPrice, 160, modStartY, { align: 'right', width: 51 });
+
+                    y = modStartY + Math.max(11, modHeight) + 1;
                 }
             }
             y += 2;
