@@ -1,4 +1,4 @@
-import { PrismaClient, InventoryStatus } from '@prisma/client';
+import { PrismaClient, InventoryStatus, ProductVariant } from '@prisma/client';
 
 export async function seedProduct(prisma: PrismaClient) {
     console.log('Seeding explicitly: Products, Recipes, Inventory, and Suppliers...');
@@ -60,11 +60,16 @@ export async function seedProduct(prisma: PrismaClient) {
         });
     };
 
-    const getOrCreateUnit = async (name: string, abbreviation: string) => {
+    const getOrCreateUnit = async (name: string, abbreviation: string, category: 'ALL' | 'INGREDIENT' | 'PACKAGING_MATERIAL' | 'SUPPLY' = 'ALL') => {
         const found = await prisma.ingredientUnit.findFirst({ where: { name, deletedAt: null } });
-        if (found) return found;
+        if (found) {
+            return prisma.ingredientUnit.update({
+                where: { id: found.id },
+                data: { category, abbreviation, updatedById: adminId }
+            });
+        }
         return prisma.ingredientUnit.create({
-            data: { name, abbreviation, createdById: adminId, updatedById: adminId }
+            data: { name, abbreviation, category, createdById: adminId, updatedById: adminId }
         });
     };
 
@@ -74,17 +79,18 @@ export async function seedProduct(prisma: PrismaClient) {
         unitId: string,
         reorderPoint: number,
         initialStock: number,
-        supplierId: string | null = null
+        supplierId: string | null = null,
+        type: 'INGREDIENT' | 'PACKAGING_MATERIAL' | 'SUPPLY' = 'INGREDIENT'
     ) => {
         let ingredient = await prisma.ingredient.findFirst({ where: { name, deletedAt: null } });
         if (!ingredient) {
             ingredient = await prisma.ingredient.create({
-                data: { name, description, ingredientUnitId: unitId, reorderPoint, createdById: adminId, updatedById: adminId }
+                data: { name, description, type, ingredientUnitId: unitId, reorderPoint, createdById: adminId, updatedById: adminId }
             });
         } else {
             ingredient = await prisma.ingredient.update({
                 where: { id: ingredient.id },
-                data: { reorderPoint, updatedById: adminId }
+                data: { reorderPoint, type, updatedById: adminId }
             });
         }
 
@@ -168,19 +174,34 @@ export async function seedProduct(prisma: PrismaClient) {
     };
 
     const getOrCreateVariant = async (productId: string, sku: string, price: number, attributeValueIds: string[]) => {
-        let variant = await prisma.productVariant.findFirst({
+        let variant = await prisma.productVariant.findUnique({
             where: { sku }
         });
         if (!variant) {
-            variant = await prisma.productVariant.create({
-                data: {
-                    productId,
-                    sku,
-                    price,
-                    createdById: adminId,
-                    updatedById: adminId
+            try {
+                variant = await prisma.productVariant.create({
+                    data: {
+                        productId,
+                        sku,
+                        price,
+                        createdById: adminId,
+                        updatedById: adminId
+                    }
+                });
+            } catch (error: unknown) {
+                if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
+                    variant = await prisma.productVariant.findFirst({
+                        where: { sku }
+                    });
+                    if (variant) {
+                        variant = await prisma.productVariant.update({
+                            where: { id: variant.id },
+                            data: { price, deletedAt: null, updatedById: adminId }
+                        });
+                    }
                 }
-            });
+                if (!variant) throw error;
+            }
         } else {
             if (variant.price !== price || variant.deletedAt !== null) {
                 variant = await prisma.productVariant.update({
@@ -239,7 +260,15 @@ export async function seedProduct(prisma: PrismaClient) {
         const found = await prisma.recipeIngredient.findFirst({
             where: { recipeId, ingredientId, deletedAt: null }
         });
-        if (found) return found;
+        if (found) {
+            if (found.quantity !== quantity || found.ingredientUnitId !== unitId) {
+                return prisma.recipeIngredient.update({
+                    where: { id: found.id },
+                    data: { quantity, ingredientUnitId: unitId, updatedById: adminId }
+                });
+            }
+            return found;
+        }
         return prisma.recipeIngredient.create({
             data: {
                 recipeId,
@@ -262,36 +291,204 @@ export async function seedProduct(prisma: PrismaClient) {
         '09123456789'
     );
 
-    const unitG = await getOrCreateUnit('Grams', 'g');
-    const unitMl = await getOrCreateUnit('Milliliters', 'ml');
-    const unitPcs = await getOrCreateUnit('Pieces', 'pcs');
+    const unitG = await getOrCreateUnit('Grams', 'g', 'INGREDIENT');
+    const unitMl = await getOrCreateUnit('Milliliters', 'ml', 'INGREDIENT');
+    const unitPcs = await getOrCreateUnit('Pieces', 'pcs', 'ALL');
+    const unitPack = await getOrCreateUnit('Pack', 'pack', 'PACKAGING_MATERIAL');
+    const unitBox = await getOrCreateUnit('Box', 'box', 'PACKAGING_MATERIAL');
+    const unitSleeve = await getOrCreateUnit('Sleeve', 'sleeve', 'PACKAGING_MATERIAL');
 
     // ==========================================
-    // 4. SEED INGREDIENTS & INITIAL STOCK (TYPICAL 1-DAY CAFE CONSUMPTION)
+    // 4. SEED INGREDIENTS & PACKAGING MATERIALS (WITH INITIAL STOCK)
     // ==========================================
-    const ingBeans = await getOrCreateIngredient('Espresso Beans', 'Premium roasted coffee beans', unitG.id, 500, 2500, supplier.id);
-    const ingFreshMilk = await getOrCreateIngredient('Fresh Milk', 'Whole cow milk', unitMl.id, 2000, 10000, supplier.id);
-    const ingOatMilk = await getOrCreateIngredient('Oat Milk', 'Premium barista edition oat milk', unitMl.id, 600, 3000, supplier.id);
-    const ingCondensedMilk = await getOrCreateIngredient('Condensed Milk', 'Sweetened condensed milk', unitMl.id, 250, 1000, supplier.id);
-    const ingMatcha = await getOrCreateIngredient('Matcha Powder', 'Ceremonial grade green tea powder', unitG.id, 40, 180, supplier.id);
-    const ingChocolate = await getOrCreateIngredient('Chocolate Powder', 'Rich dark chocolate cocoa blend', unitG.id, 100, 400, supplier.id);
-    const ingThaiTea = await getOrCreateIngredient('Thai Tea Leaves', 'Traditional Thai red tea leaves blend', unitG.id, 75, 300, supplier.id);
-    const ingStrawberry = await getOrCreateIngredient('Strawberry Puree', 'Sweetened strawberry fruit puree', unitMl.id, 150, 600, supplier.id);
-    const ingLemonSyrup = await getOrCreateIngredient('Lemon Fruit Syrup', 'Concentrated lemon juice syrup', unitMl.id, 100, 400, supplier.id);
-    const ingLycheeSyrup = await getOrCreateIngredient('Lychee Fruit Syrup', 'Sweet lychee fruit syrup', unitMl.id, 100, 400, supplier.id);
-    const ingBiscoffSpread = await getOrCreateIngredient('Biscoff Spread', 'Smooth caramelized cookie butter', unitG.id, 80, 300, supplier.id);
-    const ingBiscoffCrumbs = await getOrCreateIngredient('Biscoff Crumbs', 'Crushed Biscoff caramel biscuits', unitG.id, 25, 100, supplier.id);
-    const ingCinnamon = await getOrCreateIngredient('Cinnamon Powder', 'Aromatic ground cinnamon spice', unitG.id, 15, 50, supplier.id);
-    const ingWhippedCream = await getOrCreateIngredient('Whipped Cream', 'Aerosol/liquid whipping cream', unitMl.id, 100, 450, supplier.id);
+    // Raw Ingredients
+    const ingBeans = await getOrCreateIngredient('Espresso Beans', 'Premium roasted coffee beans', unitG.id, 500, 2500, supplier.id, 'INGREDIENT');
+    const ingFreshMilk = await getOrCreateIngredient('Fresh Milk', 'Whole cow milk', unitMl.id, 2000, 10000, supplier.id, 'INGREDIENT');
+    const ingOatMilk = await getOrCreateIngredient('Oat Milk', 'Premium barista edition oat milk', unitMl.id, 600, 3000, supplier.id, 'INGREDIENT');
+    const ingCondensedMilk = await getOrCreateIngredient(
+        'Condensed Milk',
+        'Sweetened condensed milk',
+        unitMl.id,
+        250,
+        1000,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingMatcha = await getOrCreateIngredient('Matcha Powder', 'Ceremonial grade green tea powder', unitG.id, 40, 180, supplier.id, 'INGREDIENT');
+    const ingChocolate = await getOrCreateIngredient(
+        'Chocolate Powder',
+        'Rich dark chocolate cocoa blend',
+        unitG.id,
+        100,
+        400,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingThaiTea = await getOrCreateIngredient(
+        'Thai Tea Leaves',
+        'Traditional Thai red tea leaves blend',
+        unitG.id,
+        75,
+        300,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingStrawberry = await getOrCreateIngredient(
+        'Strawberry Puree',
+        'Sweetened strawberry fruit puree',
+        unitMl.id,
+        150,
+        600,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingLemonSyrup = await getOrCreateIngredient(
+        'Lemon Fruit Syrup',
+        'Concentrated lemon juice syrup',
+        unitMl.id,
+        100,
+        400,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingLycheeSyrup = await getOrCreateIngredient(
+        'Lychee Fruit Syrup',
+        'Sweet lychee fruit syrup',
+        unitMl.id,
+        100,
+        400,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingBiscoffSpread = await getOrCreateIngredient(
+        'Biscoff Spread',
+        'Smooth caramelized cookie butter',
+        unitG.id,
+        80,
+        300,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingBiscoffCrumbs = await getOrCreateIngredient(
+        'Biscoff Crumbs',
+        'Crushed Biscoff caramel biscuits',
+        unitG.id,
+        25,
+        100,
+        supplier.id,
+        'INGREDIENT'
+    );
+    const ingCinnamon = await getOrCreateIngredient('Cinnamon Powder', 'Aromatic ground cinnamon spice', unitG.id, 15, 50, supplier.id, 'INGREDIENT');
+    const ingWhippedCream = await getOrCreateIngredient(
+        'Whipped Cream',
+        'Aerosol/liquid whipping cream',
+        unitMl.id,
+        100,
+        450,
+        supplier.id,
+        'INGREDIENT'
+    );
     const ingSeasaltCream = await getOrCreateIngredient(
         'Seasalt Cream Foam',
         'Signature savory-sweet seasalt cream',
         unitMl.id,
         150,
         600,
-        supplier.id
+        supplier.id,
+        'INGREDIENT'
     );
-    const ingWaterBottle = await getOrCreateIngredient('Water Bottle 500ml', 'Bottled purified drinking water', unitPcs.id, 12, 48, supplier.id);
+    const ingWaterBottle = await getOrCreateIngredient(
+        'Water Bottle 500ml',
+        'Bottled purified drinking water',
+        unitPcs.id,
+        12,
+        48,
+        supplier.id,
+        'INGREDIENT'
+    );
+
+    // Packaging Materials
+    const matPaperCup12oz = await getOrCreateIngredient(
+        '12oz Paper Cup',
+        'Hot drink paper cup 12oz',
+        unitSleeve.id,
+        50,
+        500,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matColdCup16oz = await getOrCreateIngredient(
+        '16oz PET Plastic Cup',
+        'Iced drink plastic cup 16oz',
+        unitSleeve.id,
+        50,
+        500,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matColdCup22oz = await getOrCreateIngredient(
+        '22oz PET Plastic Cup',
+        'Iced drink plastic cup 22oz',
+        unitSleeve.id,
+        50,
+        500,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matHotLid = await getOrCreateIngredient(
+        '12oz Hot Drink Lid',
+        'Plastic sip lid for 12oz hot cup',
+        unitPack.id,
+        50,
+        500,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matDomeLid = await getOrCreateIngredient(
+        'Plastic Dome Lid',
+        'Dome lid for 16oz/22oz iced cup',
+        unitPack.id,
+        50,
+        500,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matStraw = await getOrCreateIngredient(
+        'Eco Drink Straw',
+        'Individually wrapped drink straw',
+        unitPack.id,
+        100,
+        1000,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matPaperSleeve = await getOrCreateIngredient(
+        'Paper Cup Sleeve',
+        'Corrugated cardboard hot sleeve',
+        unitSleeve.id,
+        50,
+        500,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matCarrierBox = await getOrCreateIngredient(
+        'Takeaway Carrier Box',
+        'Corrugated 2-cup takeaway box',
+        unitBox.id,
+        20,
+        200,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
+    const matTakeawayPack = await getOrCreateIngredient(
+        'Takeaway Pack Bag',
+        'Padded takeaway drink pack bag',
+        unitPack.id,
+        30,
+        300,
+        supplier.id,
+        'PACKAGING_MATERIAL'
+    );
 
     // ==========================================
     // 5. SEED CATEGORIES, TYPES, & ATTRIBUTES
@@ -419,98 +616,121 @@ export async function seedProduct(prisma: PrismaClient) {
     // ==========================================
     // 7. SEED RECIPES
     // ==========================================
-    // Seed sample recipes for inventory management validation:
-    // Americano (12oz, 16oz, 22oz)
-    const amHot12 = seededEspressoProducts.find((p) => p.product.name === 'Americano')?.variants.find((v) => v.size === '12oz');
-    const amIced16 = seededEspressoProducts.find((p) => p.product.name === 'Americano')?.variants.find((v) => v.size === '16oz');
-    const amIced22 = seededEspressoProducts.find((p) => p.product.name === 'Americano')?.variants.find((v) => v.size === '22oz');
+    const attachPackagingMaterials = async (recipeId: string, temp: string, size: string) => {
+        if (temp === 'Hot' && size === '12oz') {
+            await getOrCreateRecipeIngredient(recipeId, matPaperCup12oz.id, 1, unitPcs.id);
+            await getOrCreateRecipeIngredient(recipeId, matHotLid.id, 1, unitPcs.id);
+            await getOrCreateRecipeIngredient(recipeId, matPaperSleeve.id, 1, unitSleeve.id);
+        } else if (temp === 'Iced' && size === '16oz') {
+            await getOrCreateRecipeIngredient(recipeId, matColdCup16oz.id, 1, unitPcs.id);
+            await getOrCreateRecipeIngredient(recipeId, matDomeLid.id, 1, unitPcs.id);
+            await getOrCreateRecipeIngredient(recipeId, matStraw.id, 1, unitPcs.id);
+        } else if (temp === 'Iced' && size === '22oz') {
+            await getOrCreateRecipeIngredient(recipeId, matColdCup22oz.id, 1, unitPcs.id);
+            await getOrCreateRecipeIngredient(recipeId, matDomeLid.id, 1, unitPcs.id);
+            await getOrCreateRecipeIngredient(recipeId, matStraw.id, 1, unitPcs.id);
+        }
+    };
 
-    if (amHot12) {
-        const rec = await getOrCreateVariantRecipe(amHot12.variant.id, 'Americano Hot 12oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingBeans.id, 18, unitG.id);
-    }
-    if (amIced16) {
-        const rec = await getOrCreateVariantRecipe(amIced16.variant.id, 'Americano Iced 16oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingBeans.id, 18, unitG.id);
-    }
-    if (amIced22) {
-        const rec = await getOrCreateVariantRecipe(amIced22.variant.id, 'Americano Iced 22oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingBeans.id, 27, unitG.id);
-    }
+    const seedRecipeWithPackaging = async (
+        variantObj: { variant: ProductVariant; temp: string; size: string } | undefined,
+        recipeName: string,
+        rawIngredients: { ingredientId: string; quantity: number; unitId: string }[]
+    ) => {
+        if (!variantObj) return;
+        const rec = await getOrCreateVariantRecipe(variantObj.variant.id, recipeName);
+        for (const ing of rawIngredients) {
+            await getOrCreateRecipeIngredient(rec.id, ing.ingredientId, ing.quantity, ing.unitId);
+        }
+        await attachPackagingMaterials(rec.id, variantObj.temp, variantObj.size);
+        return rec;
+    };
 
-    // Biscoff Latte Hot 12oz Recipe
-    const bisHot12 = seededSignatureProducts.find((p) => p.product.name === 'Biscoff Latte')?.variants.find((v) => v.size === '12oz');
-    if (bisHot12) {
-        const rec = await getOrCreateVariantRecipe(bisHot12.variant.id, 'Biscoff Latte Hot 12oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingBeans.id, 18, unitG.id);
-        await getOrCreateRecipeIngredient(rec.id, ingFreshMilk.id, 150, unitMl.id);
-        await getOrCreateRecipeIngredient(rec.id, ingBiscoffSpread.id, 20, unitG.id);
-        await getOrCreateRecipeIngredient(rec.id, ingBiscoffCrumbs.id, 5, unitG.id);
-    }
+    // Loop all seeded drink products & variants to generate recipes with ingredients and packaging materials
+    const allSeededDrinks = [...seededEspressoProducts, ...seededSignatureProducts, ...seededNonCoffeeProducts];
 
-    // Cinnamon Oat Latte Recipe
-    const cinHot12 = seededSignatureProducts.find((p) => p.product.name === 'Cinnamon Oat Latte')?.variants.find((v) => v.size === '12oz');
-    if (cinHot12) {
-        const rec = await getOrCreateVariantRecipe(cinHot12.variant.id, 'Cinnamon Oat Latte Hot 12oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingBeans.id, 18, unitG.id);
-        await getOrCreateRecipeIngredient(rec.id, ingOatMilk.id, 150, unitMl.id);
-        await getOrCreateRecipeIngredient(rec.id, ingCinnamon.id, 1, unitG.id);
-    }
+    for (const { product, variants } of allSeededDrinks) {
+        for (const vObj of variants) {
+            const recipeName = `${product.name} ${vObj.temp} ${vObj.size} Recipe`;
+            const is22oz = vObj.size === '22oz';
+            const mult = is22oz ? 1.5 : 1.0;
 
-    // Matcha Latte Recipe
-    const matHot12 = seededNonCoffeeProducts.find((p) => p.product.name === 'Matcha Latte')?.variants.find((v) => v.size === '12oz');
-    if (matHot12) {
-        const rec = await getOrCreateVariantRecipe(matHot12.variant.id, 'Matcha Latte Hot 12oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingMatcha.id, 6, unitG.id);
-        await getOrCreateRecipeIngredient(rec.id, ingFreshMilk.id, 150, unitMl.id);
-    }
+            const rawIngredients: { ingredientId: string; quantity: number; unitId: string }[] = [];
 
-    // Strawberry Milk Recipe
-    const strIced16 = seededNonCoffeeProducts.find((p) => p.product.name === 'Strawberry Milk')?.variants.find((v) => v.size === '16oz');
-    if (strIced16) {
-        const rec = await getOrCreateVariantRecipe(strIced16.variant.id, 'Strawberry Milk Iced 16oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingStrawberry.id, 30, unitMl.id);
-        await getOrCreateRecipeIngredient(rec.id, ingFreshMilk.id, 150, unitMl.id);
-    }
+            switch (product.name) {
+                case 'Americano':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    break;
+                case 'Cappucino/Latte':
+                case 'Hazelnut Latte':
+                case 'Caramel Latte':
+                case 'White Mocha Latte':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(150 * mult), unitId: unitMl.id });
+                    break;
+                case 'Spanish Latte':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(120 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingCondensedMilk.id, quantity: Math.round(30 * mult), unitId: unitMl.id });
+                    break;
+                case 'Dark Mocha Latte':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(150 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingChocolate.id, quantity: Math.round(15 * mult), unitId: unitG.id });
+                    break;
+                case 'Dirty Matcha':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(120 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingMatcha.id, quantity: Math.round(6 * mult), unitId: unitG.id });
+                    break;
+                case 'Biscoff Latte':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(150 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingBiscoffSpread.id, quantity: Math.round(20 * mult), unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingBiscoffCrumbs.id, quantity: Math.round(5 * mult), unitId: unitG.id });
+                    break;
+                case 'Creamy Seasalt Latte':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(120 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingSeasaltCream.id, quantity: Math.round(30 * mult), unitId: unitMl.id });
+                    break;
+                case 'Cinnamon Oat Latte':
+                    rawIngredients.push({ ingredientId: ingBeans.id, quantity: is22oz ? 27 : 18, unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingOatMilk.id, quantity: Math.round(150 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingCinnamon.id, quantity: is22oz ? 2 : 1, unitId: unitG.id });
+                    break;
+                case 'Matcha Latte':
+                    rawIngredients.push({ ingredientId: ingMatcha.id, quantity: Math.round(6 * mult), unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(150 * mult), unitId: unitMl.id });
+                    break;
+                case 'Strawberry Milk':
+                    rawIngredients.push({ ingredientId: ingStrawberry.id, quantity: Math.round(30 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(150 * mult), unitId: unitMl.id });
+                    break;
+                case 'Strawberry Matcha':
+                    rawIngredients.push({ ingredientId: ingStrawberry.id, quantity: Math.round(20 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(120 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingMatcha.id, quantity: Math.round(4 * mult), unitId: unitG.id });
+                    break;
+                case 'Dark Chocolate':
+                    rawIngredients.push({ ingredientId: ingChocolate.id, quantity: Math.round(20 * mult), unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(150 * mult), unitId: unitMl.id });
+                    break;
+                case 'Thai Milktea':
+                    rawIngredients.push({ ingredientId: ingThaiTea.id, quantity: Math.round(15 * mult), unitId: unitG.id });
+                    rawIngredients.push({ ingredientId: ingCondensedMilk.id, quantity: Math.round(30 * mult), unitId: unitMl.id });
+                    rawIngredients.push({ ingredientId: ingFreshMilk.id, quantity: Math.round(120 * mult), unitId: unitMl.id });
+                    break;
+                case 'Lemon Fruit Tea':
+                    rawIngredients.push({ ingredientId: ingLemonSyrup.id, quantity: Math.round(40 * mult), unitId: unitMl.id });
+                    break;
+                case 'Lychee Fruit Tea':
+                    rawIngredients.push({ ingredientId: ingLycheeSyrup.id, quantity: Math.round(40 * mult), unitId: unitMl.id });
+                    break;
+            }
 
-    // Strawberry Matcha Recipe
-    const strMatIced16 = seededNonCoffeeProducts.find((p) => p.product.name === 'Strawberry Matcha')?.variants.find((v) => v.size === '16oz');
-    if (strMatIced16) {
-        const rec = await getOrCreateVariantRecipe(strMatIced16.variant.id, 'Strawberry Matcha Iced 16oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingStrawberry.id, 20, unitMl.id);
-        await getOrCreateRecipeIngredient(rec.id, ingFreshMilk.id, 120, unitMl.id);
-        await getOrCreateRecipeIngredient(rec.id, ingMatcha.id, 4, unitG.id);
-    }
-
-    // Dark Chocolate Recipe
-    const chocHot12 = seededNonCoffeeProducts.find((p) => p.product.name === 'Dark Chocolate')?.variants.find((v) => v.size === '12oz');
-    if (chocHot12) {
-        const rec = await getOrCreateVariantRecipe(chocHot12.variant.id, 'Dark Chocolate Hot 12oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingChocolate.id, 20, unitG.id);
-        await getOrCreateRecipeIngredient(rec.id, ingFreshMilk.id, 150, unitMl.id);
-    }
-
-    // Thai Milktea Recipe
-    const thaiIced16 = seededNonCoffeeProducts.find((p) => p.product.name === 'Thai Milktea')?.variants.find((v) => v.size === '16oz');
-    if (thaiIced16) {
-        const rec = await getOrCreateVariantRecipe(thaiIced16.variant.id, 'Thai Milktea Iced 16oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingThaiTea.id, 15, unitG.id);
-        await getOrCreateRecipeIngredient(rec.id, ingCondensedMilk.id, 30, unitMl.id);
-        await getOrCreateRecipeIngredient(rec.id, ingFreshMilk.id, 120, unitMl.id);
-    }
-
-    // Lemon Fruit Tea Recipe
-    const lemIced16 = seededNonCoffeeProducts.find((p) => p.product.name === 'Lemon Fruit Tea')?.variants.find((v) => v.size === '16oz');
-    if (lemIced16) {
-        const rec = await getOrCreateVariantRecipe(lemIced16.variant.id, 'Lemon Fruit Tea Iced 16oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingLemonSyrup.id, 40, unitMl.id);
-    }
-
-    // Lychee Fruit Tea Recipe
-    const lycIced16 = seededNonCoffeeProducts.find((p) => p.product.name === 'Lychee Fruit Tea')?.variants.find((v) => v.size === '16oz');
-    if (lycIced16) {
-        const rec = await getOrCreateVariantRecipe(lycIced16.variant.id, 'Lychee Fruit Tea Iced 16oz Recipe');
-        await getOrCreateRecipeIngredient(rec.id, ingLycheeSyrup.id, 40, unitMl.id);
+            await seedRecipeWithPackaging(vObj, recipeName, rawIngredients);
+        }
     }
 
     // Bottled Water Recipe
@@ -531,7 +751,9 @@ export async function seedProduct(prisma: PrismaClient) {
         { name: 'Oat Milk', price: 55, ing: ingOatMilk, qty: 200, unit: unitMl },
         { name: 'Espresso Shot', price: 35, ing: ingBeans, qty: 9, unit: unitG },
         { name: 'Whipped Cream', price: 30, ing: ingWhippedCream, qty: 15, unit: unitMl },
-        { name: 'Seasalt Cream', price: 25, ing: ingSeasaltCream, qty: 30, unit: unitMl }
+        { name: 'Seasalt Cream', price: 25, ing: ingSeasaltCream, qty: 30, unit: unitMl },
+        { name: 'Takeaway Carrier Box', price: 15, ing: matCarrierBox, qty: 1, unit: unitBox },
+        { name: 'Takeaway Pack Bag', price: 10, ing: matTakeawayPack, qty: 1, unit: unitPack }
     ];
 
     for (const prod of allBeverages) {

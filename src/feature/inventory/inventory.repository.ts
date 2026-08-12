@@ -23,6 +23,7 @@ export class InventoryRepository extends BaseRepository {
             data: {
                 name: data.name,
                 abbreviation: data.abbreviation,
+                category: data.category || 'ALL',
                 createdById: actorId,
                 updatedById: actorId
             },
@@ -90,8 +91,21 @@ export class InventoryRepository extends BaseRepository {
             where.deletedAt = { not: null };
         }
 
+        if (params.category) {
+            where.OR = [{ category: params.category }, { category: 'ALL' }];
+        }
+
         if (params.search) {
-            where.OR = [{ name: { contains: params.search } }, { abbreviation: { contains: params.search } }];
+            const searchCondition: Prisma.IngredientUnitWhereInput[] = [
+                { name: { contains: params.search } },
+                { abbreviation: { contains: params.search } }
+            ];
+            if (where.OR) {
+                where.AND = [{ OR: where.OR }, { OR: searchCondition }];
+                delete where.OR;
+            } else {
+                where.OR = searchCondition;
+            }
         }
 
         const [data, totalRows] = await Promise.all([
@@ -121,6 +135,7 @@ export class InventoryRepository extends BaseRepository {
                 data: {
                     name: data.name,
                     description: data.description,
+                    type: data.type || 'INGREDIENT',
                     ingredientUnitId: data.ingredientUnitId,
                     reorderPoint: data.reorderPoint,
                     createdById: actorId,
@@ -230,6 +245,10 @@ export class InventoryRepository extends BaseRepository {
             where.deletedAt = { not: null };
         }
 
+        if (params.type) {
+            where.type = params.type;
+        }
+
         if (params.search) {
             where.OR = [{ name: { contains: params.search } }, { description: { contains: params.search } }];
         }
@@ -283,10 +302,15 @@ export class InventoryRepository extends BaseRepository {
             where.status = params.status;
         }
 
+        const ingredientWhere: Prisma.IngredientWhereInput = {};
         if (params.search) {
-            where.ingredient = {
-                name: { contains: params.search }
-            };
+            ingredientWhere.name = { contains: params.search };
+        }
+        if (params.type) {
+            ingredientWhere.type = params.type;
+        }
+        if (Object.keys(ingredientWhere).length > 0) {
+            where.ingredient = ingredientWhere;
         }
 
         const [data, totalRows] = await Promise.all([

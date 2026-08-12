@@ -136,10 +136,24 @@ model ProductVariantAttribute {
   @@index([productAttributeValueId])
 }
 
+enum IngredientType {
+  INGREDIENT
+  PACKAGING_MATERIAL
+  SUPPLY
+}
+
+enum UnitCategory {
+  ALL
+  INGREDIENT
+  PACKAGING_MATERIAL
+  SUPPLY
+}
+
 model IngredientUnit {
   id                String             @id @default(uuid())
   name              String // e.g., "Grams", "Milliliters", "Pieces"
   abbreviation      String? // e.g., "g", "ml", "pcs"
+  category          UnitCategory       @default(ALL)
   ingredients       Ingredient[]
   recipeIngredients RecipeIngredient[]
 
@@ -156,6 +170,7 @@ model Ingredient {
   id               String         @id @default(uuid())
   name             String
   description      String?
+  type             IngredientType @default(INGREDIENT)
   ingredientUnitId String
   defaultUnit      IngredientUnit @relation(fields: [ingredientUnitId], references: [id])
   reorderPoint     Float          @default(0)

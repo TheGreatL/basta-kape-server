@@ -1,11 +1,19 @@
 import { z } from 'zod';
 
+export const IngredientTypeEnum = z.enum(['INGREDIENT', 'PACKAGING_MATERIAL', 'SUPPLY']);
+export type TIngredientType = z.infer<typeof IngredientTypeEnum>;
+
+export const UnitCategoryEnum = z.enum(['ALL', 'INGREDIENT', 'PACKAGING_MATERIAL', 'SUPPLY']);
+export type TUnitCategory = z.infer<typeof UnitCategoryEnum>;
+
 // Pagination and List Queries
 export const GetListQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1).optional(),
     limit: z.coerce.number().min(1).max(100).default(10).optional(),
     search: z.string().optional(),
-    status: z.enum(['active', 'archive']).default('active').optional()
+    status: z.enum(['active', 'archive']).default('active').optional(),
+    type: IngredientTypeEnum.optional(),
+    category: UnitCategoryEnum.optional()
 });
 export type TGetListQuery = z.infer<typeof GetListQuerySchema>;
 
@@ -14,7 +22,8 @@ export const GetStockLevelListQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).default(10).optional(),
     search: z.string().optional(),
     status: z.enum(['SAFE', 'CRITICAL', 'OUT_OF_STOCK']).optional(),
-    recordStatus: z.enum(['active', 'archive']).default('active').optional()
+    recordStatus: z.enum(['active', 'archive']).default('active').optional(),
+    type: IngredientTypeEnum.optional()
 });
 export type TGetStockLevelListQuery = z.infer<typeof GetStockLevelListQuerySchema>;
 
@@ -23,13 +32,15 @@ export type TGetStockLevelListQuery = z.infer<typeof GetStockLevelListQuerySchem
 // ==========================================
 export const CreateIngredientUnitSchema = z.object({
     name: z.string().min(2).max(100),
-    abbreviation: z.string().max(20).optional().nullable()
+    abbreviation: z.string().max(20).optional().nullable(),
+    category: UnitCategoryEnum.default('ALL').optional()
 });
 export type TCreateIngredientUnit = z.infer<typeof CreateIngredientUnitSchema>;
 
 export const UpdateIngredientUnitSchema = z.object({
     name: z.string().min(2).max(100).optional(),
-    abbreviation: z.string().max(20).optional().nullable()
+    abbreviation: z.string().max(20).optional().nullable(),
+    category: UnitCategoryEnum.optional()
 });
 export type TUpdateIngredientUnit = z.infer<typeof UpdateIngredientUnitSchema>;
 
@@ -37,6 +48,7 @@ export const IngredientUnitResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
     abbreviation: z.string().nullable(),
+    category: UnitCategoryEnum,
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     deletedAt: z.date().nullable().or(z.string().nullable())
@@ -59,6 +71,7 @@ export const PaginatedIngredientUnitResponseSchema = z.object({
 export const CreateIngredientSchema = z.object({
     name: z.string().min(2).max(100),
     description: z.string().max(500).optional().nullable(),
+    type: IngredientTypeEnum.default('INGREDIENT').optional(),
     ingredientUnitId: z.string().uuid(),
     reorderPoint: z.number().min(0).default(0)
 });
@@ -67,6 +80,7 @@ export type TCreateIngredient = z.infer<typeof CreateIngredientSchema>;
 export const UpdateIngredientSchema = z.object({
     name: z.string().min(2).max(100).optional(),
     description: z.string().max(500).optional().nullable(),
+    type: IngredientTypeEnum.optional(),
     ingredientUnitId: z.string().uuid().optional(),
     reorderPoint: z.number().min(0).optional()
 });
@@ -76,6 +90,7 @@ export const IngredientResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
     description: z.string().nullable(),
+    type: IngredientTypeEnum,
     ingredientUnitId: z.string(),
     reorderPoint: z.number(),
     createdAt: z.date().or(z.string()),
