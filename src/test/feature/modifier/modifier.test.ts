@@ -168,7 +168,7 @@ describe('Modifier Feature CRUD', () => {
         });
 
         it('should retrieve modifier groups list', async () => {
-            const res = await request(app).get('/modifiers/groups?limit=10');
+            const res = await request(app).get('/modifiers/groups?search=Test%20Sweetness');
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('data');
             expect(res.body.data.length).toBeGreaterThanOrEqual(1);

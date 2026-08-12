@@ -518,89 +518,73 @@ export async function seedProduct(prisma: PrismaClient) {
     await getOrCreateRecipeIngredient(recWater.id, ingWaterBottle.id, 1, unitPcs.id);
 
     // ==========================================
-    // 8. SEED MODIFIER GROUPS & OPTIONS (Add-ons)
+    // 8. SEED MODIFIER GROUPS & OPTIONS (Add-ons 1-to-1 per Product)
     // ==========================================
-    const addOnsGroup = await prisma.modifierGroup.findFirst({ where: { name: 'Add-ons', deletedAt: null } });
-    const addOnsGroupData =
-        addOnsGroup ||
-        (await prisma.modifierGroup.create({
-            data: {
-                name: 'Add-ons',
-                isRequired: false,
-                minSelect: 0,
-                maxSelect: 5
-            }
-        }));
+    const allBeverages = await prisma.product.findMany({
+        where: {
+            productTypeId: typeBeverage.id,
+            deletedAt: null
+        }
+    });
 
-    const addOnOptions = [
+    const addOnOptionsTemplate = [
         { name: 'Oat Milk', price: 55, ing: ingOatMilk, qty: 200, unit: unitMl },
         { name: 'Espresso Shot', price: 35, ing: ingBeans, qty: 9, unit: unitG },
         { name: 'Whipped Cream', price: 30, ing: ingWhippedCream, qty: 15, unit: unitMl },
         { name: 'Seasalt Cream', price: 25, ing: ingSeasaltCream, qty: 30, unit: unitMl }
     ];
 
-    for (const option of addOnOptions) {
-        let existingOption = await prisma.modifierOption.findFirst({
-            where: { modifierGroupId: addOnsGroupData.id, name: option.name, deletedAt: null }
+    for (const prod of allBeverages) {
+        if (prod.name === 'Bottled Water') continue;
+
+        // Find or create dedicated modifier group for this specific product
+        let productGroup = await prisma.modifierGroup.findFirst({
+            where: {
+                name: 'Add-ons',
+                deletedAt: null,
+                products: {
+                    some: { id: prod.id }
+                }
+            }
         });
-        if (!existingOption) {
-            existingOption = await prisma.modifierOption.create({
+
+        if (!productGroup) {
+            productGroup = await prisma.modifierGroup.create({
                 data: {
-                    modifierGroupId: addOnsGroupData.id,
-                    name: option.name,
-                    price: option.price
+                    name: 'Add-ons',
+                    isRequired: false,
+                    minSelect: 0,
+                    maxSelect: 5,
+                    products: {
+                        connect: { id: prod.id }
+                    }
                 }
             });
-        } else {
-            if (existingOption.price !== option.price) {
+        }
+
+        for (const option of addOnOptionsTemplate) {
+            let existingOption = await prisma.modifierOption.findFirst({
+                where: { modifierGroupId: productGroup.id, name: option.name, deletedAt: null }
+            });
+            if (!existingOption) {
+                existingOption = await prisma.modifierOption.create({
+                    data: {
+                        modifierGroupId: productGroup.id,
+                        name: option.name,
+                        price: option.price
+                    }
+                });
+            } else if (existingOption.price !== option.price) {
                 existingOption = await prisma.modifierOption.update({
                     where: { id: existingOption.id },
                     data: { price: option.price }
                 });
             }
-        }
 
-        // Attach recipe to modifier option
-        if (existingOption) {
-            const modRecipe = await getOrCreateModifierRecipe(existingOption.id, `${option.name} Modifier Recipe`);
-            await getOrCreateRecipeIngredient(modRecipe.id, option.ing.id, option.qty, option.unit.id);
-        }
-    }
-
-    // Connect the "Add-ons" modifier group to all drinks
-    const allBeverages = await prisma.product.findMany({
-        where: {
-            productTypeId: typeBeverage.id,
-            deletedAt: null
-        },
-        include: {
-            modifierGroups: true
-        }
-    });
-
-    for (const prod of allBeverages) {
-        const hasAddon = prod.modifierGroups.some((g) => g.id === addOnsGroupData.id);
-        if (prod.name === 'Bottled Water') {
-            if (hasAddon) {
-                await prisma.product.update({
-                    where: { id: prod.id },
-                    data: {
-                        modifierGroups: {
-                            disconnect: { id: addOnsGroupData.id }
-                        }
-                    }
-                });
-            }
-        } else {
-            if (!hasAddon) {
-                await prisma.product.update({
-                    where: { id: prod.id },
-                    data: {
-                        modifierGroups: {
-                            connect: { id: addOnsGroupData.id }
-                        }
-                    }
-                });
+            // Attach recipe to modifier option
+            if (existingOption) {
+                const modRecipe = await getOrCreateModifierRecipe(existingOption.id, `${prod.name} - ${option.name} Recipe`);
+                await getOrCreateRecipeIngredient(modRecipe.id, option.ing.id, option.qty, option.unit.id);
             }
         }
     }
