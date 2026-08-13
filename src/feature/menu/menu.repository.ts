@@ -55,6 +55,7 @@ export class MenuRepository extends BaseRepository {
                                                 select: {
                                                     id: true,
                                                     name: true,
+                                                    type: true,
                                                     inventories: {
                                                         where: { deletedAt: null },
                                                         select: { currentQuantity: true }
@@ -105,6 +106,7 @@ export class MenuRepository extends BaseRepository {
                                             select: {
                                                 id: true,
                                                 name: true,
+                                                type: true,
                                                 inventories: {
                                                     where: { deletedAt: null },
                                                     select: { currentQuantity: true }
