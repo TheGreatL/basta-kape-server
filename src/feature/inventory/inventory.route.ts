@@ -21,6 +21,7 @@ import {
     BatchResponseSchema,
     PaginatedBatchResponseSchema,
     CreateAdjustmentSchema,
+    UpdateAdjustmentSchema,
     GetAdjustmentListQuerySchema,
     AdjustmentResponseSchema,
     PaginatedAdjustmentResponseSchema,
@@ -658,6 +659,44 @@ router.post(
             const body = CreateAdjustmentSchema.parse(req.body);
             const result = await service.logAdjustment(body, req.user!.sub);
             res.status(201).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// PUT /inventory/adjustments/:id
+registry.registerPath({
+    method: 'put',
+    path: '/inventory/adjustments/{id}',
+    tags: ['Inventory - Waste & Adjustments'],
+    summary: 'Update an existing stock adjustment entry',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: UpdateAdjustmentSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Stock adjustment updated successfully',
+            content: { 'application/json': { schema: AdjustmentResponseSchema } }
+        }
+    }
+});
+
+router.put(
+    '/adjustments/:id',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.UPDATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = UpdateAdjustmentSchema.parse(req.body);
+            const result = await service.updateAdjustment(req.params.id as string, body, req.user!.sub);
+            res.json(result);
         } catch (error) {
             next(error);
         }

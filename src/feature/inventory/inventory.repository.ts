@@ -9,6 +9,7 @@ import type {
     TUpdateIngredient,
     TCreateBatch,
     TCreateAdjustment,
+    TUpdateAdjustment,
     TGetListQuery,
     TGetStockLevelListQuery,
     TGetAdjustmentListQuery
@@ -834,6 +835,38 @@ export class InventoryRepository extends BaseRepository {
                 updatedById: actorId
             },
             include: {
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async getAdjustmentById(id: string) {
+        return prisma.inventoryAdjustment.findUnique({
+            where: { id },
+            include: {
+                ingredient: {
+                    include: { defaultUnit: true }
+                },
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async updateAdjustment(id: string, data: TUpdateAdjustment, actorId: string) {
+        return prisma.inventoryAdjustment.update({
+            where: { id },
+            data: {
+                ...(data.quantity !== undefined && { quantity: data.quantity }),
+                ...(data.type !== undefined && { type: data.type }),
+                ...(data.reason !== undefined && { reason: data.reason }),
+                updatedById: actorId
+            },
+            include: {
+                ingredient: {
+                    include: { defaultUnit: true }
+                },
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }

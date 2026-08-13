@@ -10,6 +10,7 @@ import type {
     TUpdateIngredient,
     TCreateBatch,
     TCreateAdjustment,
+    TUpdateAdjustment,
     TGetListQuery,
     TGetStockLevelListQuery,
     TGetAdjustmentListQuery
@@ -318,6 +319,56 @@ export class InventoryService {
         });
 
         return adjustment;
+    }
+
+    async updateAdjustment(id: string, data: TUpdateAdjustment, actorId: string) {
+        const existing = await this.repository.getAdjustmentById(id);
+        if (!existing) {
+            throw new NotFoundException('Adjustment record not found');
+        }
+
+        const ingredient = await this.getIngredientById(existing.ingredientId);
+
+        let newQuantity = existing.quantity;
+        if (data.quantity !== undefined) {
+            const rawType = data.type || existing.type;
+            newQuantity = rawType === 'PHYSICAL_COUNT_DISCREPANCY' ? data.quantity : -Math.abs(data.quantity);
+        }
+
+        const quantityDelta = newQuantity - existing.quantity;
+
+        const updated = await this.repository.updateAdjustment(
+            id,
+            {
+                ...data,
+                quantity: newQuantity
+            },
+            actorId
+        );
+
+        if (quantityDelta !== 0) {
+            const mappedType =
+                (data.type || existing.type) === 'PHYSICAL_COUNT_DISCREPANCY'
+                    ? 'PHYSICAL_COUNT_CORRECTION'
+                    : ((data.type || existing.type) as unknown as TransactionType);
+
+            await this.repository.adjustStockAndStatus(
+                existing.ingredientId,
+                quantityDelta,
+                false,
+                actorId,
+                mappedType,
+                `Edit Waste Log #${id.substring(0, 8)}`
+            );
+        }
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: `Update Stock Adjustment (${updated.type})`,
+            details: `Updated waste log entry for ${ingredient.name}: quantity diff ${quantityDelta > 0 ? '+' : ''}${quantityDelta} ${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name}. Reason: "${updated.reason || 'None provided'}".`
+        });
+
+        return updated;
     }
 
     async getInventoryForecast() {

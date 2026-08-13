@@ -209,6 +209,13 @@ export const CreateAdjustmentSchema = z.object({
 });
 export type TCreateAdjustment = z.infer<typeof CreateAdjustmentSchema>;
 
+export const UpdateAdjustmentSchema = z.object({
+    quantity: z.number().optional(),
+    type: z.enum(['WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE', 'PHYSICAL_COUNT_DISCREPANCY']).optional(),
+    reason: z.string().max(500).optional().nullable()
+});
+export type TUpdateAdjustment = z.infer<typeof UpdateAdjustmentSchema>;
+
 export const AdjustmentResponseSchema = z.object({
     id: z.string(),
     ingredientId: z.string(),
