@@ -541,7 +541,7 @@ export async function seedProduct(prisma: PrismaClient) {
     const typeBeverage = await getOrCreateType('Beverage', 'Drink products served to customers');
 
     const tempAttr = await getOrCreateAttribute('Temperature', 'Beverage serving temperature (Hot/Iced)');
-    const sizeAttr = await getOrCreateAttribute('Size', 'Beverage volume sizes (12oz, 16oz, 22oz)');
+    const sizeAttr = await getOrCreateAttribute('Size', 'Beverage volume sizes (12oz, 16oz, 22oz, 500ml)');
 
     const valHot = await getOrCreateAttributeValue(tempAttr.id, 'Hot');
     const valIced = await getOrCreateAttributeValue(tempAttr.id, 'Iced');
@@ -549,6 +549,7 @@ export async function seedProduct(prisma: PrismaClient) {
     const val12oz = await getOrCreateAttributeValue(sizeAttr.id, '12oz');
     const val16oz = await getOrCreateAttributeValue(sizeAttr.id, '16oz');
     const val22oz = await getOrCreateAttributeValue(sizeAttr.id, '22oz');
+    const val500ml = await getOrCreateAttributeValue(sizeAttr.id, '500ml');
 
     // ==========================================
     // 6. SEED PRODUCTS & VARIANTS
@@ -652,7 +653,7 @@ export async function seedProduct(prisma: PrismaClient) {
 
     // --- Standalone Water Product ---
     const waterProduct = await getOrCreateProduct('Bottled Water', 'Refreshingly clean bottled drinking water', catNonCoffee.id, typeBeverage.id);
-    const waterVariant = await getOrCreateVariant(waterProduct.id, 'BOTTLED-WATER', 15, []);
+    const waterVariant = await getOrCreateVariant(waterProduct.id, 'BOTTLED-WATER-500ML', 15, [val500ml.id]);
 
     // ==========================================
     // 7. SEED RECIPES
