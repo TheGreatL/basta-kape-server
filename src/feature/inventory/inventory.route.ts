@@ -18,6 +18,7 @@ import {
     InventoryLevelResponseSchema,
     PaginatedInventoryLevelResponseSchema,
     CreateBatchSchema,
+    UpdateBatchSchema,
     BatchResponseSchema,
     PaginatedBatchResponseSchema,
     CreateAdjustmentSchema,
@@ -588,6 +589,44 @@ router.post(
             const body = CreateBatchSchema.parse(req.body);
             const result = await service.logBatch(body, req.user!.sub);
             res.status(201).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// PUT /inventory/deliveries/:id
+registry.registerPath({
+    method: 'put',
+    path: '/inventory/deliveries/{id}',
+    tags: ['Inventory - Deliveries & Batches'],
+    summary: 'Update an existing ingredient delivery/batch record',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: UpdateBatchSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Delivery batch updated successfully',
+            content: { 'application/json': { schema: BatchResponseSchema } }
+        }
+    }
+});
+
+router.put(
+    '/deliveries/:id',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.UPDATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = UpdateBatchSchema.parse(req.body);
+            const result = await service.updateDelivery(req.params.id as string, body, req.user!.sub);
+            res.json(result);
         } catch (error) {
             next(error);
         }

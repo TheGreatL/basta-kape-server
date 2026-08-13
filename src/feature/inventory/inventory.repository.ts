@@ -8,6 +8,7 @@ import type {
     TCreateIngredient,
     TUpdateIngredient,
     TCreateBatch,
+    TUpdateBatch,
     TCreateAdjustment,
     TUpdateAdjustment,
     TGetListQuery,
@@ -778,6 +779,44 @@ export class InventoryRepository extends BaseRepository {
         });
     }
 
+    async getBatchById(id: string) {
+        return prisma.ingredientBatch.findUnique({
+            where: { id },
+            include: {
+                ingredient: {
+                    include: { defaultUnit: true }
+                },
+                supplier: true,
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
+    async updateBatch(id: string, data: TUpdateBatch & { currentQuantity?: number; totalCost?: number }, actorId: string) {
+        return prisma.ingredientBatch.update({
+            where: { id },
+            data: {
+                ...(data.supplierId !== undefined && { supplierId: data.supplierId }),
+                ...(data.quantityReceived !== undefined && { quantityReceived: data.quantityReceived }),
+                ...(data.currentQuantity !== undefined && { currentQuantity: data.currentQuantity }),
+                ...(data.unitCost !== undefined && { unitCost: data.unitCost }),
+                ...(data.totalCost !== undefined && { totalCost: data.totalCost }),
+                ...(data.batchNumber !== undefined && { batchNumber: data.batchNumber }),
+                ...(data.expiryDate !== undefined && { expiryDate: data.expiryDate ? new Date(data.expiryDate) : null }),
+                updatedById: actorId
+            },
+            include: {
+                ingredient: {
+                    include: { defaultUnit: true }
+                },
+                supplier: true,
+                createdBy: { select: auditSelect },
+                updatedBy: { select: auditSelect }
+            }
+        });
+    }
+
     async getBatchList(params: TGetListQuery): Promise<IPaginatedResult<unknown>> {
         const { skip, take, page } = this.normalizePagination(params);
         const where: Prisma.IngredientBatchWhereInput = {};
@@ -788,11 +827,34 @@ export class InventoryRepository extends BaseRepository {
             where.deletedAt = { not: null };
         }
 
+        if (params.supplierId) {
+            where.supplierId = params.supplierId;
+        }
+
+        if (params.startDate || params.endDate) {
+            where.receivedAt = {};
+            if (params.startDate) {
+                where.receivedAt.gte = new Date(params.startDate);
+            }
+            if (params.endDate) {
+                const end = new Date(params.endDate);
+                if (params.endDate.length <= 10) {
+                    end.setHours(23, 59, 59, 999);
+                }
+                where.receivedAt.lte = end;
+            }
+        }
+
         if (params.search) {
             where.OR = [
                 { batchNumber: { contains: params.search } },
                 {
                     ingredient: {
+                        name: { contains: params.search }
+                    }
+                },
+                {
+                    supplier: {
                         name: { contains: params.search }
                     }
                 }

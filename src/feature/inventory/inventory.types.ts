@@ -13,7 +13,10 @@ export const GetListQuerySchema = z.object({
     search: z.string().optional(),
     status: z.enum(['active', 'archive']).default('active').optional(),
     type: IngredientTypeEnum.optional(),
-    category: UnitCategoryEnum.optional()
+    category: UnitCategoryEnum.optional(),
+    supplierId: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional()
 });
 export type TGetListQuery = z.infer<typeof GetListQuerySchema>;
 
@@ -161,6 +164,15 @@ export const CreateBatchSchema = z.object({
     expiryDate: z.string().datetime().or(z.string().date()).optional().nullable()
 });
 export type TCreateBatch = z.infer<typeof CreateBatchSchema>;
+
+export const UpdateBatchSchema = z.object({
+    supplierId: z.string().uuid().optional().nullable(),
+    quantityReceived: z.number().positive().optional(),
+    unitCost: z.number().nonnegative().optional(),
+    batchNumber: z.string().max(100).optional().nullable(),
+    expiryDate: z.string().datetime().or(z.string().date()).optional().nullable()
+});
+export type TUpdateBatch = z.infer<typeof UpdateBatchSchema>;
 
 export const BatchResponseSchema = z.object({
     id: z.string(),
