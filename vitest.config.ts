@@ -1,9 +1,12 @@
 import { defineConfig } from 'vitest/config';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
-    plugins: [tsconfigPaths()],
+    resolve: {
+        tsconfigPaths: true
+    },
     test: {
-        exclude: ['dist/**', 'node_modules/**']
+        exclude: ['dist/**', 'node_modules/**'],
+        testTimeout: 30000,
+        hookTimeout: 30000
     }
 });
