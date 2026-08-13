@@ -9,6 +9,8 @@ const STORE_SETTING = {
     serviceCharge: 0.0
 } as const;
 
+const SEED_DATE = new Date('2026-07-15T08:00:00.000Z');
+
 export async function seedStoreSetting(prisma: PrismaClient) {
     console.log('Seeding store settings...');
 
@@ -17,12 +19,12 @@ export async function seedStoreSetting(prisma: PrismaClient) {
     if (existing) {
         await prisma.storeSetting.update({
             where: { id: existing.id },
-            data: STORE_SETTING
+            data: { ...STORE_SETTING, updatedAt: SEED_DATE }
         });
         return;
     }
 
     await prisma.storeSetting.create({
-        data: STORE_SETTING
+        data: { ...STORE_SETTING, updatedAt: SEED_DATE }
     });
 }

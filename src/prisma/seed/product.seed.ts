@@ -1,5 +1,7 @@
 import { PrismaClient, InventoryStatus, ProductVariant } from '@prisma/client';
 
+const SEED_DATE = new Date('2026-07-15T08:00:00.000Z');
+
 export async function seedProduct(prisma: PrismaClient) {
     console.log('Seeding explicitly: Products, Recipes, Inventory, and Suppliers...');
 
@@ -22,7 +24,7 @@ export async function seedProduct(prisma: PrismaClient) {
         const found = await prisma.productCategory.findFirst({ where: { name, deletedAt: null } });
         if (found) return found;
         return prisma.productCategory.create({
-            data: { name, description, createdById: adminId, updatedById: adminId }
+            data: { name, description, createdById: adminId, updatedById: adminId, createdAt: SEED_DATE, updatedAt: SEED_DATE }
         });
     };
 
@@ -30,7 +32,7 @@ export async function seedProduct(prisma: PrismaClient) {
         const found = await prisma.productType.findFirst({ where: { name, deletedAt: null } });
         if (found) return found;
         return prisma.productType.create({
-            data: { name, description, createdById: adminId, updatedById: adminId }
+            data: { name, description, createdById: adminId, updatedById: adminId, createdAt: SEED_DATE, updatedAt: SEED_DATE }
         });
     };
 
@@ -38,7 +40,7 @@ export async function seedProduct(prisma: PrismaClient) {
         const found = await prisma.productAttribute.findFirst({ where: { name, deletedAt: null } });
         if (found) return found;
         return prisma.productAttribute.create({
-            data: { name, description, createdById: adminId, updatedById: adminId }
+            data: { name, description, createdById: adminId, updatedById: adminId, createdAt: SEED_DATE, updatedAt: SEED_DATE }
         });
     };
 
@@ -48,7 +50,7 @@ export async function seedProduct(prisma: PrismaClient) {
         });
         if (found) return found;
         return prisma.productAttributeValue.create({
-            data: { productAttributeId: attributeId, value, createdById: adminId, updatedById: adminId }
+            data: { productAttributeId: attributeId, value, createdById: adminId, updatedById: adminId, createdAt: SEED_DATE, updatedAt: SEED_DATE }
         });
     };
 
@@ -56,7 +58,16 @@ export async function seedProduct(prisma: PrismaClient) {
         const found = await prisma.supplier.findFirst({ where: { name, deletedAt: null } });
         if (found) return found;
         return prisma.supplier.create({
-            data: { name, address, contactPerson, contactNumber, createdById: adminId, updatedById: adminId }
+            data: {
+                name,
+                address,
+                contactPerson,
+                contactNumber,
+                createdById: adminId,
+                updatedById: adminId,
+                createdAt: SEED_DATE,
+                updatedAt: SEED_DATE
+            }
         });
     };
 
@@ -65,11 +76,11 @@ export async function seedProduct(prisma: PrismaClient) {
         if (found) {
             return prisma.ingredientUnit.update({
                 where: { id: found.id },
-                data: { category, abbreviation, updatedById: adminId }
+                data: { category, abbreviation, updatedById: adminId, updatedAt: SEED_DATE }
             });
         }
         return prisma.ingredientUnit.create({
-            data: { name, abbreviation, category, createdById: adminId, updatedById: adminId }
+            data: { name, abbreviation, category, createdById: adminId, updatedById: adminId, createdAt: SEED_DATE, updatedAt: SEED_DATE }
         });
     };
 
@@ -85,12 +96,22 @@ export async function seedProduct(prisma: PrismaClient) {
         let ingredient = await prisma.ingredient.findFirst({ where: { name, deletedAt: null } });
         if (!ingredient) {
             ingredient = await prisma.ingredient.create({
-                data: { name, description, type, ingredientUnitId: unitId, reorderPoint, createdById: adminId, updatedById: adminId }
+                data: {
+                    name,
+                    description,
+                    type,
+                    ingredientUnitId: unitId,
+                    reorderPoint,
+                    createdById: adminId,
+                    updatedById: adminId,
+                    createdAt: SEED_DATE,
+                    updatedAt: SEED_DATE
+                }
             });
         } else {
             ingredient = await prisma.ingredient.update({
                 where: { id: ingredient.id },
-                data: { reorderPoint, type, updatedById: adminId }
+                data: { reorderPoint, type, updatedById: adminId, updatedAt: SEED_DATE }
             });
         }
 
@@ -103,7 +124,9 @@ export async function seedProduct(prisma: PrismaClient) {
                     currentQuantity: initialStock,
                     status: initialStock > reorderPoint ? InventoryStatus.SAFE : InventoryStatus.CRITICAL,
                     createdById: adminId,
-                    updatedById: adminId
+                    updatedById: adminId,
+                    createdAt: SEED_DATE,
+                    updatedAt: SEED_DATE
                 }
             });
         } else {
@@ -112,7 +135,8 @@ export async function seedProduct(prisma: PrismaClient) {
                 data: {
                     currentQuantity: initialStock,
                     status: initialStock > reorderPoint ? InventoryStatus.SAFE : InventoryStatus.CRITICAL,
-                    updatedById: adminId
+                    updatedById: adminId,
+                    updatedAt: SEED_DATE
                 }
             });
         }
@@ -130,7 +154,10 @@ export async function seedProduct(prisma: PrismaClient) {
                     totalCost: initialStock * 1.0,
                     batchNumber: `BATCH-${ingredient.name.replace(/[^a-zA-Z0-9]/g, '-').toUpperCase()}-001`,
                     createdById: adminId,
-                    updatedById: adminId
+                    updatedById: adminId,
+                    receivedAt: SEED_DATE,
+                    createdAt: SEED_DATE,
+                    updatedAt: SEED_DATE
                 }
             });
 
@@ -140,7 +167,8 @@ export async function seedProduct(prisma: PrismaClient) {
                     quantityChange: initialStock,
                     type: 'DELIVERY',
                     reason: 'Initial seed delivery',
-                    createdById: adminId
+                    createdById: adminId,
+                    createdAt: SEED_DATE
                 }
             });
         } else if (batch) {
@@ -150,7 +178,8 @@ export async function seedProduct(prisma: PrismaClient) {
                     quantityReceived: initialStock,
                     currentQuantity: initialStock,
                     totalCost: initialStock * batch.unitCost,
-                    updatedById: adminId
+                    updatedById: adminId,
+                    updatedAt: SEED_DATE
                 }
             });
         }
@@ -168,7 +197,9 @@ export async function seedProduct(prisma: PrismaClient) {
                 productCategoryId: categoryId,
                 productTypeId: typeId,
                 createdById: adminId,
-                updatedById: adminId
+                updatedById: adminId,
+                createdAt: SEED_DATE,
+                updatedAt: SEED_DATE
             }
         });
     };
@@ -185,7 +216,9 @@ export async function seedProduct(prisma: PrismaClient) {
                         sku,
                         price,
                         createdById: adminId,
-                        updatedById: adminId
+                        updatedById: adminId,
+                        createdAt: SEED_DATE,
+                        updatedAt: SEED_DATE
                     }
                 });
             } catch (error: unknown) {
@@ -196,7 +229,7 @@ export async function seedProduct(prisma: PrismaClient) {
                     if (variant) {
                         variant = await prisma.productVariant.update({
                             where: { id: variant.id },
-                            data: { price, deletedAt: null, updatedById: adminId }
+                            data: { price, deletedAt: null, updatedById: adminId, updatedAt: SEED_DATE }
                         });
                     }
                 }
@@ -206,7 +239,7 @@ export async function seedProduct(prisma: PrismaClient) {
             if (variant.price !== price || variant.deletedAt !== null) {
                 variant = await prisma.productVariant.update({
                     where: { id: variant.id },
-                    data: { price, deletedAt: null, updatedById: adminId }
+                    data: { price, deletedAt: null, updatedById: adminId, updatedAt: SEED_DATE }
                 });
             }
         }
@@ -222,7 +255,9 @@ export async function seedProduct(prisma: PrismaClient) {
                         productVariantId: variant.id,
                         productAttributeValueId: valId,
                         createdById: adminId,
-                        updatedById: adminId
+                        updatedById: adminId,
+                        createdAt: SEED_DATE,
+                        updatedAt: SEED_DATE
                     }
                 });
             }
@@ -238,7 +273,9 @@ export async function seedProduct(prisma: PrismaClient) {
                 name,
                 productVariantId: variantId,
                 createdById: adminId,
-                updatedById: adminId
+                updatedById: adminId,
+                createdAt: SEED_DATE,
+                updatedAt: SEED_DATE
             }
         });
     };
@@ -251,7 +288,9 @@ export async function seedProduct(prisma: PrismaClient) {
                 name,
                 modifierOptionId,
                 createdById: adminId,
-                updatedById: adminId
+                updatedById: adminId,
+                createdAt: SEED_DATE,
+                updatedAt: SEED_DATE
             }
         });
     };
@@ -264,7 +303,7 @@ export async function seedProduct(prisma: PrismaClient) {
             if (found.quantity !== quantity || found.ingredientUnitId !== unitId) {
                 return prisma.recipeIngredient.update({
                     where: { id: found.id },
-                    data: { quantity, ingredientUnitId: unitId, updatedById: adminId }
+                    data: { quantity, ingredientUnitId: unitId, updatedById: adminId, updatedAt: SEED_DATE }
                 });
             }
             return found;
@@ -276,7 +315,9 @@ export async function seedProduct(prisma: PrismaClient) {
                 quantity,
                 ingredientUnitId: unitId,
                 createdById: adminId,
-                updatedById: adminId
+                updatedById: adminId,
+                createdAt: SEED_DATE,
+                updatedAt: SEED_DATE
             }
         });
     };
@@ -777,6 +818,8 @@ export async function seedProduct(prisma: PrismaClient) {
                     isRequired: false,
                     minSelect: 0,
                     maxSelect: 5,
+                    createdAt: SEED_DATE,
+                    updatedAt: SEED_DATE,
                     products: {
                         connect: { id: prod.id }
                     }
@@ -793,13 +836,15 @@ export async function seedProduct(prisma: PrismaClient) {
                     data: {
                         modifierGroupId: productGroup.id,
                         name: option.name,
-                        price: option.price
+                        price: option.price,
+                        createdAt: SEED_DATE,
+                        updatedAt: SEED_DATE
                     }
                 });
             } else if (existingOption.price !== option.price) {
                 existingOption = await prisma.modifierOption.update({
                     where: { id: existingOption.id },
-                    data: { price: option.price }
+                    data: { price: option.price, updatedAt: SEED_DATE }
                 });
             }
 

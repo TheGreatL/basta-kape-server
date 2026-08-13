@@ -34,6 +34,8 @@ export async function seedDiscounts(prisma: PrismaClient) {
         }
     ];
 
+    const SEED_DATE = new Date('2026-07-15T08:00:00.000Z');
+
     for (const d of discounts) {
         await prisma.discount.upsert({
             where: { code: d.code },
@@ -41,9 +43,14 @@ export async function seedDiscounts(prisma: PrismaClient) {
                 name: d.name,
                 type: d.type,
                 value: d.value,
-                isActive: d.isActive
+                isActive: d.isActive,
+                updatedAt: SEED_DATE
             },
-            create: d
+            create: {
+                ...d,
+                createdAt: SEED_DATE,
+                updatedAt: SEED_DATE
+            }
         });
     }
 }
