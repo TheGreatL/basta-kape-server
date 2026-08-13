@@ -21,6 +21,7 @@ import {
     BatchResponseSchema,
     PaginatedBatchResponseSchema,
     CreateAdjustmentSchema,
+    GetAdjustmentListQuerySchema,
     AdjustmentResponseSchema,
     PaginatedAdjustmentResponseSchema,
     InventoryForecastResponseSchema,
@@ -616,7 +617,7 @@ router.get(
     requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const query = GetListQuerySchema.parse(req.query);
+            const query = GetAdjustmentListQuerySchema.parse(req.query);
             const result = await service.getAdjustmentList(query);
             res.json(result);
         } catch (error) {

@@ -11,7 +11,8 @@ import type {
     TCreateBatch,
     TCreateAdjustment,
     TGetListQuery,
-    TGetStockLevelListQuery
+    TGetStockLevelListQuery,
+    TGetAdjustmentListQuery
 } from './inventory.types';
 
 export class InventoryService {
@@ -287,7 +288,7 @@ export class InventoryService {
     // 5. INVENTORY ADJUSTMENTS & WASTE LOG SERVICES
     // ==========================================
 
-    async getAdjustmentList(params: TGetListQuery) {
+    async getAdjustmentList(params: TGetAdjustmentListQuery) {
         return this.repository.getAdjustmentList(params);
     }
 

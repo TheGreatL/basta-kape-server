@@ -10,7 +10,8 @@ import type {
     TCreateBatch,
     TCreateAdjustment,
     TGetListQuery,
-    TGetStockLevelListQuery
+    TGetStockLevelListQuery,
+    TGetAdjustmentListQuery
 } from './inventory.types';
 
 export class InventoryRepository extends BaseRepository {
@@ -839,7 +840,7 @@ export class InventoryRepository extends BaseRepository {
         });
     }
 
-    async getAdjustmentList(params: TGetListQuery): Promise<IPaginatedResult<unknown>> {
+    async getAdjustmentList(params: TGetAdjustmentListQuery): Promise<IPaginatedResult<unknown>> {
         const { skip, take, page } = this.normalizePagination(params);
         const where: Prisma.InventoryAdjustmentWhereInput = {};
 
@@ -847,6 +848,24 @@ export class InventoryRepository extends BaseRepository {
             where.deletedAt = null;
         } else if (params.status === 'archive') {
             where.deletedAt = { not: null };
+        }
+
+        if (params.type && params.type !== 'ALL') {
+            where.type = params.type;
+        }
+
+        if (params.startDate || params.endDate) {
+            where.createdAt = {};
+            if (params.startDate) {
+                where.createdAt.gte = new Date(params.startDate);
+            }
+            if (params.endDate) {
+                const end = new Date(params.endDate);
+                if (params.endDate.length <= 10) {
+                    end.setHours(23, 59, 59, 999);
+                }
+                where.createdAt.lte = end;
+            }
         }
 
         if (params.search) {

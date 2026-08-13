@@ -220,6 +220,20 @@ export const AdjustmentResponseSchema = z.object({
     deletedAt: z.date().nullable().or(z.string().nullable())
 });
 
+export const AdjustmentTypeEnum = z.enum(['ALL', 'WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE', 'PHYSICAL_COUNT_DISCREPANCY']);
+export type TAdjustmentType = z.infer<typeof AdjustmentTypeEnum>;
+
+export const GetAdjustmentListQuerySchema = z.object({
+    page: z.coerce.number().min(1).default(1).optional(),
+    limit: z.coerce.number().min(1).max(100).default(10).optional(),
+    search: z.string().optional(),
+    status: z.enum(['active', 'archive']).default('active').optional(),
+    type: AdjustmentTypeEnum.optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional()
+});
+export type TGetAdjustmentListQuery = z.infer<typeof GetAdjustmentListQuerySchema>;
+
 export const PaginatedAdjustmentResponseSchema = z.object({
     data: z.array(AdjustmentResponseSchema),
     meta: z.object({
