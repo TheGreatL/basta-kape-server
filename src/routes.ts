@@ -67,7 +67,7 @@ registry.registerPath({
 });
 router.get('/health', async (req: Request, res: Response) => {
     try {
-        await prisma.$queryRawUnsafe('SELECT 1');
+        await prisma.$queryRaw`SELECT 1 AS alive`;
         res.status(200).json({
             status: 'healthy',
             server: 'running',
