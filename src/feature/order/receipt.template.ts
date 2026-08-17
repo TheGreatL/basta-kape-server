@@ -110,8 +110,6 @@ export function generateTextReceipt(
 
     // Totals
     lines.push(leftRight('Subtotal:', `PHP ${order.subtotal.toFixed(2)}`));
-    lines.push(leftRight(`VAT (${storeSetting.vatRate}% Incl.):`, `PHP ${order.taxAmount.toFixed(2)}`));
-
     for (const od of order.discounts) {
         lines.push(leftRight(`Discount (${od.discount.name}):`, `-PHP ${od.amount.toFixed(2)}`));
         if (od.referenceId) {
@@ -541,10 +539,6 @@ export function generateHtmlReceipt(
                 <span>Subtotal</span>
                 <span>PHP ${order.subtotal.toFixed(2)}</span>
             </div>
-            <div class="receipt-total-row text-muted">
-                <span>VAT (${storeSetting.vatRate}% Incl.)</span>
-                <span>PHP ${order.taxAmount.toFixed(2)}</span>
-            </div>
             ${discountRowsHtml}
             
             <div class="divider"></div>
@@ -768,12 +762,6 @@ export async function generatePdfReceipt(
         doc.font('Helvetica').fontSize(8).text('Subtotal:', 15, y);
         doc.text(`PHP ${order.subtotal.toFixed(2)}`, 100, y, { align: 'right', width: 111 });
         y += 11;
-
-        doc.fillColor('#4b5563');
-        doc.text(`VAT (${storeSetting.vatRate}% Incl.):`, 15, y);
-        doc.text(`PHP ${order.taxAmount.toFixed(2)}`, 100, y, { align: 'right', width: 111 });
-        y += 11;
-
         for (const od of order.discounts) {
             doc.text(`Discount (${od.discount.name}):`, 15, y);
             doc.text(`-PHP ${od.amount.toFixed(2)}`, 100, y, { align: 'right', width: 111 });
