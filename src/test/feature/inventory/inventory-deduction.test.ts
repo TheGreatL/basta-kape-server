@@ -356,17 +356,19 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
 
     describe('Inventory Forecasting & Projections', () => {
         it('should compute and include modifier option capacities in the forecast', async () => {
-            const res = await request(app).get('/inventory/forecast');
+            const res = await request(app).get('/inventory/forecast?limit=500');
             expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('data');
+            expect(Array.isArray(res.body.data)).toBe(true);
 
             // Double Espresso: 200g / 18g = 11 units max produceable
-            const variantForecast = res.body.find((f: IForecast) => f.variantId === testVariantId);
+            const variantForecast = res.body.data.find((f: IForecast) => f.variantId === testVariantId);
             expect(variantForecast).toBeDefined();
             expect(variantForecast.maxProduceable).toBe(11);
             expect(variantForecast.ingredients[0].currentQuantity).toBe(200);
 
             // Oat Milk modifier: 5000ml / 200ml = 25 units max produceable
-            const modifierForecast = res.body.find((f: IForecast) => f.variantId === testModifierOptionId);
+            const modifierForecast = res.body.data.find((f: IForecast) => f.variantId === testModifierOptionId);
             expect(modifierForecast).toBeDefined();
             expect(modifierForecast.name).toBe('[Modifier] Deduct Oat Milk Choice');
             expect(modifierForecast.maxProduceable).toBe(25);
