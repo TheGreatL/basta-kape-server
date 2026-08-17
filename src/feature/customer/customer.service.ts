@@ -152,6 +152,7 @@ export class CustomerService {
             data.productVariantId,
             data.quantity,
             variant.price,
+            data.notes,
             data.modifierOptionIds || []
         );
 

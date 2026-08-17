@@ -87,6 +87,7 @@ export type TPaginatedCustomerResponse = z.infer<typeof PaginatedCustomerRespons
 export const AddCartItemSchema = z.object({
     productVariantId: z.string(),
     quantity: z.number().int().min(1),
+    notes: z.string().max(255).optional(),
     modifierOptionIds: z.array(z.string().uuid()).optional()
 });
 
@@ -95,9 +96,10 @@ export type TAddCartItem = z.infer<typeof AddCartItemSchema>;
 export const UpdateCartItemSchema = z
     .object({
         quantity: z.number().int().min(1).optional(),
+        notes: z.string().max(255).optional(),
         modifierOptionIds: z.array(z.string().uuid()).optional()
     })
-    .refine((data) => data.quantity !== undefined || data.modifierOptionIds !== undefined, {
+    .refine((data) => data.quantity !== undefined || data.notes !== undefined || data.modifierOptionIds !== undefined, {
         message: 'At least one of quantity or modifierOptionIds must be provided'
     });
 

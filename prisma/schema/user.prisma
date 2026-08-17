@@ -146,8 +146,9 @@ model CustomerCart {
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id])
 
-  unitPrice Float @default(0)
-  quantity  Int   @default(1)
+  unitPrice Float   @default(0)
+  quantity  Int     @default(1)
+  notes     String?
 
   productVariantId String
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])

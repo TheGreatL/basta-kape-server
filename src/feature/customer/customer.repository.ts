@@ -274,7 +274,14 @@ export class CustomerRepository extends BaseRepository {
     /**
      * Adds an item to the customer's cart. Increments quantity if an active item with exact same variant & modifiers exists; otherwise creates a separate cart item.
      */
-    async addCartItem(customerId: string, productVariantId: string, quantity: number, unitPrice: number, modifierOptionIds: string[] = []) {
+    async addCartItem(
+        customerId: string,
+        productVariantId: string,
+        quantity: number,
+        unitPrice: number,
+        notes?: string | null,
+        modifierOptionIds: string[] = []
+    ) {
         const activeItems = await prisma.customerCart.findMany({
             where: {
                 customerId,
@@ -289,6 +296,7 @@ export class CustomerRepository extends BaseRepository {
         const sortedIncoming = [...modifierOptionIds].sort();
 
         const matchingItem = activeItems.find((item) => {
+            if ((item.notes || '') !== (notes || '')) return false;
             const existingModifierIds = item.cartModifiers.map((cm) => cm.modifierOptionId).sort();
             if (existingModifierIds.length !== sortedIncoming.length) return false;
             return existingModifierIds.every((id, idx) => id === sortedIncoming[idx]);
@@ -310,7 +318,8 @@ export class CustomerRepository extends BaseRepository {
                     customerId,
                     productVariantId,
                     quantity,
-                    unitPrice
+                    unitPrice,
+                    notes: notes || null
                 }
             });
 
@@ -343,7 +352,7 @@ export class CustomerRepository extends BaseRepository {
     /**
      * Updates the quantity and/or modifiers of a specific cart item, merging duplicates if modifier changes match an existing active cart item.
      */
-    async updateCartItem(customerId: string, cartItemId: string, data: { quantity?: number; modifierOptionIds?: string[] }) {
+    async updateCartItem(customerId: string, cartItemId: string, data: { quantity?: number; notes?: string; modifierOptionIds?: string[] }) {
         return prisma.$transaction(async (tx) => {
             const targetItem = await tx.customerCart.findUniqueOrThrow({
                 where: {
@@ -353,10 +362,13 @@ export class CustomerRepository extends BaseRepository {
                 }
             });
 
-            if (data.quantity !== undefined) {
+            const updateData: Prisma.CustomerCartUpdateInput = {};
+            if (data.quantity !== undefined) updateData.quantity = data.quantity;
+            if (data.notes !== undefined) updateData.notes = data.notes;
+            if (Object.keys(updateData).length > 0) {
                 await tx.customerCart.update({
                     where: { id: cartItemId },
-                    data: { quantity: data.quantity }
+                    data: updateData
                 });
             }
 
