@@ -296,7 +296,31 @@ export const ForecastVariantSchema = z.object({
     ingredients: z.array(ForecastIngredientSchema)
 });
 
-export const InventoryForecastResponseSchema = z.array(ForecastVariantSchema);
+export const GetForecastQuerySchema = z.object({
+    page: z.coerce.number().min(1).default(1).optional(),
+    limit: z.coerce.number().min(1).max(500).default(12).optional(),
+    search: z.string().optional(),
+    status: z.enum(['all', 'ready', 'low', 'out', 'no_recipe']).default('all').optional()
+});
+export type TGetForecastQuery = z.infer<typeof GetForecastQuerySchema>;
+
+export const InventoryForecastResponseSchema = z.object({
+    data: z.array(ForecastVariantSchema),
+    meta: z.object({
+        total: z.number(),
+        pageCount: z.number(),
+        count: z.number(),
+        currentPage: z.number(),
+        hasMore: z.boolean()
+    }),
+    stats: z.object({
+        total: z.number(),
+        ready: z.number(),
+        low: z.number(),
+        out: z.number(),
+        noRecipe: z.number()
+    })
+});
 
 // ==========================================
 // 7. INVENTORY DASHBOARD SCHEMAS

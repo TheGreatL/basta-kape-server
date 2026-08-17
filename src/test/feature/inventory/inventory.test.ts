@@ -556,11 +556,12 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
             // Inventory levels: Coffee Beans = 100g (requires 15g -> can produce 6 units)
             // Oat Milk = 300g (requires 100g -> can produce 3 units)
             // Bottleneck is Oat Milk (300/100 = 3)
-            const res = await request(app).get('/inventory/forecast');
+            const res = await request(app).get('/inventory/forecast?limit=500');
             expect(res.status).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body).toHaveProperty('data');
+            expect(Array.isArray(res.body.data)).toBe(true);
 
-            const record = res.body.find((f: { variantId: string }) => f.variantId === forecastVariantId);
+            const record = res.body.data.find((f: { variantId: string }) => f.variantId === forecastVariantId);
             expect(record).toBeDefined();
             expect(record.hasRecipe).toBe(true);
             expect(record.maxProduceable).toBe(3);

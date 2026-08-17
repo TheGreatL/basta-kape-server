@@ -14,7 +14,8 @@ import type {
     TUpdateAdjustment,
     TGetListQuery,
     TGetStockLevelListQuery,
-    TGetAdjustmentListQuery
+    TGetAdjustmentListQuery,
+    TGetForecastQuery
 } from './inventory.types';
 
 export class InventoryService {
@@ -420,7 +421,7 @@ export class InventoryService {
         return updated;
     }
 
-    async getInventoryForecast() {
+    async getInventoryForecast(query?: TGetForecastQuery) {
         const [variants, modifiers] = await Promise.all([this.repository.getVariantsWithRecipes(), this.repository.getModifierOptionsWithRecipes()]);
 
         const variantForecasts = variants.map((variant) => {
@@ -452,7 +453,7 @@ export class InventoryService {
                 unit: string;
             } | null = null;
 
-            const ingredientDetails = variant.recipe.ingredients.map((ri) => {
+            const ingredientDetails = (variant.recipe?.ingredients || []).map((ri) => {
                 const inventory = ri.ingredient.inventories[0];
                 const currentQty = inventory ? inventory.currentQuantity : 0;
                 const requiredQty = ri.quantity;
@@ -525,7 +526,7 @@ export class InventoryService {
                 unit: string;
             } | null = null;
 
-            const ingredientDetails = option.recipe.ingredients.map((ri) => {
+            const ingredientDetails = (option.recipe?.ingredients || []).map((ri) => {
                 const inventory = ri.ingredient.inventories[0];
                 const currentQty = inventory ? inventory.currentQuantity : 0;
                 const requiredQty = ri.quantity;
@@ -570,7 +571,79 @@ export class InventoryService {
             };
         });
 
-        return [...variantForecasts, ...modifierForecasts];
+        const allForecasts = [...variantForecasts, ...modifierForecasts];
+
+        let ready = 0;
+        let low = 0;
+        let out = 0;
+        let noRecipe = 0;
+
+        allForecasts.forEach((item) => {
+            if (!item.hasRecipe) {
+                noRecipe++;
+            } else if (item.maxProduceable === 0) {
+                out++;
+            } else if (typeof item.maxProduceable === 'number' && item.maxProduceable <= 20) {
+                low++;
+            } else {
+                ready++;
+            }
+        });
+
+        const stats = {
+            total: allForecasts.length,
+            ready,
+            low,
+            out,
+            noRecipe
+        };
+
+        const page = query?.page || 1;
+        const limit = query?.limit || 12;
+        const search = query?.search ? query.search.trim().toLowerCase() : '';
+        const status = query?.status || 'all';
+
+        const filtered = allForecasts.filter((item) => {
+            if (search) {
+                const matchName = item.name.toLowerCase().includes(search);
+                const matchSku = item.sku ? item.sku.toLowerCase().includes(search) : false;
+                if (!matchName && !matchSku) return false;
+            }
+
+            if (status === 'ready') {
+                return (
+                    item.hasRecipe && (item.maxProduceable === 'Unlimited' || (typeof item.maxProduceable === 'number' && item.maxProduceable > 20))
+                );
+            }
+            if (status === 'low') {
+                return item.hasRecipe && typeof item.maxProduceable === 'number' && item.maxProduceable > 0 && item.maxProduceable <= 20;
+            }
+            if (status === 'out') {
+                return item.hasRecipe && item.maxProduceable === 0;
+            }
+            if (status === 'no_recipe') {
+                return !item.hasRecipe;
+            }
+
+            return true;
+        });
+
+        const total = filtered.length;
+        const pageCount = Math.ceil(total / limit) || 1;
+        const offset = (page - 1) * limit;
+        const paginatedData = filtered.slice(offset, offset + limit);
+
+        return {
+            data: paginatedData,
+            meta: {
+                total,
+                pageCount,
+                count: paginatedData.length,
+                currentPage: page,
+                hasMore: page < pageCount
+            },
+            stats
+        };
     }
 
     // ==========================================
