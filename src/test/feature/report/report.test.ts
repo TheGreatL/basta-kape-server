@@ -281,11 +281,34 @@ describe('Report Feature', () => {
         const row = res.body.rows.find((entry: { date: string }) => entry.date === todayStr);
         expect(row).toBeDefined();
         expect(row.orderCount).toBeGreaterThanOrEqual(1);
+        expect(row).toHaveProperty('orderReferences');
 
         const parseVal = (str: string) => parseFloat(str.replace(/[^\d.]/g, ''));
         expect(parseVal(row.grossSales)).toBeGreaterThanOrEqual(150.0);
         expect(parseVal(row.discountAmount)).toBeGreaterThanOrEqual(20.0);
         expect(parseVal(row.netSales)).toBeGreaterThanOrEqual(130.0);
         expect(parseVal(row.cashSales)).toBeGreaterThanOrEqual(130.0);
+    });
+
+    it('should preview per-transaction sales report data when groupBy is transaction', async () => {
+        const res = await request(app)
+            .post('/reports/preview')
+            .send({
+                module: 'sales',
+                filters: { status: 'active', groupBy: 'transaction' },
+                page: 1,
+                limit: 10
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.module).toBe('sales');
+        expect(res.body.columns.some((c: { key: string }) => c.key === 'referenceNumber')).toBe(true);
+        expect(res.body.columns.some((c: { key: string }) => c.key === 'paymentMethod')).toBe(true);
+        expect(res.body.rows.length).toBeGreaterThanOrEqual(1);
+
+        const firstRow = res.body.rows[0];
+        expect(firstRow).toHaveProperty('referenceNumber');
+        expect(firstRow).toHaveProperty('paymentMethod');
+        expect(firstRow).toHaveProperty('paymentStatus', 'PAID');
     });
 });

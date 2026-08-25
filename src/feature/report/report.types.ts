@@ -28,7 +28,8 @@ export const ReportFiltersSchema = z.object({
     productTypeId: z.string().optional(),
     inventoryStatus: z.enum(['SAFE', 'CRITICAL', 'OUT_OF_STOCK']).optional(),
     orderStatus: z.enum(['PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED']).optional(),
-    orderType: z.enum(['DINE_IN', 'TAKE_OUT', 'DELIVERY']).optional()
+    orderType: z.enum(['DINE_IN', 'TAKE_OUT', 'DELIVERY']).optional(),
+    groupBy: z.enum(['daily', 'transaction']).default('daily').optional()
 });
 
 export type TReportFilters = z.infer<typeof ReportFiltersSchema>;
@@ -168,6 +169,32 @@ const commonDateFilters: TReportFilterField[] = [
     { key: 'dateTo', label: 'Date To', type: 'date' }
 ];
 
+export const SALES_DAILY_COLUMNS: TReportColumn[] = [
+    { key: 'date', header: 'Date', width: 15 },
+    { key: 'orderReferences', header: 'Order References', width: 32 },
+    { key: 'orderCount', header: 'Orders', width: 10, align: 'right' },
+    { key: 'grossSales', header: 'Gross Sales', width: 15, align: 'right' },
+    { key: 'discountAmount', header: 'Discounts', width: 14, align: 'right' },
+    { key: 'netSales', header: 'Net Sales', width: 15, align: 'right' },
+    { key: 'cashSales', header: 'Cash Sales', width: 14, align: 'right' },
+    { key: 'gcashSales', header: 'GCash Sales', width: 14, align: 'right' },
+    { key: 'paymayaSales', header: 'PayMaya Sales', width: 14, align: 'right' },
+    { key: 'cardSales', header: 'Card Sales', width: 14, align: 'right' }
+];
+
+export const SALES_TRANSACTION_COLUMNS: TReportColumn[] = [
+    { key: 'dateTime', header: 'Date & Time', width: 22 },
+    { key: 'referenceNumber', header: 'Reference #', width: 18 },
+    { key: 'customerName', header: 'Customer', width: 22 },
+    { key: 'orderType', header: 'Dining Type', width: 14 },
+    { key: 'orderSource', header: 'Source', width: 12 },
+    { key: 'paymentMethod', header: 'Payment Method', width: 18 },
+    { key: 'paymentStatus', header: 'Payment Status', width: 14 },
+    { key: 'subtotal', header: 'Subtotal', width: 14, align: 'right' },
+    { key: 'discountAmount', header: 'Discount', width: 14, align: 'right' },
+    { key: 'netTotal', header: 'Net Total', width: 14, align: 'right' }
+];
+
 export const REPORT_MODULE_CATALOG: TReportModuleDefinition[] = [
     {
         id: 'products',
@@ -239,33 +266,35 @@ export const REPORT_MODULE_CATALOG: TReportModuleDefinition[] = [
         sourceModule: appModules.INVENTORY_MANAGEMENT,
         filters: [{ key: 'search', label: 'Search', type: 'text' }, commonStatusFilter, ...commonDateFilters],
         columns: [
+            { key: 'batchNumber', header: 'Batch #', width: 18 },
             { key: 'ingredient', header: 'Ingredient', width: 22 },
-            { key: 'batchNumber', header: 'Batch No.', width: 16 },
-            { key: 'quantityReceived', header: 'Qty Received', width: 14, align: 'right' },
-            { key: 'unitCost', header: 'Unit Cost', width: 12, align: 'right' },
-            { key: 'totalCost', header: 'Total Cost', width: 12, align: 'right' },
-            { key: 'supplier', header: 'Supplier', width: 20 },
-            { key: 'receivedAt', header: 'Received At', width: 22 }
+            { key: 'supplier', header: 'Supplier', width: 22 },
+            { key: 'quantityReceived', header: 'Received Qty', width: 14, align: 'right' },
+            { key: 'costPerUnit', header: 'Cost / Unit', width: 14, align: 'right' },
+            { key: 'totalCost', header: 'Total Cost', width: 14, align: 'right' },
+            { key: 'receivedAt', header: 'Received Date', width: 22 }
         ]
     },
     {
         id: 'inventory-adjustments',
         label: 'Inventory Adjustments',
-        description: 'Stock adjustments, waste, and spoilage logs.',
+        description: 'Stock deductions, wastes, physical count audit corrections.',
         sourceModule: appModules.INVENTORY_MANAGEMENT,
-        filters: [{ key: 'search', label: 'Search', type: 'text' }, commonStatusFilter, ...commonDateFilters],
+        filters: [{ key: 'search', label: 'Search', type: 'text' }, ...commonDateFilters],
         columns: [
             { key: 'ingredient', header: 'Ingredient', width: 22 },
-            { key: 'type', header: 'Type', width: 14 },
-            { key: 'quantity', header: 'Quantity', width: 12, align: 'right' },
-            { key: 'reason', header: 'Reason', width: 28 },
-            { key: 'createdAt', header: 'Logged At', width: 22 }
+            { key: 'type', header: 'Adjustment Type', width: 24 },
+            { key: 'quantity', header: 'Quantity Change', width: 16, align: 'right' },
+            { key: 'unit', header: 'Unit', width: 12 },
+            { key: 'reason', header: 'Reason / Note', width: 30 },
+            { key: 'adjustedBy', header: 'Adjusted By', width: 20 },
+            { key: 'createdAt', header: 'Date & Time', width: 22 }
         ]
     },
     {
         id: 'customers',
         label: 'Customers',
-        description: 'Registered customer accounts.',
+        description: 'Registered customer profiles and contact details.',
         sourceModule: appModules.CUSTOMERS_MANAGEMENT,
         filters: [{ key: 'search', label: 'Search', type: 'text' }, commonStatusFilter, ...commonDateFilters],
         columns: [
@@ -351,18 +380,21 @@ export const REPORT_MODULE_CATALOG: TReportModuleDefinition[] = [
         label: 'Sales Summary',
         description: 'Daily compiled sales numbers including payment methods breakdown and discount totals.',
         sourceModule: appModules.SALES_MANAGEMENT,
-        filters: [{ key: 'search', label: 'Search', type: 'text' }, commonStatusFilter, ...commonDateFilters],
-        columns: [
-            { key: 'date', header: 'Date', width: 15 },
-            { key: 'orderCount', header: 'Orders', width: 10, align: 'right' },
-            { key: 'grossSales', header: 'Gross Sales', width: 15, align: 'right' },
-            { key: 'discountAmount', header: 'Discounts', width: 14, align: 'right' },
-            { key: 'netSales', header: 'Net Sales', width: 15, align: 'right' },
-            { key: 'cashSales', header: 'Cash Sales', width: 14, align: 'right' },
-            { key: 'gcashSales', header: 'GCash Sales', width: 14, align: 'right' },
-            { key: 'paymayaSales', header: 'PayMaya Sales', width: 14, align: 'right' },
-            { key: 'cardSales', header: 'Card Sales', width: 14, align: 'right' }
-        ]
+        filters: [
+            { key: 'search', label: 'Search', type: 'text' },
+            commonStatusFilter,
+            {
+                key: 'groupBy',
+                label: 'View Type',
+                type: 'select',
+                options: [
+                    { value: 'daily', label: 'Daily Summary (Aggregated)' },
+                    { value: 'transaction', label: 'Per-Transaction (Detailed)' }
+                ]
+            },
+            ...commonDateFilters
+        ],
+        columns: SALES_DAILY_COLUMNS
     }
 ];
 

@@ -527,8 +527,11 @@ export class ReportRepository extends BaseRepository {
     }
 
     private async fetchSalesSummary(filters: TReportFilters, pagination?: { page: number; limit: number }): Promise<TReportQueryResult> {
+        const isTransactionView = filters.groupBy === 'transaction';
+
         const where: Prisma.OrderWhereInput = {
-            status: 'COMPLETED'
+            status: 'COMPLETED',
+            paymentStatus: 'PAID'
         };
 
         if (filters.status === 'active') where.deletedAt = null;
@@ -544,12 +547,66 @@ export class ReportRepository extends BaseRepository {
             }
         }
 
-        // Fetch all matching completed orders
+        if (isTransactionView) {
+            if (filters.search) {
+                where.OR = [{ queueNumber: { contains: filters.search } }, { customerName: { contains: filters.search } }];
+            }
+
+            const { skip, take } = this.resolvePagination(pagination);
+
+            const [records, total] = await Promise.all([
+                prisma.order.findMany({
+                    where,
+                    skip,
+                    take,
+                    orderBy: { createdAt: 'desc' },
+                    select: {
+                        createdAt: true,
+                        queueNumber: true,
+                        customerName: true,
+                        orderType: true,
+                        orderSource: true,
+                        subtotal: true,
+                        discountAmount: true,
+                        netTotal: true,
+                        paymentStatus: true,
+                        payments: {
+                            select: {
+                                paymentMethod: true
+                            }
+                        }
+                    }
+                }),
+                prisma.order.count({ where })
+            ]);
+
+            return {
+                total,
+                rows: records.map((order) => {
+                    const methods = Array.from(new Set(order.payments.map((p) => p.paymentMethod))).join(', ');
+                    return {
+                        dateTime: formatDateTime(order.createdAt),
+                        referenceNumber: getOrderReference(order.createdAt, order.queueNumber),
+                        customerName: order.customerName || 'Walk-in Customer',
+                        orderType: order.orderType.replace('_', ' '),
+                        orderSource: order.orderSource,
+                        paymentMethod: methods || 'N/A',
+                        paymentStatus: order.paymentStatus,
+                        subtotal: formatCurrency(order.subtotal),
+                        discountAmount: formatCurrency(order.discountAmount),
+                        netTotal: formatCurrency(order.netTotal)
+                    };
+                })
+            };
+        }
+
+        // Fetch all matching completed & paid orders for daily aggregation
         const orders = await prisma.order.findMany({
             where,
             orderBy: { createdAt: 'desc' },
             select: {
                 createdAt: true,
+                queueNumber: true,
                 subtotal: true,
                 discountAmount: true,
                 netTotal: true,
@@ -567,6 +624,7 @@ export class ReportRepository extends BaseRepository {
             string,
             {
                 date: string;
+                orderReferences: string[];
                 orderCount: number;
                 grossSales: number;
                 discountAmount: number;
@@ -587,10 +645,12 @@ export class ReportRepository extends BaseRepository {
 
         for (const order of orders) {
             const dateStr = localDateFormatter.format(order.createdAt);
+            const ref = getOrderReference(order.createdAt, order.queueNumber);
 
             if (!dailyGroups[dateStr]) {
                 dailyGroups[dateStr] = {
                     date: dateStr,
+                    orderReferences: [],
                     orderCount: 0,
                     grossSales: 0,
                     discountAmount: 0,
@@ -603,6 +663,7 @@ export class ReportRepository extends BaseRepository {
             }
 
             const group = dailyGroups[dateStr];
+            group.orderReferences.push(ref);
             group.orderCount += 1;
             group.grossSales += order.subtotal;
             group.discountAmount += order.discountAmount;
@@ -623,10 +684,10 @@ export class ReportRepository extends BaseRepository {
 
         let rows = Object.values(dailyGroups);
 
-        // Filter by search string (match against date format)
+        // Filter by search string (match against date format or order reference)
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
-            rows = rows.filter((row) => row.date.includes(searchLower));
+            rows = rows.filter((row) => row.date.includes(searchLower) || row.orderReferences.some((r) => r.toLowerCase().includes(searchLower)));
         }
 
         // Sort by date descending
@@ -640,6 +701,7 @@ export class ReportRepository extends BaseRepository {
 
         const formattedRows = paginatedRows.map((row) => ({
             date: row.date,
+            orderReferences: row.orderReferences.join(', ') || 'None',
             orderCount: row.orderCount,
             grossSales: formatCurrency(row.grossSales),
             discountAmount: formatCurrency(row.discountAmount),

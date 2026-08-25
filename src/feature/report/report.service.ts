@@ -8,6 +8,8 @@ import {
     REPORT_BRAND_NAME,
     REPORT_MAX_EXPORT_ROWS,
     REPORT_MODULE_CATALOG,
+    SALES_DAILY_COLUMNS,
+    SALES_TRANSACTION_COLUMNS,
     type TReportActor,
     type TReportDataset,
     type TReportExportRequest,
@@ -63,13 +65,16 @@ export class ReportService {
         const limit = payload.limit ?? 20;
         const filters = payload.filters ?? {};
 
+        const columns =
+            payload.module === 'sales' ? (filters.groupBy === 'transaction' ? SALES_TRANSACTION_COLUMNS : SALES_DAILY_COLUMNS) : definition.columns;
+
         const { rows, total } = await this.repository.fetchReportData(payload.module, filters, { page, limit });
         const pageCount = Math.ceil(total / limit) || 1;
 
         return {
             module: payload.module,
             title: definition.label,
-            columns: definition.columns,
+            columns,
             rows,
             meta: {
                 total,
@@ -137,10 +142,13 @@ export class ReportService {
             limit: REPORT_MAX_EXPORT_ROWS
         });
 
+        const columns =
+            payload.module === 'sales' ? (filters.groupBy === 'transaction' ? SALES_TRANSACTION_COLUMNS : SALES_DAILY_COLUMNS) : definition.columns;
+
         const dataset: TReportDataset = {
             module: payload.module,
             title: payload.title ?? `${definition.label} Report`,
-            columns: definition.columns,
+            columns,
             rows,
             meta: {
                 total,
@@ -189,6 +197,7 @@ export class ReportService {
 
         const orderWhere: Prisma.OrderWhereInput = {
             status: OrderStatus.COMPLETED,
+            paymentStatus: PaymentStatus.PAID,
             createdAt: {
                 gte: start,
                 lte: end
