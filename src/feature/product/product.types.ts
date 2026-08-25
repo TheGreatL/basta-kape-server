@@ -33,9 +33,20 @@ export const UpdateProductSchema = z.object({
 
 export type TUpdateProduct = z.infer<typeof UpdateProductSchema>;
 
+// SKU Schema helper that allows empty strings and transforms them to null
+export const SkuSchema = z
+    .string()
+    .trim()
+    .min(2)
+    .max(50)
+    .optional()
+    .nullable()
+    .or(z.literal(''))
+    .transform((val) => (val === '' ? null : val));
+
 // Product Variant CRUD Schemas
 export const CreateProductVariantSchema = z.object({
-    sku: z.string().min(2).max(50).optional().nullable(),
+    sku: SkuSchema,
     price: z.number().nonnegative().default(0),
     attributeValueIds: z.array(z.string().max(100)).default([]) // attribute values mapping (e.g. Medium, Oat Milk)
 });
@@ -43,7 +54,7 @@ export const CreateProductVariantSchema = z.object({
 export type TCreateProductVariant = z.infer<typeof CreateProductVariantSchema>;
 
 export const UpdateProductVariantSchema = z.object({
-    sku: z.string().min(2).max(50).optional().nullable(),
+    sku: SkuSchema,
     price: z.number().nonnegative().optional(),
     attributeValueIds: z.array(z.string().max(100)).optional() // will fully re-sync join table attributes
 });
@@ -119,7 +130,7 @@ export const BulkSyncProductVariantsSchema = z.object({
     variants: z.array(
         z.object({
             id: z.string().uuid().optional().nullable(),
-            sku: z.string().min(2).max(50).optional().nullable(),
+            sku: SkuSchema,
             price: z.number().nonnegative(),
             attributeValueIds: z.array(z.string().uuid()).default([])
         })

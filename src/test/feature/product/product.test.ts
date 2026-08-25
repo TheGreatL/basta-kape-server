@@ -354,6 +354,27 @@ describe('Product Feature CRUD & Transactional Mappings', () => {
                 expect(j.deletedAt).not.toBeNull();
             });
         });
+
+        it('should bulk sync product variants allowing empty string SKUs', async () => {
+            const payload = {
+                variants: [
+                    {
+                        sku: '',
+                        price: 120,
+                        attributeValueIds: [mediumValueId]
+                    },
+                    {
+                        sku: 'TEST-SKU-CUSTOM',
+                        price: 150,
+                        attributeValueIds: [largeValueId]
+                    }
+                ]
+            };
+
+            const res = await request(app).put(`/products/${testProductId}/variants/bulk`).send(payload);
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Product variants synchronized successfully');
+        });
     });
 
     // ========================================================================
