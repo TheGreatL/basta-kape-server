@@ -15,6 +15,7 @@ const activityLogService = new ActivityLogService();
 const loginRateLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
     max: 5, // 5 attempts per windowMs
+    skipSuccessfulRequests: true, // Only count failed login attempts
     skip: (req) => req.headers['x-skip-rate-limit'] === 'true',
     message: { message: 'Too many login attempts, please try again after 5 minutes' }
 });
@@ -49,6 +50,11 @@ router.post('/login', loginRateLimiter, async (req: Request, res: Response, next
     try {
         const { identifier, password } = LoginSchema.parse(req.body);
         const result = await authService.login(identifier, password);
+
+        // Reset login rate limit attempts upon successful authentication
+        if (req.ip) {
+            loginRateLimiter.resetKey(req.ip);
+        }
 
         // Set refresh token in HttpOnly cookie
         res.cookie('refreshToken', result.refreshToken, {

@@ -144,7 +144,25 @@ describe('Auth Feature Integration Tests', () => {
             expect(res.status).toBe(401);
         });
 
-        it('should fail with 429 Too Many Requests after 5 login attempts', async () => {
+        it('should reset rate limiter after a successful login', async () => {
+            // 1. Make 4 failed attempts (1 below the limit of 5)
+            for (let i = 0; i < 4; i++) {
+                await request(app).post('/auth/login').send({ identifier: 'test-rate-limit-reset', password: 'wrong' });
+            }
+
+            // 2. Perform a successful login
+            const successRes = await request(app).post('/auth/login').send({
+                identifier: testUser.email,
+                password: testUser.password
+            });
+            expect(successRes.status).toBe(200);
+
+            // 3. Since rate limit was reset, making another failed attempt should not be 429
+            const afterRes = await request(app).post('/auth/login').send({ identifier: 'test-rate-limit-reset', password: 'wrong' });
+            expect(afterRes.status).toBe(401);
+        });
+
+        it('should fail with 429 Too Many Requests after 5 consecutive failed login attempts', async () => {
             // Explicitly make 5 failed login attempts to hit the rate limit
             for (let i = 0; i < 5; i++) {
                 await request(app).post('/auth/login').send({ identifier: 'test-rate-limit', password: '123' });
