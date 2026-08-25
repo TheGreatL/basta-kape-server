@@ -55,6 +55,26 @@ export class OrderRepository extends BaseRepository {
         });
     }
 
+    async getOrderQueueCount(): Promise<{
+        count: number;
+        pending: number;
+        preparing: number;
+        ready: number;
+    }> {
+        const [pending, preparing, ready] = await Promise.all([
+            prisma.order.count({ where: { status: 'PENDING' } }),
+            prisma.order.count({ where: { status: 'PREPARING' } }),
+            prisma.order.count({ where: { status: 'READY' } })
+        ]);
+
+        return {
+            count: pending + preparing + ready,
+            pending,
+            preparing,
+            ready
+        };
+    }
+
     async createOrder(data: TCreateOrderRepoData) {
         const createdOrder = await prisma.$transaction(async (tx) => {
             const inventoryRepo = new InventoryRepository();

@@ -41,6 +41,36 @@ router.get('/', requireAccess(appModules.ORDERS_MANAGEMENT, appPermissions.READ)
     }
 });
 
+// GET /orders/queue-count
+registry.registerPath({
+    method: 'get',
+    path: '/orders/queue-count',
+    tags: ['Orders'],
+    summary: 'Get order queue count and breakdown',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Order queue count retrieved successfully'
+        }
+    }
+});
+
+router.get(
+    '/queue-count',
+    requireAccess([
+        { module: appModules.ORDER_QUEUE, permission: appPermissions.READ },
+        { module: appModules.ORDERS_MANAGEMENT, permission: appPermissions.READ }
+    ]),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getOrderQueueCount();
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 // GET /orders/:id
 registry.registerPath({
     method: 'get',

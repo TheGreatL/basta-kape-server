@@ -28,6 +28,10 @@ export class OrderService {
         return this.repository.getOrderList(params);
     }
 
+    async getOrderQueueCount() {
+        return this.repository.getOrderQueueCount();
+    }
+
     async getOrderById(id: string) {
         const order = await this.repository.getOrderById(id);
         if (!order) {
