@@ -295,4 +295,28 @@ describe('Auth Feature Integration Tests', () => {
             testUser.password = 'FinalPassword123!';
         }, 15000);
     });
+
+    describe('GET /auth/me', () => {
+        it('should return current user profile and permissions', async () => {
+            const loginRes = await request(app).post('/auth/login').set('x-skip-rate-limit', 'true').send({
+                identifier: testUser.email,
+                password: testUser.password
+            });
+            const token = loginRes.body.accessToken;
+
+            const res = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('id', registeredUserId);
+            expect(res.body).toHaveProperty('email', testUser.email);
+            expect(res.body).toHaveProperty('username', testUser.username);
+            expect(res.body).toHaveProperty('roles');
+        });
+
+        it('should fail with 401 when no token is provided', async () => {
+            const res = await request(app).get('/auth/me');
+
+            expect(res.status).toBe(401);
+        });
+    });
 });

@@ -177,5 +177,16 @@ describe('Supplier Feature CRUD', () => {
             });
             expect(deleted?.deletedAt).not.toBeNull();
         });
+
+        it('should restore a soft-deleted supplier', async () => {
+            const res = await request(app).patch(`/suppliers/${testSupplierId}/restore`);
+            expect(res.status).toBe(200);
+
+            // Verify restored
+            const restored = await prisma.supplier.findUnique({
+                where: { id: testSupplierId }
+            });
+            expect(restored?.deletedAt).toBeNull();
+        });
     });
 });

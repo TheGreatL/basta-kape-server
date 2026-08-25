@@ -417,5 +417,25 @@ describe('Product Feature CRUD & Transactional Mappings', () => {
                 expect(j.deletedAt).not.toBeNull();
             });
         });
+
+        it('should restore a soft-deleted variant and its parent product', async () => {
+            // Restore parent product first
+            const restoreProdRes = await request(app).patch(`/products/${testProductId}/restore`);
+            expect(restoreProdRes.status).toBe(200);
+
+            const restoredProduct = await prisma.product.findUnique({
+                where: { id: testProductId }
+            });
+            expect(restoredProduct?.deletedAt).toBeNull();
+
+            // Restore variant
+            const restoreVarRes = await request(app).patch(`/products/variants/${testVariantId}/restore`);
+            expect(restoreVarRes.status).toBe(200);
+
+            const restoredVariant = await prisma.productVariant.findUnique({
+                where: { id: testVariantId }
+            });
+            expect(restoredVariant?.deletedAt).toBeNull();
+        });
     });
 });

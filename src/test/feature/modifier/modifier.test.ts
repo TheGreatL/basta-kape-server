@@ -48,6 +48,8 @@ describe('Modifier Feature CRUD', () => {
     let testProductId: string;
     let createdGroupId: string;
     let createdOptionId: string;
+    let testUnitId: string;
+    let testIngredientId: string;
 
     beforeAll(async () => {
         prisma = new PrismaClient();
@@ -113,9 +115,39 @@ describe('Modifier Feature CRUD', () => {
             }
         });
         testProductId = product.id;
+
+        // 3. Create unit and ingredient for modifier recipe tests
+        const unit = await prisma.ingredientUnit.create({
+            data: {
+                name: 'Milliliters Test Mod',
+                abbreviation: 'ml_mod',
+                createdById: 'test-modifier-admin-id'
+            }
+        });
+        testUnitId = unit.id;
+
+        const ingredient = await prisma.ingredient.create({
+            data: {
+                name: 'Honey Syrup Test Mod',
+                ingredientUnitId: testUnitId,
+                reorderPoint: 10,
+                createdById: 'test-modifier-admin-id'
+            }
+        });
+        testIngredientId = ingredient.id;
     });
 
     afterAll(async () => {
+        // Cleanup recipes and ingredients
+        await prisma.recipeIngredient.deleteMany({
+            where: { ingredientId: testIngredientId }
+        });
+        await prisma.recipe.deleteMany({
+            where: { createdById: 'test-modifier-admin-id' }
+        });
+        await prisma.ingredient.deleteMany({ where: { createdById: 'test-modifier-admin-id' } });
+        await prisma.ingredientUnit.deleteMany({ where: { createdById: 'test-modifier-admin-id' } });
+
         // Cleanup modifier options and groups
         await prisma.modifierOption.deleteMany({
             where: {
@@ -277,6 +309,90 @@ describe('Modifier Feature CRUD', () => {
                 where: { id: option.id }
             });
             expect(optionRecord?.deletedAt).not.toBeNull();
+        });
+    });
+
+    describe('Modifier Option Recipe CRUD Operations', () => {
+        let recipeOptionId: string;
+        let testRecipeId: string;
+
+        beforeAll(async () => {
+            // Create a group and option for recipe tests
+            const group = await prisma.modifierGroup.create({
+                data: {
+                    name: 'Test Sweetness Recipe Group',
+                    isRequired: false,
+                    minSelect: 0,
+                    maxSelect: 1
+                }
+            });
+
+            const option = await prisma.modifierOption.create({
+                data: {
+                    modifierGroupId: group.id,
+                    name: 'Honey 50%',
+                    price: 10.0
+                }
+            });
+            recipeOptionId = option.id;
+        });
+
+        it('should create a recipe for a modifier option', async () => {
+            const payload = {
+                name: 'Honey 50% Recipe',
+                description: 'Recipe for half honey sweetener',
+                ingredients: [
+                    {
+                        ingredientId: testIngredientId,
+                        quantity: 15.0,
+                        ingredientUnitId: testUnitId
+                    }
+                ]
+            };
+
+            const res = await request(app).post(`/modifiers/options/${recipeOptionId}/recipe`).send(payload);
+
+            expect(res.status).toBe(201);
+            expect(res.body).toHaveProperty('id');
+            expect(res.body.name).toBe('Honey 50% Recipe');
+            expect(res.body.ingredients).toHaveLength(1);
+            expect(res.body.ingredients[0].ingredientId).toBe(testIngredientId);
+
+            testRecipeId = res.body.id;
+        });
+
+        it('should get the recipe for a modifier option', async () => {
+            const res = await request(app).get(`/modifiers/options/${recipeOptionId}/recipe`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.id).toBe(testRecipeId);
+            expect(res.body.name).toBe('Honey 50% Recipe');
+        });
+
+        it('should update the recipe for a modifier option', async () => {
+            const payload = {
+                name: 'Honey 50% Updated Recipe',
+                description: 'Updated description'
+            };
+
+            const res = await request(app).put(`/modifiers/options/${recipeOptionId}/recipe`).send(payload);
+
+            expect(res.status).toBe(200);
+            expect(res.body.name).toBe('Honey 50% Updated Recipe');
+        });
+
+        it('should soft-delete the recipe for a modifier option', async () => {
+            const res = await request(app).delete(`/modifiers/options/${recipeOptionId}/recipe`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toContain('soft-deleted successfully');
+        });
+
+        it('should restore the soft-deleted recipe for a modifier option', async () => {
+            const res = await request(app).patch(`/modifiers/options/${recipeOptionId}/recipe/restore`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.id).toBe(testRecipeId);
         });
     });
 });

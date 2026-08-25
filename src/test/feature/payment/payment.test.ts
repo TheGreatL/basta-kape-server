@@ -380,4 +380,37 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.body.error).toBe('Order not found');
         });
     });
+
+    describe('PATCH /orders/payments/:paymentId/receipt', () => {
+        it('should successfully update receipt reference for a payment', async () => {
+            const order = await createTestOrder();
+            const payment = await prisma.orderPayment.create({
+                data: {
+                    orderId: order.id,
+                    paymentMethod: 'GCASH',
+                    amount: 120.0,
+                    amountTendered: 120.0
+                }
+            });
+
+            const payload = {
+                paymentProofPhoto: 'https://example.com/proofs/gcash-123.jpg',
+                paymentReferenceNumber: 'GCASH-REF-998877'
+            };
+
+            const res = await request(app).patch(`/orders/payments/${payment.id}/receipt`).send(payload);
+
+            expect(res.status).toBe(200);
+            expect(res.body.paymentProofPhoto).toBe('https://example.com/proofs/gcash-123.jpg');
+            expect(res.body.paymentReferenceNumber).toBe('GCASH-REF-998877');
+        });
+
+        it('should fail with 404 when payment record does not exist', async () => {
+            const res = await request(app).patch('/orders/payments/00000000-0000-0000-0000-000000000000/receipt').send({
+                paymentReferenceNumber: 'FAKE-123'
+            });
+
+            expect(res.status).toBe(404);
+        });
+    });
 });

@@ -211,5 +211,14 @@ describe('Role Feature (RBAC)', () => {
             const verify = await prisma.role.findFirst({ where: { id: createdRoleId } });
             expect(verify?.deletedAt).not.toBeNull();
         });
+
+        it('should restore a soft-deleted non-system role', async () => {
+            const res = await request(app).patch(`/roles/${createdRoleId}/restore`);
+            expect(res.status).toBe(200);
+
+            // Verify restore
+            const verify = await prisma.role.findFirst({ where: { id: createdRoleId } });
+            expect(verify?.deletedAt).toBeNull();
+        });
     });
 });

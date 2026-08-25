@@ -488,5 +488,22 @@ describe('Customer Feature CRUD', () => {
             });
             expect(deletedUser?.deletedAt).not.toBeNull();
         });
+
+        it('should restore a soft-deleted customer and their user record', async () => {
+            const res = await request(app).patch(`/customers/${testCustomerId}/restore`);
+            expect(res.status).toBe(200);
+
+            // Verify customer restored
+            const restoredCustomer = await prisma.customer.findUnique({
+                where: { id: testCustomerId }
+            });
+            expect(restoredCustomer?.deletedAt).toBeNull();
+
+            // Verify user restored
+            const restoredUser = await prisma.user.findUnique({
+                where: { id: testCustomerUserId }
+            });
+            expect(restoredUser?.deletedAt).toBeNull();
+        });
     });
 });

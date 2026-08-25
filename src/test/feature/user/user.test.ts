@@ -195,5 +195,14 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
             const user = await prisma.user.findUnique({ where: { id: createdUserId } });
             expect(user?.deletedAt).not.toBeNull();
         });
+
+        it('should restore a soft-deleted user', async () => {
+            const res = await request(app).patch(`/users/${createdUserId}/restore`);
+            expect(res.status).toBe(200);
+
+            // Verify restored (deletedAt is null)
+            const user = await prisma.user.findUnique({ where: { id: createdUserId } });
+            expect(user?.deletedAt).toBeNull();
+        });
     });
 });

@@ -270,5 +270,16 @@ describe('Recipe Feature CRUD API', () => {
             const getRes = await request(app).get(`/products/variants/${testVariantId}/recipe`);
             expect(getRes.status).toBe(404);
         });
+
+        it('should successfully restore the soft-deleted recipe', async () => {
+            const restoreRes = await request(app).patch(`/products/variants/${testVariantId}/recipe/restore`);
+            expect(restoreRes.status).toBe(200);
+            expect(restoreRes.body.name).toBe('Cocoa Sweet Recipe');
+
+            // Confirm it is retrievable again
+            const getRes = await request(app).get(`/products/variants/${testVariantId}/recipe`);
+            expect(getRes.status).toBe(200);
+            expect(getRes.body.name).toBe('Cocoa Sweet Recipe');
+        });
     });
 });

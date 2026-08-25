@@ -311,4 +311,12 @@ describe('Report Feature', () => {
         expect(firstRow).toHaveProperty('paymentMethod');
         expect(firstRow).toHaveProperty('paymentStatus', 'PAID');
     });
+
+    it('should retrieve sales analytics summary', async () => {
+        const res = await request(app).get('/reports/sales-analytics');
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('summary');
+        expect(res.body).toHaveProperty('paymentBreakdown');
+    });
 });

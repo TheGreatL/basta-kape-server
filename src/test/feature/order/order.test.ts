@@ -464,5 +464,10 @@ describe('Order Feature CRUD', () => {
             const res = await request(app).patch(`/orders/${createdOrderId}/status`).send(payload);
             expect(res.status).toBe(400);
         });
+
+        it('should retrieve active order queue counts', async () => {
+            const res = await request(app).get('/orders/queue-count');
+            expect(res.status).toBe(200);
+        });
     });
 });

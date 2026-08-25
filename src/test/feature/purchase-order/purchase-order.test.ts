@@ -315,4 +315,46 @@ describe('Purchase Order Feature CRUD', () => {
             expect(res.body.error).toContain('Ingredient with ID 00000000-0000-0000-0000-000000000000 not found');
         });
     });
+
+    describe('GET /purchase-orders', () => {
+        it('should retrieve a paginated list of purchase orders', async () => {
+            const res = await request(app).get('/purchase-orders?page=1&limit=10');
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('data');
+            expect(res.body).toHaveProperty('meta');
+            expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it('should retrieve a single purchase order by ID', async () => {
+            // Create a PO to fetch
+            const createRes = await request(app)
+                .post('/purchase-orders')
+                .send({
+                    supplierId: testSupplierId1,
+                    notes: 'Fetch test PO',
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 15,
+                            unitCost: 10.0
+                        }
+                    ]
+                });
+            expect(createRes.status).toBe(201);
+            const poId = createRes.body.id;
+
+            const res = await request(app).get(`/purchase-orders/${poId}`);
+            expect(res.status).toBe(200);
+            expect(res.body.id).toBe(poId);
+            expect(res.body.notes).toBe('Fetch test PO');
+            expect(res.body.supplier).toBeDefined();
+            expect(res.body.items).toHaveLength(1);
+        });
+
+        it('should return 404 for non-existent purchase order ID', async () => {
+            const res = await request(app).get('/purchase-orders/00000000-0000-0000-0000-000000000000');
+            expect(res.status).toBe(404);
+        });
+    });
 });

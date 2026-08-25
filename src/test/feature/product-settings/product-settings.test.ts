@@ -170,6 +170,17 @@ describe('Product Settings Feature CRUD', () => {
             });
             expect(deleted?.deletedAt).not.toBeNull();
         });
+
+        it('should restore a soft-deleted category by ID', async () => {
+            const res = await request(app).patch(`/product-settings/categories/${testCategoryId}/restore`);
+            expect(res.status).toBe(200);
+
+            // Verify restored
+            const restored = await prisma.productCategory.findUnique({
+                where: { id: testCategoryId }
+            });
+            expect(restored?.deletedAt).toBeNull();
+        });
     });
 
     // ==========================================
@@ -217,6 +228,17 @@ describe('Product Settings Feature CRUD', () => {
                 where: { id: testTypeId }
             });
             expect(deleted?.deletedAt).not.toBeNull();
+        });
+
+        it('should restore a soft-deleted type by ID', async () => {
+            const res = await request(app).patch(`/product-settings/types/${testTypeId}/restore`);
+            expect(res.status).toBe(200);
+
+            // Verify restored
+            const restored = await prisma.productType.findUnique({
+                where: { id: testTypeId }
+            });
+            expect(restored?.deletedAt).toBeNull();
         });
     });
 
