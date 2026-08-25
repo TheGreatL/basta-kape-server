@@ -387,21 +387,16 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
                 createdAt: true,
                 profilePhoto: true,
                 middleName: true,
-                userRoles: {
-                    where: { deletedAt: null },
+                role: {
                     select: {
-                        role: {
+                        name: true,
+                        rolePermissions: {
+                            where: { deletedAt: null },
                             select: {
-                                name: true,
-                                rolePermissions: {
-                                    where: { deletedAt: null },
+                                modulePermission: {
                                     select: {
-                                        modulePermission: {
-                                            select: {
-                                                module: { select: { name: true } },
-                                                permission: { select: { name: true } }
-                                            }
-                                        }
+                                        module: { select: { name: true } },
+                                        permission: { select: { name: true } }
                                     }
                                 }
                             }
@@ -425,13 +420,17 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
             profilePhoto: user.profilePhoto,
             middleName: user.middleName,
             createdAt: user.createdAt.toISOString(),
-            roles: user.userRoles.map((ur) => ({
-                name: ur.role.name,
-                permissions: ur.role.rolePermissions.map((rp) => ({
-                    module: rp.modulePermission.module.name,
-                    permission: rp.modulePermission.permission.name
-                }))
-            }))
+            roles: user.role
+                ? [
+                      {
+                          name: user.role.name,
+                          permissions: user.role.rolePermissions.map((rp) => ({
+                              module: rp.modulePermission.module.name,
+                              permission: rp.modulePermission.permission.name
+                          }))
+                      }
+                  ]
+                : []
         });
     } catch (error) {
         next(error);

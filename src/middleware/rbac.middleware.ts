@@ -62,8 +62,8 @@ export function requireAccess(
             // Normalize requirements to an array of { module, permission }
             const requirements = Array.isArray(requiredModule) ? requiredModule : [{ module: requiredModule, permission: requiredPermission! }];
 
-            for (const ur of user.userRoles) {
-                for (const rp of ur.role.rolePermissions) {
+            if (user.role) {
+                for (const rp of user.role.rolePermissions) {
                     const matchesRequirement = requirements.some(
                         (reqPerm) =>
                             rp.modulePermission.module.name.toLowerCase() === reqPerm.module.toLowerCase() &&
@@ -74,7 +74,6 @@ export function requireAccess(
                         break;
                     }
                 }
-                if (hasPermission) break;
             }
 
             // System roles (like Super Admin) might bypass this depending on your business rules.

@@ -77,7 +77,13 @@ describe('Payment Feature Integration Tests', () => {
                 username: 'testpaymentuser',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'Payment'
+                lastName: 'Payment',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

@@ -37,8 +37,8 @@ export class VoidService {
         }
 
         let hasDeletePermission = false;
-        for (const ur of user.userRoles) {
-            for (const rp of ur.role.rolePermissions) {
+        if (user.role) {
+            for (const rp of user.role.rolePermissions) {
                 if (
                     rp.modulePermission.module.name.toLowerCase() === appModules.POINT_OF_SALE.toLowerCase() &&
                     rp.modulePermission.permission.name.toLowerCase() === appPermissions.DELETE.toLowerCase()
@@ -47,7 +47,6 @@ export class VoidService {
                     break;
                 }
             }
-            if (hasDeletePermission) break;
         }
 
         if (!hasDeletePermission) {

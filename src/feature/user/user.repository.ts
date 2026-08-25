@@ -19,20 +19,16 @@ const userAuthSelect = {
     firstName: true,
     lastName: true,
     deletedAt: true,
-    userRoles: {
-        where: { deletedAt: null },
+    role: {
         select: {
-            role: {
+            name: true,
+            rolePermissions: {
+                where: { deletedAt: null },
                 select: {
-                    name: true,
-                    rolePermissions: {
+                    modulePermission: {
                         select: {
-                            modulePermission: {
-                                select: {
-                                    module: { select: { name: true } },
-                                    permission: { select: { name: true } }
-                                }
-                            }
+                            module: { select: { name: true } },
+                            permission: { select: { name: true } }
                         }
                     }
                 }
@@ -79,6 +75,10 @@ export class UserRepository extends BaseRepository {
             where: { name: 'Customer', deletedAt: null }
         });
 
+        if (!customerRole) {
+            throw new Error('Default Customer role not found');
+        }
+
         const userData: Prisma.UserCreateInput = {
             email: data.email,
             username: data.username,
@@ -86,16 +86,11 @@ export class UserRepository extends BaseRepository {
             firstName: data.firstName,
             middleName: data.middleName,
             lastName: data.lastName,
-            phoneNumber: data.phoneNumber
+            phoneNumber: data.phoneNumber,
+            role: {
+                connect: { id: customerRole.id }
+            }
         };
-
-        if (customerRole) {
-            userData.userRoles = {
-                create: {
-                    roleId: customerRole.id
-                }
-            };
-        }
 
         return prisma.user.create({
             data: userData,
@@ -110,57 +105,39 @@ export class UserRepository extends BaseRepository {
     }
 
     /**
-     * Creates a new user from the admin panel with selected roles.
+     * Creates a new user from the admin panel with a selected role.
      */
     async createUser(data: TCreateUser) {
-        const { roleIds, ...rest } = data;
+        const { roleId, ...rest } = data;
         const hashedPassword = await bcrypt.hash(rest.password, SALT_ROUNDS);
 
-        return prisma.$transaction(async (tx) => {
-            const user = await tx.user.create({
-                data: {
-                    ...rest,
-                    password: hashedPassword
-                },
-                select: { id: true }
-            });
-
-            if (roleIds && roleIds.length > 0) {
-                await tx.userRole.createMany({
-                    data: roleIds.map((roleId: string) => ({
-                        userId: user.id,
-                        roleId
-                    }))
-                });
-            }
-
-            return tx.user.findUniqueOrThrow({
-                where: { id: user.id },
-                select: {
-                    id: true,
-                    email: true,
-                    username: true,
-                    firstName: true,
-                    middleName: true,
-                    lastName: true,
-                    phoneNumber: true,
-                    profilePhoto: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    deletedAt: true,
-                    userRoles: {
-                        where: { deletedAt: null },
-                        select: {
-                            role: {
-                                select: {
-                                    id: true,
-                                    name: true
-                                }
-                            }
-                        }
+        return prisma.user.create({
+            data: {
+                ...rest,
+                password: hashedPassword,
+                role: {
+                    connect: { id: roleId }
+                }
+            },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                phoneNumber: true,
+                profilePhoto: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                role: {
+                    select: {
+                        id: true,
+                        name: true
                     }
                 }
-            });
+            }
         });
     }
 
@@ -179,12 +156,8 @@ export class UserRepository extends BaseRepository {
         }
 
         if (params.role) {
-            where.userRoles = {
-                some: {
-                    role: {
-                        name: params.role
-                    }
-                }
+            where.role = {
+                name: params.role
             };
         }
 
@@ -216,15 +189,10 @@ export class UserRepository extends BaseRepository {
                     createdAt: true,
                     updatedAt: true,
                     deletedAt: true,
-                    userRoles: {
-                        where: { deletedAt: null },
+                    role: {
                         select: {
-                            role: {
-                                select: {
-                                    id: true,
-                                    name: true
-                                }
-                            }
+                            id: true,
+                            name: true
                         }
                     }
                 }
@@ -236,7 +204,7 @@ export class UserRepository extends BaseRepository {
     }
 
     /**
-     * Finds a user by ID or Username with nested roles.
+     * Finds a user by ID or Username with nested role.
      */
     async findById(idOrUsername: string) {
         return prisma.user.findFirst({
@@ -256,15 +224,10 @@ export class UserRepository extends BaseRepository {
                 createdAt: true,
                 updatedAt: true,
                 deletedAt: true,
-                userRoles: {
-                    where: { deletedAt: null },
+                role: {
                     select: {
-                        role: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        }
+                        id: true,
+                        name: true
                     }
                 }
             }
@@ -291,14 +254,10 @@ export class UserRepository extends BaseRepository {
                 createdAt: true,
                 updatedAt: true,
                 deletedAt: true,
-                userRoles: {
+                role: {
                     select: {
-                        role: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        }
+                        id: true,
+                        name: true
                     }
                 }
             }
@@ -344,15 +303,10 @@ export class UserRepository extends BaseRepository {
                 createdAt: true,
                 updatedAt: true,
                 deletedAt: true,
-                userRoles: {
-                    where: { deletedAt: null },
+                role: {
                     select: {
-                        role: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        }
+                        id: true,
+                        name: true
                     }
                 }
             }
@@ -360,67 +314,43 @@ export class UserRepository extends BaseRepository {
     }
 
     /**
-     * Updates an existing user and optionally syncs roles.
+     * Updates an existing user and optionally updates role.
      */
     async updateUser(id: string, data: TUpdateUser) {
-        const { roleIds, ...rest } = data;
+        const { roleId, ...rest } = data;
 
-        return prisma.$transaction(async (tx) => {
-            await tx.user.update({
-                where: { id },
-                data: rest,
-                select: {
-                    id: true
-                }
-            });
+        const updateData: Prisma.UserUpdateInput = {
+            ...rest
+        };
 
-            if (roleIds !== undefined) {
-                // Delete existing role relations
-                await tx.userRole.deleteMany({
-                    where: { userId: id }
-                });
+        if (roleId !== undefined) {
+            updateData.role = {
+                connect: { id: roleId }
+            };
+        }
 
-                // Create new role relations
-                if (roleIds.length > 0) {
-                    await tx.userRole.createMany({
-                        data: roleIds.map((roleId: string) => ({
-                            userId: id,
-                            roleId
-                        }))
-                    });
-                }
-            }
-
-            // Fetch the user with roles to return
-            const finalUser = await tx.user.findUnique({
-                where: { id },
-                select: {
-                    id: true,
-                    email: true,
-                    username: true,
-                    firstName: true,
-                    middleName: true,
-                    lastName: true,
-                    phoneNumber: true,
-                    profilePhoto: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    deletedAt: true,
-                    userRoles: {
-                        where: { deletedAt: null },
-                        select: {
-                            role: {
-                                select: {
-                                    id: true,
-                                    name: true
-                                }
-                            }
-                        }
+        return prisma.user.update({
+            where: { id },
+            data: updateData,
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                phoneNumber: true,
+                profilePhoto: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                role: {
+                    select: {
+                        id: true,
+                        name: true
                     }
                 }
-            });
-
-            return finalUser;
+            }
         });
     }
 

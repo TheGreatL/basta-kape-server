@@ -66,7 +66,13 @@ describe('Customer Menu Feature CRUD', () => {
                 username: 'testmenuuser',
                 password: 'hashedpassword123',
                 firstName: 'Customer',
-                lastName: 'User'
+                lastName: 'User',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Customer' },
+                        create: { name: 'Customer', isSystem: true }
+                    }
+                }
             }
         });
 

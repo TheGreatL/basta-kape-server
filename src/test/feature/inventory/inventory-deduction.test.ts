@@ -79,7 +79,13 @@ describe('Inventory Stock Deduction and Modifier Recipes Integration', () => {
                 username: 'testdeductuser',
                 password: 'hashedpassword123',
                 firstName: 'Manager',
-                lastName: 'User'
+                lastName: 'User',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

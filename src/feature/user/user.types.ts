@@ -22,7 +22,7 @@ export const CreateUserSchema = z.object({
     lastName: z.string().min(2),
     middleName: z.string().nullable().optional(),
     phoneNumber: z.string().nullable().optional(),
-    roleIds: z.array(z.string().uuid()).optional()
+    roleId: z.string().uuid()
 });
 
 export type TCreateUser = z.infer<typeof CreateUserSchema>;
@@ -32,7 +32,7 @@ export const UpdateUserSchema = z.object({
     lastName: z.string().min(2).optional(),
     middleName: z.string().nullable().optional(),
     phoneNumber: z.string().nullable().optional(),
-    roleIds: z.array(z.string().uuid()).optional()
+    roleId: z.string().uuid().optional()
 });
 
 export type TUpdateUser = z.infer<typeof UpdateUserSchema>;
@@ -61,15 +61,11 @@ export const UserResponseSchema = z.object({
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     deletedAt: z.date().nullable().or(z.string().nullable()),
-    userRoles: z
-        .array(
-            z.object({
-                role: z.object({
-                    id: z.string(),
-                    name: z.string()
-                })
-            })
-        )
+    role: z
+        .object({
+            id: z.string(),
+            name: z.string()
+        })
         .optional()
 });
 

@@ -76,7 +76,13 @@ describe('Product Bulk Variants Synchronization', () => {
                 username: 'testproductuser',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'User'
+                lastName: 'User',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

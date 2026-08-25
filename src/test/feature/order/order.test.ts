@@ -88,7 +88,13 @@ describe('Order Feature CRUD', () => {
                 username: 'testorderuser',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'Order'
+                lastName: 'Order',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

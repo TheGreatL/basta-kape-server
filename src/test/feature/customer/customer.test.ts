@@ -69,7 +69,13 @@ describe('Customer Feature CRUD', () => {
                 username: 'testcustomeradmin',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'Admin'
+                lastName: 'Admin',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 
@@ -169,9 +175,6 @@ describe('Customer Feature CRUD', () => {
         }
 
         if (testCustomerUserId) {
-            await prisma.userRole.deleteMany({
-                where: { userId: testCustomerUserId }
-            });
             await prisma.user.deleteMany({
                 where: { id: testCustomerUserId }
             });

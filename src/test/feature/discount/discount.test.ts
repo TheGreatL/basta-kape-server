@@ -78,7 +78,13 @@ describe('Discount Feature Integration Tests', () => {
                 username: 'testdiscountuser',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'Discount'
+                lastName: 'Discount',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

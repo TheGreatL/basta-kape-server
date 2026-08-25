@@ -70,7 +70,13 @@ describe('Report Feature', () => {
                 username: 'testreportuser',
                 password: 'hashedpassword123',
                 firstName: 'Report',
-                lastName: 'Tester'
+                lastName: 'Tester',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

@@ -82,7 +82,6 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
         }
 
         // Seed a test user
-        await prisma.userRole.deleteMany({ where: { userId: 'test-user-id' } });
         await prisma.user.deleteMany({ where: { id: 'test-user-id' } });
 
         const user = await prisma.user.create({
@@ -92,15 +91,15 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
                 username: 'crudtestuser',
                 password: 'hashedpassword123',
                 firstName: 'CRUD',
-                lastName: 'Test'
+                lastName: 'Test',
+                roleId: seededRoleId
             }
         });
         createdUserId = user.id;
     });
 
     afterAll(async () => {
-        // Cleanup test user and role relations
-        await prisma.userRole.deleteMany({ where: { userId: createdUserId } });
+        // Cleanup test user
         await prisma.user.delete({ where: { id: createdUserId } });
         await prisma.$disconnect();
     });
@@ -155,19 +154,18 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
     });
 
     describe('PUT /users/:id', () => {
-        it('should update a user details and sync roles', async () => {
+        it('should update a user details and sync role', async () => {
             const payload = {
                 firstName: 'UpdatedFirstName',
                 lastName: 'UpdatedLastName',
-                roleIds: [seededRoleId]
+                roleId: seededRoleId
             };
 
             const res = await request(app).put(`/users/${createdUserId}`).send(payload);
             expect(res.status).toBe(200);
             expect(res.body.firstName).toBe('UpdatedFirstName');
             expect(res.body.lastName).toBe('UpdatedLastName');
-            expect(res.body.userRoles.length).toBe(1);
-            expect(res.body.userRoles[0].role.id).toBe(seededRoleId);
+            expect(res.body.role.id).toBe(seededRoleId);
         });
     });
 

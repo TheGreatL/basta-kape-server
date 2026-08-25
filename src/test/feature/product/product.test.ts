@@ -78,7 +78,13 @@ describe('Product Feature CRUD & Transactional Mappings', () => {
                 username: 'testproductuser',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'User'
+                lastName: 'User',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

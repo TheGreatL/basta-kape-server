@@ -54,6 +54,10 @@ export class CustomerRepository extends BaseRepository {
             where: { name: 'Customer', deletedAt: null }
         });
 
+        if (!customerRole) {
+            throw new Error('Default Customer role not found');
+        }
+
         return prisma.$transaction(async (tx) => {
             const userData: Prisma.UserCreateInput = {
                 email: data.email,
@@ -62,16 +66,11 @@ export class CustomerRepository extends BaseRepository {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 middleName: data.middleName || null,
-                phoneNumber: data.phoneNumber || null
+                phoneNumber: data.phoneNumber || null,
+                role: {
+                    connect: { id: customerRole.id }
+                }
             };
-
-            if (customerRole) {
-                userData.userRoles = {
-                    create: {
-                        roleId: customerRole.id
-                    }
-                };
-            }
 
             const user = await tx.user.create({
                 data: userData

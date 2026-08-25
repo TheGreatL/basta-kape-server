@@ -286,8 +286,8 @@ router.post('/:id/profile-picture', authenticate, upload.single('file'), async (
             }
 
             let hasPermission = false;
-            for (const ur of user.userRoles) {
-                for (const rp of ur.role.rolePermissions) {
+            if (user.role) {
+                for (const rp of user.role.rolePermissions) {
                     if (
                         rp.modulePermission.module.name.toLowerCase() === appModules.USERS_MANAGEMENT.toLowerCase() &&
                         rp.modulePermission.permission.name.toLowerCase() === appPermissions.UPDATE.toLowerCase()
@@ -296,7 +296,6 @@ router.post('/:id/profile-picture', authenticate, upload.single('file'), async (
                         break;
                     }
                 }
-                if (hasPermission) break;
             }
 
             if (!hasPermission) {

@@ -12,20 +12,15 @@ export class VoidRepository extends BaseRepository {
         return prisma.user.findUnique({
             where: { id: userId },
             include: {
-                userRoles: {
-                    where: { deletedAt: null },
+                role: {
                     include: {
-                        role: {
+                        rolePermissions: {
+                            where: { deletedAt: null },
                             include: {
-                                rolePermissions: {
-                                    where: { deletedAt: null },
+                                modulePermission: {
                                     include: {
-                                        modulePermission: {
-                                            include: {
-                                                module: true,
-                                                permission: true
-                                            }
-                                        }
+                                        module: true,
+                                        permission: true
                                     }
                                 }
                             }

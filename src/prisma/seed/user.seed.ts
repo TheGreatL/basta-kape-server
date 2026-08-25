@@ -358,7 +358,7 @@ export async function seedUsers(prisma: PrismaClient) {
 
     await prisma.user.upsert({
         where: { email: 'owner@bastakape.com' },
-        update: { updatedAt: SEED_DATE },
+        update: { updatedAt: SEED_DATE, roleId: ownerRole.id },
         create: {
             email: 'owner@bastakape.com',
             username: 'ownerUser',
@@ -367,13 +367,13 @@ export async function seedUsers(prisma: PrismaClient) {
             lastName: 'Owner',
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            userRoles: { create: [{ roleId: ownerRole.id, createdAt: SEED_DATE, updatedAt: SEED_DATE }] }
+            roleId: ownerRole.id
         }
     });
 
     await prisma.user.upsert({
         where: { email: 'admin@bastakape.com' },
-        update: { updatedAt: SEED_DATE },
+        update: { updatedAt: SEED_DATE, roleId: adminRole.id },
         create: {
             email: 'admin@bastakape.com',
             username: 'adminUser',
@@ -382,13 +382,13 @@ export async function seedUsers(prisma: PrismaClient) {
             lastName: 'Manager',
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            userRoles: { create: [{ roleId: adminRole.id, createdAt: SEED_DATE, updatedAt: SEED_DATE }] }
+            roleId: adminRole.id
         }
     });
 
     await prisma.user.upsert({
         where: { email: 'cashier@bastakape.com' },
-        update: { updatedAt: SEED_DATE },
+        update: { updatedAt: SEED_DATE, roleId: cashierRole.id },
         create: {
             email: 'cashier@bastakape.com',
             username: 'cashierUser',
@@ -397,13 +397,13 @@ export async function seedUsers(prisma: PrismaClient) {
             lastName: 'Cashier',
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            userRoles: { create: [{ roleId: cashierRole.id, createdAt: SEED_DATE, updatedAt: SEED_DATE }] }
+            roleId: cashierRole.id
         }
     });
 
     await prisma.user.upsert({
         where: { email: 'barista@bastakape.com' },
-        update: { updatedAt: SEED_DATE },
+        update: { updatedAt: SEED_DATE, roleId: baristaRole.id },
         create: {
             email: 'barista@bastakape.com',
             username: 'baristaUser',
@@ -412,14 +412,14 @@ export async function seedUsers(prisma: PrismaClient) {
             lastName: 'Barista',
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            userRoles: { create: [{ roleId: baristaRole.id, createdAt: SEED_DATE, updatedAt: SEED_DATE }] }
+            roleId: baristaRole.id
         }
     });
 
     // Customer
     await prisma.user.upsert({
         where: { email: 'customer@bastakape.com' },
-        update: { updatedAt: SEED_DATE },
+        update: { updatedAt: SEED_DATE, roleId: customerRole.id },
         create: {
             email: 'customer@bastakape.com',
             username: 'customerUser',
@@ -428,7 +428,7 @@ export async function seedUsers(prisma: PrismaClient) {
             lastName: 'Customer',
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            userRoles: { create: [{ roleId: customerRole.id, createdAt: SEED_DATE, updatedAt: SEED_DATE }] },
+            roleId: customerRole.id,
             customer: { create: { createdAt: SEED_DATE, updatedAt: SEED_DATE } }
         }
     });

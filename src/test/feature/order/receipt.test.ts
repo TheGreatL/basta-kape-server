@@ -76,7 +76,13 @@ describe('Order Receipt Integration Tests', () => {
                 username: 'testreceiptuser',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'Receipt'
+                lastName: 'Receipt',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

@@ -73,7 +73,13 @@ describe('Product Settings Feature CRUD', () => {
                 username: 'testproductsettingsuser',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'User'
+                lastName: 'User',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
     });

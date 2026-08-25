@@ -13,15 +13,16 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 ## Endpoints Description
 
 ### 1. `GET /users/list`
-*   **Description**: Retrieves a paginated, filterable, and searchable directory of staff accounts.
-*   **RBAC Permission Required**: `read` (module: `USERS_MANAGEMENT`)
-*   **Query Parameters**:
-    *   `page` (number, optional, default: `1`): Current page of the paginated list.
-    *   `limit` (number, optional, default: `10`, max: `100`): Items per page.
-    *   `search` (string, optional): Matches on username, first name, last name, or email.
-    *   `status` (enum: `"active" | "archive"`, optional): Filter active accounts or soft-deleted ones.
-    *   `role` (string, optional): Filter users by their role name.
-*   **Response (200 OK)**:
+
+- **Description**: Retrieves a paginated, filterable, and searchable directory of staff accounts.
+- **RBAC Permission Required**: `read` (module: `USERS_MANAGEMENT`)
+- **Query Parameters**:
+    - `page` (number, optional, default: `1`): Current page of the paginated list.
+    - `limit` (number, optional, default: `10`, max: `100`): Items per page.
+    - `search` (string, optional): Matches on username, first name, last name, or email.
+    - `status` (enum: `"active" | "archive"`, optional): Filter active accounts or soft-deleted ones.
+    - `role` (string, optional): Filter users by their role name.
+- **Response (200 OK)**:
     ```json
     {
         "data": [
@@ -37,14 +38,10 @@ All endpoints in this module require JWT authentication via the `Authorization: 
                 "createdAt": "2026-06-02T05:00:00.000Z",
                 "updatedAt": "2026-06-02T05:00:00.000Z",
                 "deletedAt": null,
-                "userRoles": [
-                    {
-                        "role": {
-                            "id": "role-uuid-1",
-                            "name": "Barista"
-                        }
-                    }
-                ]
+                "role": {
+                    "id": "role-uuid-1",
+                    "name": "Barista"
+                }
             }
         ],
         "meta": {
@@ -58,25 +55,27 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     ```
 
 ### 2. `POST /users`
-*   **Description**: Creates a new user profile (admin, staff, or customer) from the admin dashboard and allows for direct assignment of multiple roles.
-*   **RBAC Permission Required**: `create` (module: `USERS_MANAGEMENT`)
-*   **Request Body**:
-    *   `email` (string, required): Unique email address.
-    *   `username` (string, required, min 3): Unique username.
-    *   `password` (string, required, min 8, uppercase, number): User's password.
-    *   `firstName` (string, required, min 2)
-    *   `lastName` (string, required, min 2)
-    *   `middleName` (string, optional, nullable)
-    *   `phoneNumber` (string, optional, nullable)
-    *   `roleIds` (array of strings, UUIDs, optional): Array of role IDs to associate with this newly created user.
-*   **Response (201 Created)**: Returns the fully created user object including their assigned roles.
-*   **Error Responses**:
-    *   `409 Conflict`: Email or username already in use.
+
+- **Description**: Creates a new user profile (admin, staff, or customer) from the admin dashboard and allows for direct assignment of a role.
+- **RBAC Permission Required**: `create` (module: `USERS_MANAGEMENT`)
+- **Request Body**:
+    - `email` (string, required): Unique email address.
+    - `username` (string, required, min 3): Unique username.
+    - `password` (string, required, min 8, uppercase, number): User's password.
+    - `firstName` (string, required, min 2)
+    - `lastName` (string, required, min 2)
+    - `middleName` (string, optional, nullable)
+    - `phoneNumber` (string, optional, nullable)
+    - `roleId` (string, UUID, required): Role ID to associate with this newly created user.
+- **Response (201 Created)**: Returns the fully created user object including their assigned role.
+- **Error Responses**:
+    - `409 Conflict`: Email or username already in use.
 
 ### 3. `GET /users/:id`
-*   **Description**: Retrieves detailed profile information for a specific staff member.
-*   **RBAC Permission Required**: `read` (module: `USERS_MANAGEMENT`)
-*   **Response (200 OK)**:
+
+- **Description**: Retrieves detailed profile information for a specific staff member.
+- **RBAC Permission Required**: `read` (module: `USERS_MANAGEMENT`)
+- **Response (200 OK)**:
     ```json
     {
         "id": "user-uuid-1",
@@ -90,32 +89,30 @@ All endpoints in this module require JWT authentication via the `Authorization: 
         "createdAt": "2026-06-02T05:00:00.000Z",
         "updatedAt": "2026-06-02T05:00:00.000Z",
         "deletedAt": null,
-        "userRoles": [
-            {
-                "role": {
-                    "id": "role-uuid-1",
-                    "name": "Barista"
-                }
-            }
-        ]
+        "role": {
+            "id": "role-uuid-1",
+            "name": "Barista"
+        }
     }
     ```
 
 ### 4. `PUT /users/:id`
-*   **Description**: Updates a staff member's profile details and re-assigns their system roles.
-*   **RBAC Permission Required**: `update` (module: `USERS_MANAGEMENT`)
-*   **Request Body**:
-    *   `firstName` (string, optional, min 2)
-    *   `lastName` (string, optional, min 2)
-    *   `middleName` (string, optional, nullable)
-    *   `phoneNumber` (string, optional, nullable)
-    *   `roleIds` (array of strings, UUIDs, optional): Array of role IDs to associate with this user.
-*   **Response (200 OK)**: Returns the fully updated user object.
+
+- **Description**: Updates a staff member's profile details and optionally re-assigns their system role.
+- **RBAC Permission Required**: `update` (module: `USERS_MANAGEMENT`)
+- **Request Body**:
+    - `firstName` (string, optional, min 2)
+    - `lastName` (string, optional, min 2)
+    - `middleName` (string, optional, nullable)
+    - `phoneNumber` (string, optional, nullable)
+    - `roleId` (string, UUID, optional): Role ID to associate with this user.
+- **Response (200 OK)**: Returns the fully updated user object.
 
 ### 5. `DELETE /users/:id`
-*   **Description**: Soft-deletes a staff account. Deactivated staff will be blocked from logging into the POS or Admin control dashboard.
-*   **RBAC Permission Required**: `delete` (module: `USERS_MANAGEMENT`)
-*   **Response (200 OK)**:
+
+- **Description**: Soft-deletes a staff account. Deactivated staff will be blocked from logging into the POS or Admin control dashboard.
+- **RBAC Permission Required**: `delete` (module: `USERS_MANAGEMENT`)
+- **Response (200 OK)**:
     ```json
     {
         "message": "User soft-deleted successfully"
@@ -123,11 +120,12 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     ```
 
 ### 6. `POST /users/:id/profile-picture`
-*   **Description**: Uploads a profile picture for a specific user.
-*   **Access Control**: Authenticated users can upload their own profile picture. Updating another user's profile picture requires the `update` permission under `USERS_MANAGEMENT`.
-*   **Request Body**: Multi-part `multipart/form-data` containing a `file` field.
-    *   `file` (binary, required): Image file (PNG, JPG, JPEG, max 5MB).
-*   **Response (200 OK)**:
+
+- **Description**: Uploads a profile picture for a specific user.
+- **Access Control**: Authenticated users can upload their own profile picture. Updating another user's profile picture requires the `update` permission under `USERS_MANAGEMENT`.
+- **Request Body**: Multi-part `multipart/form-data` containing a `file` field.
+    - `file` (binary, required): Image file (PNG, JPG, JPEG, max 5MB).
+- **Response (200 OK)**:
     ```json
     {
         "url": "https://api.bastakape.com/uploads/avatars/uploaded-profile-filename.jpg"

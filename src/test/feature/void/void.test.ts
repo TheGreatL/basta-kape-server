@@ -83,9 +83,6 @@ describe('Void Feature Integration Tests', () => {
         await prisma.order.deleteMany({
             where: { queueNumber: '#V01' }
         });
-        await prisma.userRole.deleteMany({
-            where: { userId: { in: ['test-void-admin-id', 'test-void-cashier-id'] } }
-        });
         await prisma.user.deleteMany({
             where: { id: { in: ['test-void-admin-id', 'test-void-cashier-id'] } }
         });
@@ -173,11 +170,7 @@ describe('Void Feature Integration Tests', () => {
                 password: 'hashedpassword123',
                 firstName: 'Test',
                 lastName: 'Admin',
-                userRoles: {
-                    create: {
-                        roleId: adminRole.id
-                    }
-                }
+                roleId: adminRole.id
             }
         });
 
@@ -189,11 +182,7 @@ describe('Void Feature Integration Tests', () => {
                 password: 'hashedpassword123',
                 firstName: 'Test',
                 lastName: 'Cashier',
-                userRoles: {
-                    create: {
-                        roleId: cashierRole.id
-                    }
-                }
+                roleId: cashierRole.id
             }
         });
 
@@ -272,14 +261,8 @@ describe('Void Feature Integration Tests', () => {
                 where: { id: testCategoryId }
             });
         }
-        await prisma.userRole.deleteMany({
-            where: { userId: { in: ['test-void-admin-id', 'test-void-cashier-id'] } }
-        });
-        await prisma.user.delete({
-            where: { id: 'test-void-admin-id' }
-        });
-        await prisma.user.delete({
-            where: { id: 'test-void-cashier-id' }
+        await prisma.user.deleteMany({
+            where: { id: { in: ['test-void-admin-id', 'test-void-cashier-id'] } }
         });
         await prisma.$disconnect();
     });

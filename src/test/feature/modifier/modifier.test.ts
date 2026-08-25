@@ -77,7 +77,13 @@ describe('Modifier Feature CRUD', () => {
                 username: 'testmodifieradmin',
                 password: 'hashedpassword123',
                 firstName: 'Test',
-                lastName: 'Admin'
+                lastName: 'Admin',
+                role: {
+                    connectOrCreate: {
+                        where: { name: 'Administrator' },
+                        create: { name: 'Administrator', isSystem: true }
+                    }
+                }
             }
         });
 

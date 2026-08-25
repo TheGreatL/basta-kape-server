@@ -16,8 +16,8 @@ export class DashboardService {
 
         // 2. Resolve user's permissions
         const permissions: Array<{ module: string; permission: string }> = [];
-        for (const ur of user.userRoles) {
-            for (const rp of ur.role.rolePermissions) {
+        if (user.role) {
+            for (const rp of user.role.rolePermissions) {
                 permissions.push({
                     module: rp.modulePermission.module.name.toLowerCase(),
                     permission: rp.modulePermission.permission.name.toLowerCase()

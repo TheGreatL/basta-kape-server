@@ -31,13 +31,17 @@ const formatUser = (user: Awaited<ReturnType<UserRepository['findUserByIdentifie
         username: user.username,
         firstName: user.firstName,
         lastName: user.lastName,
-        roles: user.userRoles.map((ur) => ({
-            name: ur.role.name,
-            permissions: ur.role.rolePermissions.map((rp) => ({
-                module: rp.modulePermission.module.name,
-                permission: rp.modulePermission.permission.name
-            }))
-        }))
+        roles: user.role
+            ? [
+                  {
+                      name: user.role.name,
+                      permissions: user.role.rolePermissions.map((rp) => ({
+                          module: rp.modulePermission.module.name,
+                          permission: rp.modulePermission.permission.name
+                      }))
+                  }
+              ]
+            : []
     };
 };
 
@@ -69,7 +73,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials.');
         }
 
-        const roles = user.userRoles.map((ur) => ur.role.name);
+        const roles = user.role ? [user.role.name] : [];
         const payload: IJwtPayload = {
             sub: user.id,
             email: user.email,
@@ -109,7 +113,7 @@ export class AuthService {
         // Re-fetch to get the assigned Customer role and match login format
         const user = (await this.userRepository.findUserByIdentifier(createdUser.id))!;
 
-        const roles = user.userRoles.map((ur) => ur.role.name);
+        const roles = user.role ? [user.role.name] : [];
         const payload: IJwtPayload = {
             sub: user.id,
             email: user.email,
@@ -154,7 +158,7 @@ export class AuthService {
             throw new UnauthorizedException('User no longer exists.');
         }
 
-        const roles = user.userRoles.map((ur) => ur.role.name);
+        const roles = user.role ? [user.role.name] : [];
         const payload: IJwtPayload = {
             sub: user.id,
             email: user.email,
