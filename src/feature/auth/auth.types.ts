@@ -32,6 +32,7 @@ export interface IJwtPayload {
 // ── Auth Response ─────────────────────────────────────────────────────────────
 export const AuthTokenResponseSchema = z.object({
     accessToken: z.string(),
+    refreshToken: z.string().optional(),
     userId: z.string()
 });
 

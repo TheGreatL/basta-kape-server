@@ -37,8 +37,9 @@ export const setupGlobalMiddleware = (app: Express) => {
                 // Allow requests with no origin (like mobile apps, curl, or server-to-server)
                 if (!origin) return callback(null, true);
 
+                const normalizedOrigin = origin.trim().replace(/\/+$/, '');
                 const allowedOrigins = env.FRONTEND_URL;
-                if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+                if (allowedOrigins.includes(normalizedOrigin) || allowedOrigins.includes('*')) {
                     callback(null, true);
                 } else {
                     callback(null, false);

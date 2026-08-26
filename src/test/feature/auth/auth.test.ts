@@ -70,7 +70,7 @@ describe('Auth Feature Integration Tests', () => {
             expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('userId');
             expect(res.body).toHaveProperty('accessToken');
-            expect(res.body).not.toHaveProperty('refreshToken');
+            expect(res.body).toHaveProperty('refreshToken');
             expect(res.headers['set-cookie']).toBeDefined();
             expect(res.headers['set-cookie'][0]).toMatch(/refreshToken=/);
 
@@ -115,7 +115,7 @@ describe('Auth Feature Integration Tests', () => {
             expect(res.body).toHaveProperty('userId');
             expect(res.body.userId).toBe(registeredUserId);
             expect(res.body).toHaveProperty('accessToken');
-            expect(res.body).not.toHaveProperty('refreshToken');
+            expect(res.body).toHaveProperty('refreshToken');
 
             expect(res.headers['set-cookie']).toBeDefined();
             expect(res.headers['set-cookie'][0]).toMatch(/refreshToken=/);
@@ -133,6 +133,7 @@ describe('Auth Feature Integration Tests', () => {
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('accessToken');
+            expect(res.body).toHaveProperty('refreshToken');
         });
 
         it('should fail with 401 for invalid credentials', async () => {
@@ -175,13 +176,22 @@ describe('Auth Feature Integration Tests', () => {
     });
 
     describe('POST /auth/refresh', () => {
-        it('should issue a new access token for a valid refresh token', async () => {
+        it('should issue a new access token for a valid refresh token in cookie', async () => {
             const res = await request(app)
                 .post('/auth/refresh')
                 .set('Cookie', [`refreshToken=${validRefreshToken}`]);
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('accessToken');
+            expect(res.body).toHaveProperty('refreshToken');
+        });
+
+        it('should issue a new access token for a valid refresh token in request body fallback', async () => {
+            const res = await request(app).post('/auth/refresh').send({ refreshToken: validRefreshToken });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('accessToken');
+            expect(res.body).toHaveProperty('refreshToken');
         });
 
         it('should fail with 401 for an invalid or revoked refresh token', async () => {

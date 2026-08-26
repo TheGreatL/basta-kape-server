@@ -12,6 +12,27 @@ const router = Router();
 const authService = new AuthService();
 const activityLogService = new ActivityLogService();
 
+export const getRefreshTokenCookieOptions = () => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    return {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    };
+};
+
+export const getClearCookieOptions = () => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    return {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+        path: '/'
+    };
+};
+
 const loginRateLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
     max: 5, // 5 attempts per windowMs
@@ -57,14 +78,13 @@ router.post('/login', loginRateLimiter, async (req: Request, res: Response, next
         }
 
         // Set refresh token in HttpOnly cookie
-        res.cookie('refreshToken', result.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+        res.cookie('refreshToken', result.refreshToken, getRefreshTokenCookieOptions());
 
-        res.json({ accessToken: result.accessToken, userId: result.user.id });
+        res.json({
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+            userId: result.user.id
+        });
     } catch (error) {
         next(error);
     }
@@ -108,14 +128,13 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
         });
 
         // Set refresh token in HttpOnly cookie
-        res.cookie('refreshToken', result.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+        res.cookie('refreshToken', result.refreshToken, getRefreshTokenCookieOptions());
 
-        res.status(201).json({ accessToken: result.accessToken, userId: result.user.id });
+        res.status(201).json({
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+            userId: result.user.id
+        });
     } catch (error) {
         next(error);
     }
@@ -130,7 +149,15 @@ registry.registerPath({
     tags: ['Auth'],
     summary: 'Exchange a refresh token for a new access token',
     request: {
-        // No body required as token is in cookie
+        body: {
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        refreshToken: z.string().optional()
+                    })
+                }
+            }
+        }
     },
     responses: {
         200: {
@@ -147,13 +174,21 @@ registry.registerPath({
 
 router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const refreshToken = req.cookies.refreshToken;
+        const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
         if (!refreshToken) {
             return res.status(401).json({ success: false, error: 'No refresh token provided' });
         }
 
         const result = await authService.refreshAccessToken(refreshToken);
-        res.json({ accessToken: result.accessToken, userId: result.user.id });
+
+        // Renew refresh token in HttpOnly cookie
+        res.cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions());
+
+        res.json({
+            accessToken: result.accessToken,
+            refreshToken,
+            userId: result.user.id
+        });
     } catch (error) {
         next(error);
     }
@@ -168,7 +203,15 @@ registry.registerPath({
     tags: ['Auth'],
     summary: 'Revoke a refresh token (logout)',
     request: {
-        // No body required as token is in cookie
+        body: {
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        refreshToken: z.string().optional()
+                    })
+                }
+            }
+        }
     },
     responses: {
         200: {
@@ -184,11 +227,11 @@ registry.registerPath({
 
 router.post('/logout', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const refreshToken = req.cookies.refreshToken;
+        const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
         if (refreshToken) {
             await authService.logout(refreshToken);
-            res.clearCookie('refreshToken');
         }
+        res.clearCookie('refreshToken', getClearCookieOptions());
         res.json({ success: true });
     } catch (error) {
         next(error);
@@ -328,7 +371,7 @@ router.post('/change-password', authenticate, async (req: Request, res: Response
             details: 'Successfully changed account password'
         });
 
-        res.clearCookie('refreshToken');
+        res.clearCookie('refreshToken', getClearCookieOptions());
         res.json(result);
     } catch (error) {
         next(error);

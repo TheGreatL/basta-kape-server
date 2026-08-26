@@ -5,6 +5,9 @@ import { setupGlobalMiddleware, globalErrorHandler } from './middleware/global.m
 
 const app: Express = express();
 
+// Enable trust proxy for reverse proxy platforms (e.g. Render, Railway, Vercel, Heroku)
+app.set('trust proxy', 1);
+
 // Apply Global Middlewares
 setupGlobalMiddleware(app);
 
