@@ -197,12 +197,27 @@ export async function seedProduct(prisma: PrismaClient) {
         return ingredient;
     };
 
-    const getOrCreateProduct = async (name: string, description: string, categoryId: string, typeId: string) => {
+    const getOrCreateProduct = async (
+        name: string,
+        description: string,
+        categoryId: string,
+        typeId: string,
+        isMustTry: boolean = false,
+        isBestSeller: boolean = false
+    ) => {
         const found = await prisma.product.findFirst({ where: { name, deletedAt: null } });
         if (found) {
             return prisma.product.update({
                 where: { id: found.id },
-                data: { description, productCategoryId: categoryId, productTypeId: typeId, updatedById: adminId, updatedAt: SEED_DATE }
+                data: {
+                    description,
+                    productCategoryId: categoryId,
+                    productTypeId: typeId,
+                    isMustTry,
+                    isBestSeller,
+                    updatedById: adminId,
+                    updatedAt: SEED_DATE
+                }
             });
         }
         return prisma.product.create({
@@ -211,6 +226,8 @@ export async function seedProduct(prisma: PrismaClient) {
                 description,
                 productCategoryId: categoryId,
                 productTypeId: typeId,
+                isMustTry,
+                isBestSeller,
                 createdById: adminId,
                 updatedById: adminId,
                 createdAt: SEED_DATE,
@@ -841,9 +858,11 @@ export async function seedProduct(prisma: PrismaClient) {
         hasIced: boolean,
         icedPrice: number | undefined,
         has22oz: boolean = false,
-        iced22ozPrice: number | undefined = undefined
+        iced22ozPrice: number | undefined = undefined,
+        isMustTry: boolean = false,
+        isBestSeller: boolean = false
     ) => {
-        const product = await getOrCreateProduct(name, description, categoryId, typeBeverage.id);
+        const product = await getOrCreateProduct(name, description, categoryId, typeBeverage.id, isMustTry, isBestSeller);
         const createdVariants = [];
 
         // 1. Hot 12oz
@@ -870,8 +889,15 @@ export async function seedProduct(prisma: PrismaClient) {
         return { product, variants: createdVariants };
     };
 
-    const seedFoodProduct = async (categoryId: string, name: string, description: string, price: number) => {
-        const product = await getOrCreateProduct(name, description, categoryId, typeFood.id);
+    const seedFoodProduct = async (
+        categoryId: string,
+        name: string,
+        description: string,
+        price: number,
+        isMustTry: boolean = false,
+        isBestSeller: boolean = false
+    ) => {
+        const product = await getOrCreateProduct(name, description, categoryId, typeFood.id, isMustTry, isBestSeller);
         const cleanedName = name.replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
         const sku = `${cleanedName}-REGULAR`;
         const variant = await getOrCreateVariant(product.id, sku, price, [valRegular.id]);
@@ -883,24 +909,48 @@ export async function seedProduct(prisma: PrismaClient) {
     // ==========================================
     // --- Waffles ---
     const waffleItems = [
-        { name: 'Biscoff Waffle', desc: 'Waffle, Biscoff spread, crushed Biscoff biscuit, whipped cream', price: 150 },
-        { name: 'Nutella Waffle', desc: 'Waffle, Nutella spread, Alcapone nuts, whipped cream, chocolate drizzle', price: 150 },
-        { name: 'Classic Waffle', desc: 'Waffle, maple syrup, whipped cream, cinnamon powder', price: 140 }
+        {
+            name: 'Biscoff Waffle',
+            desc: 'Waffle, Biscoff spread, crushed Biscoff biscuit, whipped cream',
+            price: 150,
+            bestSeller: true,
+            mustTry: false
+        },
+        {
+            name: 'Nutella Waffle',
+            desc: 'Waffle, Nutella spread, Alcapone nuts, whipped cream, chocolate drizzle',
+            price: 150,
+            bestSeller: false,
+            mustTry: true
+        },
+        { name: 'Classic Waffle', desc: 'Waffle, maple syrup, whipped cream, cinnamon powder', price: 140, bestSeller: false, mustTry: true }
     ];
     const seededWaffles = [];
     for (const w of waffleItems) {
-        seededWaffles.push(await seedFoodProduct(catWaffles.id, w.name, w.desc, w.price));
+        seededWaffles.push(await seedFoodProduct(catWaffles.id, w.name, w.desc, w.price, w.mustTry, w.bestSeller));
     }
 
     // --- Pasta ---
     const pastaItems = [
-        { name: 'Tuna Pesto', desc: 'Pasta, basil, nuts, parmesan, tuna, sliced bread', price: 170 },
-        { name: 'Creamy Bacon Mushroom', desc: 'Pasta, white sauce, mushroom, bacon, parmesan cheese, sliced bread', price: 180 },
-        { name: 'Spicy Spanish Sardines', desc: 'Pasta, Spanish sardines, spices, parmesan cheese, sliced bread', price: 170 }
+        { name: 'Tuna Pesto', desc: 'Pasta, basil, nuts, parmesan, tuna, sliced bread', price: 170, bestSeller: true, mustTry: false },
+        {
+            name: 'Creamy Bacon Mushroom',
+            desc: 'Pasta, white sauce, mushroom, bacon, parmesan cheese, sliced bread',
+            price: 180,
+            bestSeller: false,
+            mustTry: false
+        },
+        {
+            name: 'Spicy Spanish Sardines',
+            desc: 'Pasta, Spanish sardines, spices, parmesan cheese, sliced bread',
+            price: 170,
+            bestSeller: false,
+            mustTry: true
+        }
     ];
     const seededPastas = [];
     for (const p of pastaItems) {
-        seededPastas.push(await seedFoodProduct(catPasta.id, p.name, p.desc, p.price));
+        seededPastas.push(await seedFoodProduct(catPasta.id, p.name, p.desc, p.price, p.mustTry, p.bestSeller));
     }
 
     // --- Snacks ---
@@ -908,27 +958,29 @@ export async function seedProduct(prisma: PrismaClient) {
         {
             name: 'Chips & Dips',
             desc: 'Nacho chips, grated cheese, cheese sauce, ground beef, dipping (salsa/creamy spinach) (Good for 3-4)',
-            price: 200
+            price: 200,
+            bestSeller: false,
+            mustTry: true
         },
-        { name: 'Basta Fries', desc: 'Fries, cheese sauce, bacon bits (Good for 2-3)', price: 140 }
+        { name: 'Basta Fries', desc: 'Fries, cheese sauce, bacon bits (Good for 2-3)', price: 140, bestSeller: false, mustTry: false }
     ];
     const seededSnacks = [];
     for (const s of snackItems) {
-        seededSnacks.push(await seedFoodProduct(catSnacks.id, s.name, s.desc, s.price));
+        seededSnacks.push(await seedFoodProduct(catSnacks.id, s.name, s.desc, s.price, s.mustTry, s.bestSeller));
     }
 
     // --- Cookies ---
     const cookieItems = [
-        { name: "Biscoff Smore's", desc: "Biscoff flavored cookie with toasted marshmallow s'mores", price: 85 },
-        { name: "Matcha Smore's", desc: "Matcha infused cookie with toasted marshmallow s'mores", price: 85 },
-        { name: "Classic Smore's", desc: "Classic chocolate cookie with toasted marshmallow s'mores", price: 80 },
-        { name: 'Chocolate Chip', desc: 'Classic golden baked cookie packed with chocolate chips', price: 70 },
-        { name: 'White Alcapone', desc: 'White chocolate cookie topped with toasted almond slices', price: 70 },
-        { name: 'Red Velvet', desc: 'Rich red velvet cookie with velvety cream cheese filling', price: 85 }
+        { name: "Biscoff Smore's", desc: "Biscoff flavored cookie with toasted marshmallow s'mores", price: 85, bestSeller: true, mustTry: false },
+        { name: "Matcha Smore's", desc: "Matcha infused cookie with toasted marshmallow s'mores", price: 85, bestSeller: false, mustTry: false },
+        { name: "Classic Smore's", desc: "Classic chocolate cookie with toasted marshmallow s'mores", price: 80, bestSeller: true, mustTry: false },
+        { name: 'Chocolate Chip', desc: 'Classic golden baked cookie packed with chocolate chips', price: 70, bestSeller: false, mustTry: false },
+        { name: 'White Alcapone', desc: 'White chocolate cookie topped with toasted almond slices', price: 70, bestSeller: false, mustTry: false },
+        { name: 'Red Velvet', desc: 'Rich red velvet cookie with velvety cream cheese filling', price: 85, bestSeller: false, mustTry: true }
     ];
     const seededCookies = [];
     for (const c of cookieItems) {
-        seededCookies.push(await seedFoodProduct(catCookies.id, c.name, c.desc, c.price));
+        seededCookies.push(await seedFoodProduct(catCookies.id, c.name, c.desc, c.price, c.mustTry, c.bestSeller));
     }
 
     // ==========================================
@@ -936,18 +988,27 @@ export async function seedProduct(prisma: PrismaClient) {
     // ==========================================
     // --- Espresso ---
     const espressoItems = [
-        { name: 'Americano', desc: 'Classic rich espresso diluted with water', hot: 100, iced: 100 },
-        { name: 'Latte', desc: 'Smooth espresso with silky steamed or cold fresh milk', hot: 120, iced: 120 },
-        { name: 'Cappucino', desc: 'Balanced espresso with rich steamed milk and milk foam', hot: 120, iced: 120 },
-        { name: 'Spanish Latte', desc: 'Espresso with sweetened condensed milk and fresh milk', hot: 130, iced: 140 },
-        { name: 'Caramel Latte', desc: 'Espresso with golden caramel syrup and creamy milk', hot: 140, iced: 150 },
-        { name: 'Hazelnut Latte', desc: 'Espresso with aromatic hazelnut syrup and milk', hot: 130, iced: 140 },
-        { name: 'Dark Mocha Latte', desc: 'Espresso with rich dark chocolate cocoa and milk', hot: 130, iced: 140 },
-        { name: 'Basta Surprise', desc: "Barista's signature secret espresso blend creation", hot: 170, iced: 170 }
+        { name: 'Americano', desc: 'Classic rich espresso diluted with water', hot: 100, iced: 100, bestSeller: false, mustTry: false },
+        { name: 'Latte', desc: 'Smooth espresso with silky steamed or cold fresh milk', hot: 120, iced: 120, bestSeller: false, mustTry: false },
+        { name: 'Cappucino', desc: 'Balanced espresso with rich steamed milk and milk foam', hot: 120, iced: 120, bestSeller: false, mustTry: false },
+        {
+            name: 'Spanish Latte',
+            desc: 'Espresso with sweetened condensed milk and fresh milk',
+            hot: 130,
+            iced: 140,
+            bestSeller: true,
+            mustTry: false
+        },
+        { name: 'Caramel Latte', desc: 'Espresso with golden caramel syrup and creamy milk', hot: 140, iced: 150, bestSeller: false, mustTry: true },
+        { name: 'Hazelnut Latte', desc: 'Espresso with aromatic hazelnut syrup and milk', hot: 130, iced: 140, bestSeller: false, mustTry: true },
+        { name: 'Dark Mocha Latte', desc: 'Espresso with rich dark chocolate cocoa and milk', hot: 130, iced: 140, bestSeller: false, mustTry: true },
+        { name: 'Basta Surprise', desc: "Barista's signature secret espresso blend creation", hot: 170, iced: 170, bestSeller: false, mustTry: false }
     ];
     const seededEspresso = [];
     for (const e of espressoItems) {
-        seededEspresso.push(await seedDrinkProduct(catEspresso.id, e.name, e.desc, true, e.hot, true, e.iced));
+        seededEspresso.push(
+            await seedDrinkProduct(catEspresso.id, e.name, e.desc, true, e.hot, true, e.iced, false, undefined, e.mustTry, e.bestSeller)
+        );
     }
 
     // --- Creamy Coffee ---
@@ -956,24 +1017,44 @@ export async function seedProduct(prisma: PrismaClient) {
             name: 'Creamy Seasalt Latte',
             desc: 'Mixture of milk, espresso, sweetened milk, creamy seasalt',
             hot: undefined,
-            iced: 140
+            iced: 140,
+            bestSeller: false,
+            mustTry: true
         },
         {
             name: 'Lotus Biscoff Cream',
             desc: 'Mixture of milk, espresso, Biscoff cream mixture, and Biscoff',
             hot: 160,
-            iced: 170
+            iced: 170,
+            bestSeller: true,
+            mustTry: false
         },
         {
             name: 'White Mocha Cream',
             desc: 'Mixture of milk, espresso, white chocolate sauce, whipped cream',
             hot: 140,
-            iced: 140
+            iced: 140,
+            bestSeller: false,
+            mustTry: false
         }
     ];
     const seededCreamyCoffee = [];
     for (const c of creamyCoffeeItems) {
-        seededCreamyCoffee.push(await seedDrinkProduct(catCreamyCoffee.id, c.name, c.desc, c.hot !== undefined, c.hot, true, c.iced));
+        seededCreamyCoffee.push(
+            await seedDrinkProduct(
+                catCreamyCoffee.id,
+                c.name,
+                c.desc,
+                c.hot !== undefined,
+                c.hot,
+                true,
+                c.iced,
+                false,
+                undefined,
+                c.mustTry,
+                c.bestSeller
+            )
+        );
     }
 
     // --- Oat Based ---
@@ -982,18 +1063,24 @@ export async function seedProduct(prisma: PrismaClient) {
             name: 'Oaty Cinnamon Latte',
             desc: 'Mixture of sweet cinnamon, espresso, and oatmilk',
             hot: undefined,
-            iced: 170
+            iced: 170,
+            bestSeller: false,
+            mustTry: true
         },
         {
             name: 'Oaty Spanish Latte',
             desc: 'Mixture of sweetened milk, and espresso, and oatmilk',
             hot: undefined,
-            iced: 160
+            iced: 160,
+            bestSeller: true,
+            mustTry: false
         }
     ];
     const seededOatBased = [];
     for (const o of oatBasedItems) {
-        seededOatBased.push(await seedDrinkProduct(catOatBased.id, o.name, o.desc, false, undefined, true, o.iced));
+        seededOatBased.push(
+            await seedDrinkProduct(catOatBased.id, o.name, o.desc, false, undefined, true, o.iced, false, undefined, o.mustTry, o.bestSeller)
+        );
     }
 
     // --- Matcha Series ---
@@ -1002,83 +1089,205 @@ export async function seedProduct(prisma: PrismaClient) {
             name: 'Oaty Sweet Matcha',
             desc: 'Mixture of whisked matcha, sweetened milk, and oatmilk',
             hot: 170,
-            iced: 170
+            iced: 170,
+            bestSeller: false,
+            mustTry: false
         },
         {
             name: 'Seasalt Cream Matcha',
             desc: 'Mixture of whisked matcha, sweetened milk, and seasalt cream',
             hot: undefined,
-            iced: 150
+            iced: 150,
+            bestSeller: false,
+            mustTry: false
         },
         {
             name: 'White Chocolate Matcha',
             desc: 'Mixture of whisked matcha, white chocolate, and full cream milk',
             hot: 140,
-            iced: 140
+            iced: 140,
+            bestSeller: false,
+            mustTry: false
         },
         {
             name: 'Strawberry Matcha',
             desc: 'Mixture of whisked matcha, strawberry, and full cream milk',
             hot: undefined,
-            iced: 160
+            iced: 160,
+            bestSeller: false,
+            mustTry: false
         },
         {
             name: 'Dirty Matcha',
             desc: 'Mixture of whisked matcha, espresso, sweetened milk, and full cream milk',
             hot: 150,
-            iced: 150
+            iced: 150,
+            bestSeller: false,
+            mustTry: false
         },
         {
             name: 'Matcha Latte',
             desc: 'Mixture of whisked matcha, sweetened milk and full cream milk',
             hot: 130,
-            iced: 130
+            iced: 130,
+            bestSeller: false,
+            mustTry: false
         }
     ];
     const seededMatcha = [];
     for (const m of matchaItems) {
-        seededMatcha.push(await seedDrinkProduct(catMatcha.id, m.name, m.desc, m.hot !== undefined, m.hot, true, m.iced));
+        seededMatcha.push(
+            await seedDrinkProduct(catMatcha.id, m.name, m.desc, m.hot !== undefined, m.hot, true, m.iced, false, undefined, m.mustTry, m.bestSeller)
+        );
     }
 
     // --- Non-Coffee ---
     const nonCoffeeItems = [
-        { name: 'Strawberry Milk', desc: 'Creamy fresh milk with sweet strawberry puree', hot: undefined, iced: 100 },
-        { name: 'Tsokolate', desc: 'Traditional rich hot/iced Filipino chocolate drink', hot: 100, iced: 100 },
-        { name: 'White Chocolate Milk', desc: 'Velvety smooth white chocolate infused with fresh milk', hot: 100, iced: 100 },
-        { name: 'Lemon Fizz Soda', desc: 'Sparkling refreshing soda infused with zesty lemon syrup', hot: undefined, iced: 110 },
-        { name: 'Lychee Fizz Soda', desc: 'Sparkling refreshing soda infused with sweet lychee syrup', hot: undefined, iced: 110 },
-        { name: 'Strawberry Lychee Cooler', desc: 'Chilled refreshing blend of strawberry puree and sweet lychee', hot: undefined, iced: 120 }
+        {
+            name: 'Strawberry Milk',
+            desc: 'Creamy fresh milk with sweet strawberry puree',
+            hot: undefined,
+            iced: 100,
+            bestSeller: false,
+            mustTry: true
+        },
+        { name: 'Tsokolate', desc: 'Traditional rich hot/iced Filipino chocolate drink', hot: 100, iced: 100, bestSeller: true, mustTry: false },
+        {
+            name: 'White Chocolate Milk',
+            desc: 'Velvety smooth white chocolate infused with fresh milk',
+            hot: 100,
+            iced: 100,
+            bestSeller: false,
+            mustTry: false
+        },
+        {
+            name: 'Lemon Fizz Soda',
+            desc: 'Sparkling refreshing soda infused with zesty lemon syrup',
+            hot: undefined,
+            iced: 110,
+            bestSeller: false,
+            mustTry: true
+        },
+        {
+            name: 'Lychee Fizz Soda',
+            desc: 'Sparkling refreshing soda infused with sweet lychee syrup',
+            hot: undefined,
+            iced: 110,
+            bestSeller: false,
+            mustTry: false
+        },
+        {
+            name: 'Strawberry Lychee Cooler',
+            desc: 'Chilled refreshing blend of strawberry puree and sweet lychee',
+            hot: undefined,
+            iced: 120,
+            bestSeller: false,
+            mustTry: false
+        }
     ];
     const seededNonCoffee = [];
     for (const n of nonCoffeeItems) {
-        seededNonCoffee.push(await seedDrinkProduct(catNonCoffee.id, n.name, n.desc, n.hot !== undefined, n.hot, true, n.iced));
+        seededNonCoffee.push(
+            await seedDrinkProduct(
+                catNonCoffee.id,
+                n.name,
+                n.desc,
+                n.hot !== undefined,
+                n.hot,
+                true,
+                n.iced,
+                false,
+                undefined,
+                n.mustTry,
+                n.bestSeller
+            )
+        );
     }
 
     // Bottled Water
-    const waterProduct = await getOrCreateProduct('Bottled Water', 'Refreshingly clean bottled drinking water', catNonCoffee.id, typeBeverage.id);
+    const waterProduct = await getOrCreateProduct(
+        'Bottled Water',
+        'Refreshingly clean bottled drinking water',
+        catNonCoffee.id,
+        typeBeverage.id,
+        false,
+        false
+    );
     const waterVariant = await getOrCreateVariant(waterProduct.id, 'BOTTLED-WATER-500ML', 15, [val500ml.id]);
 
     // --- Blended Coffee Drinks (22oz) ---
     const blendedCoffeeItems = [
-        { name: 'Java Chip', desc: 'Blended coffee frappé with rich chocolate chips and chocolate drizzle', price: 160 },
-        { name: 'Salted Caramel', desc: 'Blended coffee frappé infused with salted caramel syrup and whipped cream', price: 160 },
-        { name: 'Coffee Jelly', desc: 'Blended coffee frappé loaded with chewy coffee jelly bites and cream', price: 160 }
+        {
+            name: 'Java Chip',
+            desc: 'Blended coffee frappé with rich chocolate chips and chocolate drizzle',
+            price: 160,
+            bestSeller: true,
+            mustTry: false
+        },
+        {
+            name: 'Salted Caramel',
+            desc: 'Blended coffee frappé infused with salted caramel syrup and whipped cream',
+            price: 160,
+            bestSeller: false,
+            mustTry: false
+        },
+        {
+            name: 'Coffee Jelly',
+            desc: 'Blended coffee frappé loaded with chewy coffee jelly bites and cream',
+            price: 160,
+            bestSeller: false,
+            mustTry: false
+        }
     ];
     const seededBlendedCoffee = [];
     for (const b of blendedCoffeeItems) {
-        seededBlendedCoffee.push(await seedDrinkProduct(catBlendedCoffee.id, b.name, b.desc, false, undefined, false, undefined, true, b.price));
+        seededBlendedCoffee.push(
+            await seedDrinkProduct(catBlendedCoffee.id, b.name, b.desc, false, undefined, false, undefined, true, b.price, b.mustTry, b.bestSeller)
+        );
     }
 
     // --- Blended Non-Coffee Drinks (Iced) ---
     const blendedNonCoffeeItems = [
-        { name: 'Strawberry Cream', desc: 'Blended sweet strawberry cream frappé with whipped cream topping', price: 160 },
-        { name: 'Cookie Crumble Cream', desc: 'Blended vanilla cream frappé loaded with crunchy cookie crumbles', price: 160 },
-        { name: 'Matcha Cream', desc: 'Blended ceremonial matcha green tea cream frappé', price: 160 },
-        { name: 'Cookies & Cream', desc: 'Blended vanilla cream frappé packed with crushed Oreo cookies', price: 160 }
+        {
+            name: 'Strawberry Cream',
+            desc: 'Blended sweet strawberry cream frappé with whipped cream topping',
+            price: 160,
+            bestSeller: true,
+            mustTry: false
+        },
+        {
+            name: 'Cookie Crumble Cream',
+            desc: 'Blended vanilla cream frappé loaded with crunchy cookie crumbles',
+            price: 160,
+            bestSeller: false,
+            mustTry: true
+        },
+        { name: 'Matcha Cream', desc: 'Blended ceremonial matcha green tea cream frappé', price: 160, bestSeller: false, mustTry: true },
+        {
+            name: 'Cookies & Cream',
+            desc: 'Blended vanilla cream frappé packed with crushed Oreo cookies',
+            price: 160,
+            bestSeller: false,
+            mustTry: false
+        }
     ];
     const seededBlendedNonCoffee = [];
     for (const bn of blendedNonCoffeeItems) {
-        seededBlendedNonCoffee.push(await seedDrinkProduct(catBlendedNonCoffee.id, bn.name, bn.desc, false, undefined, true, bn.price));
+        seededBlendedNonCoffee.push(
+            await seedDrinkProduct(
+                catBlendedNonCoffee.id,
+                bn.name,
+                bn.desc,
+                false,
+                undefined,
+                true,
+                bn.price,
+                false,
+                undefined,
+                bn.mustTry,
+                bn.bestSeller
+            )
+        );
     }
 
     // ==========================================

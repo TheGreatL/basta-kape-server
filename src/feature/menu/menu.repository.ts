@@ -19,6 +19,14 @@ export class MenuRepository extends BaseRepository {
             where.productTypeId = params.productTypeId;
         }
 
+        if (params.isMustTry !== undefined) {
+            where.isMustTry = params.isMustTry;
+        }
+
+        if (params.isBestSeller !== undefined) {
+            where.isBestSeller = params.isBestSeller;
+        }
+
         if (params.search) {
             where.OR = [{ name: { contains: params.search } }, { description: { contains: params.search } }];
         }

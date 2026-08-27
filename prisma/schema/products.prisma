@@ -37,6 +37,8 @@ model Product {
   name              String
   photo             String?
   description       String?
+  isMustTry         Boolean          @default(false)
+  isBestSeller      Boolean          @default(false)
   productCategoryId String?
   category          ProductCategory? @relation(fields: [productCategoryId], references: [id])
   productTypeId     String?
@@ -55,6 +57,8 @@ model Product {
   @@index([deletedAt])
   @@index([productCategoryId])
   @@index([productTypeId])
+  @@index([isMustTry])
+  @@index([isBestSeller])
 }
 
 model ProductAttribute {

@@ -7,6 +7,8 @@ export const GetProductListQuerySchema = z.object({
     search: z.string().optional(),
     productCategoryId: z.string().max(100).optional(),
     productTypeId: z.string().max(100).optional(),
+    isMustTry: z.coerce.boolean().optional(),
+    isBestSeller: z.coerce.boolean().optional(),
     status: z.enum(['active', 'archive']).default('active').optional()
 });
 
@@ -17,6 +19,8 @@ export const CreateProductSchema = z.object({
     name: z.string().min(2).max(100),
     photo: z.string().url().or(z.string().max(2048)).optional().nullable(),
     description: z.string().max(1000).optional().nullable(),
+    isMustTry: z.boolean().default(false).optional(),
+    isBestSeller: z.boolean().default(false).optional(),
     productCategoryId: z.string().max(100).optional().nullable(),
     productTypeId: z.string().max(100).optional().nullable()
 });
@@ -27,6 +31,8 @@ export const UpdateProductSchema = z.object({
     name: z.string().min(2).max(100).optional(),
     photo: z.string().url().or(z.string().max(2048)).optional().nullable(),
     description: z.string().max(1000).optional().nullable(),
+    isMustTry: z.boolean().optional(),
+    isBestSeller: z.boolean().optional(),
     productCategoryId: z.string().max(100).optional().nullable(),
     productTypeId: z.string().max(100).optional().nullable()
 });
@@ -93,6 +99,8 @@ export const ProductResponseSchema = z.object({
     name: z.string(),
     photo: z.string().nullable(),
     description: z.string().nullable(),
+    isMustTry: z.boolean(),
+    isBestSeller: z.boolean(),
     productCategoryId: z.string().nullable(),
     productTypeId: z.string().nullable(),
     category: z

@@ -6,7 +6,9 @@ export const GetMenuQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).default(10).optional(),
     search: z.string().optional(),
     productCategoryId: z.string().uuid().optional(),
-    productTypeId: z.string().uuid().optional()
+    productTypeId: z.string().uuid().optional(),
+    isMustTry: z.coerce.boolean().optional(),
+    isBestSeller: z.coerce.boolean().optional()
 });
 
 export type TGetMenuQuery = z.infer<typeof GetMenuQuerySchema>;
@@ -75,6 +77,8 @@ export const MenuProductResponseSchema = z.object({
     name: z.string(),
     photo: z.string().nullable(),
     description: z.string().nullable(),
+    isMustTry: z.boolean().default(false),
+    isBestSeller: z.boolean().default(false),
     productCategoryId: z.string().nullable(),
     productTypeId: z.string().nullable(),
     category: MenuCategoryResponseSchema.nullable(),

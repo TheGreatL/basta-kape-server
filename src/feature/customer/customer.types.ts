@@ -121,6 +121,8 @@ export const ProductInfoSchema = z.object({
     name: z.string(),
     photo: z.string().nullable(),
     description: z.string().nullable(),
+    isMustTry: z.boolean().optional(),
+    isBestSeller: z.boolean().optional(),
     category: ProductCategoryInfoSchema.nullable().optional(),
     type: ProductTypeInfoSchema.nullable().optional()
 });

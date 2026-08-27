@@ -22,6 +22,8 @@ export class ProductRepository extends BaseRepository {
                 name: data.name,
                 photo: data.photo || null,
                 description: data.description || null,
+                isMustTry: data.isMustTry ?? false,
+                isBestSeller: data.isBestSeller ?? false,
                 productCategoryId: data.productCategoryId || null,
                 productTypeId: data.productTypeId || null,
                 createdById: actorId,
@@ -196,6 +198,14 @@ export class ProductRepository extends BaseRepository {
 
         if (params.productTypeId) {
             where.productTypeId = params.productTypeId;
+        }
+
+        if (params.isMustTry !== undefined) {
+            where.isMustTry = params.isMustTry;
+        }
+
+        if (params.isBestSeller !== undefined) {
+            where.isBestSeller = params.isBestSeller;
         }
 
         if (params.search) {
