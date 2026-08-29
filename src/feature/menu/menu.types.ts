@@ -14,16 +14,38 @@ export const GetMenuQuerySchema = z.object({
 export type TGetMenuQuery = z.infer<typeof GetMenuQuerySchema>;
 
 // Response Schemas for Menu API
+export const GetMenuCategoryQuerySchema = z.object({
+    productTypeId: z.string().uuid().optional()
+});
+export type TGetMenuCategoryQuery = z.infer<typeof GetMenuCategoryQuerySchema>;
+
 export const MenuCategoryResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
-    description: z.string().nullable()
+    description: z.string().nullable(),
+    productTypeId: z.string().nullable().optional(),
+    type: z
+        .object({
+            id: z.string(),
+            name: z.string()
+        })
+        .nullable()
+        .optional()
 });
 
 export const MenuTypeResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
-    description: z.string().nullable()
+    description: z.string().nullable(),
+    categories: z
+        .array(
+            z.object({
+                id: z.string(),
+                name: z.string(),
+                description: z.string().nullable().optional()
+            })
+        )
+        .optional()
 });
 
 export const MenuRecipeIngredientResponseSchema = z.object({

@@ -104,8 +104,8 @@ export class MenuService {
         return formatMenuProduct(product as unknown as IRepositoryProduct);
     }
 
-    async getCategoryList() {
-        return this.repository.getCategoryList();
+    async getCategoryList(productTypeId?: string) {
+        return this.repository.getCategoryList(productTypeId);
     }
 
     async getTypeList() {

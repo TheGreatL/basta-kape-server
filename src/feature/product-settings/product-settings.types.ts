@@ -5,6 +5,7 @@ export const GetListQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1).optional(),
     limit: z.coerce.number().min(1).max(100).default(10).optional(),
     search: z.string().optional(),
+    productTypeId: z.string().uuid().optional(),
     status: z.enum(['active', 'archive']).default('active').optional()
 });
 
@@ -13,13 +14,15 @@ export type TGetListQuery = z.infer<typeof GetListQuerySchema>;
 // ProductCategory Zod Schemas
 export const CreateCategorySchema = z.object({
     name: z.string().min(2).max(100),
-    description: z.string().max(500).optional().nullable()
+    description: z.string().max(500).optional().nullable(),
+    productTypeId: z.string().uuid().optional().nullable()
 });
 export type TCreateCategory = z.infer<typeof CreateCategorySchema>;
 
 export const UpdateCategorySchema = z.object({
     name: z.string().min(2).max(100).optional(),
-    description: z.string().max(500).optional().nullable()
+    description: z.string().max(500).optional().nullable(),
+    productTypeId: z.string().uuid().optional().nullable()
 });
 export type TUpdateCategory = z.infer<typeof UpdateCategorySchema>;
 
@@ -27,6 +30,14 @@ export const CategoryResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
     description: z.string().nullable(),
+    productTypeId: z.string().nullable().optional(),
+    type: z
+        .object({
+            id: z.string(),
+            name: z.string()
+        })
+        .nullable()
+        .optional(),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     deletedAt: z.date().nullable().or(z.string().nullable())
@@ -60,6 +71,15 @@ export const TypeResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
     description: z.string().nullable(),
+    categories: z
+        .array(
+            z.object({
+                id: z.string(),
+                name: z.string(),
+                description: z.string().nullable().optional()
+            })
+        )
+        .optional(),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     deletedAt: z.date().nullable().or(z.string().nullable())

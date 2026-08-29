@@ -24,10 +24,12 @@ export class ProductSettingsRepository extends BaseRepository {
             data: {
                 name: data.name,
                 description: data.description,
+                productTypeId: data.productTypeId,
                 createdById: actorId,
                 updatedById: actorId
             },
             include: {
+                type: { select: { id: true, name: true } },
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -42,6 +44,7 @@ export class ProductSettingsRepository extends BaseRepository {
                 updatedById: actorId
             },
             include: {
+                type: { select: { id: true, name: true } },
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -62,6 +65,7 @@ export class ProductSettingsRepository extends BaseRepository {
         return prisma.productCategory.findFirst({
             where: { id, deletedAt: null },
             include: {
+                type: { select: { id: true, name: true } },
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -84,6 +88,10 @@ export class ProductSettingsRepository extends BaseRepository {
             where.deletedAt = { not: null };
         }
 
+        if (params.productTypeId) {
+            where.productTypeId = params.productTypeId;
+        }
+
         if (params.search) {
             where.OR = [{ name: { contains: params.search } }, { description: { contains: params.search } }];
         }
@@ -95,6 +103,7 @@ export class ProductSettingsRepository extends BaseRepository {
                 take,
                 orderBy: { name: 'asc' },
                 include: {
+                    type: { select: { id: true, name: true } },
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
                 }
@@ -152,6 +161,10 @@ export class ProductSettingsRepository extends BaseRepository {
         return prisma.productType.findFirst({
             where: { id, deletedAt: null },
             include: {
+                categories: {
+                    where: { deletedAt: null },
+                    select: { id: true, name: true, description: true }
+                },
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -185,6 +198,10 @@ export class ProductSettingsRepository extends BaseRepository {
                 take,
                 orderBy: { name: 'asc' },
                 include: {
+                    categories: {
+                        where: { deletedAt: null },
+                        select: { id: true, name: true, description: true }
+                    },
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
                 }

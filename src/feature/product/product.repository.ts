@@ -220,7 +220,7 @@ export class ProductRepository extends BaseRepository {
                 orderBy: { name: 'asc' },
                 include: {
                     category: {
-                        select: { id: true, name: true }
+                        select: { id: true, name: true, productTypeId: true }
                     },
                     type: {
                         select: { id: true, name: true }

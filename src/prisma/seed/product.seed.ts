@@ -20,16 +20,16 @@ export async function seedProduct(prisma: PrismaClient) {
     // ==========================================
     // 2. HELPERS FOR IDEMPOTENCY
     // ==========================================
-    const getOrCreateCategory = async (name: string, description: string) => {
+    const getOrCreateCategory = async (name: string, description: string, productTypeId?: string) => {
         const found = await prisma.productCategory.findFirst({ where: { name, deletedAt: null } });
         if (found) {
             return prisma.productCategory.update({
                 where: { id: found.id },
-                data: { description, updatedById: adminId, updatedAt: SEED_DATE }
+                data: { description, productTypeId, updatedById: adminId, updatedAt: SEED_DATE }
             });
         }
         return prisma.productCategory.create({
-            data: { name, description, createdById: adminId, updatedById: adminId, createdAt: SEED_DATE, updatedAt: SEED_DATE }
+            data: { name, description, productTypeId, createdById: adminId, updatedById: adminId, createdAt: SEED_DATE, updatedAt: SEED_DATE }
         });
     };
 
@@ -814,19 +814,23 @@ export async function seedProduct(prisma: PrismaClient) {
     const typeFood = await getOrCreateType('Food', 'Food, snacks, and pastry items served to customers');
 
     // Beverage Categories
-    const catEspresso = await getOrCreateCategory('Espresso', 'Classic and flavored espresso-based coffee drinks');
-    const catCreamyCoffee = await getOrCreateCategory('Creamy Coffee', 'Rich, velvety specialty espresso beverages');
-    const catOatBased = await getOrCreateCategory('Oat Based', 'Specialty espresso drinks made with creamy oat milk');
-    const catMatcha = await getOrCreateCategory('Matcha Series', 'Premium whisked Japanese green tea matcha drinks');
-    const catNonCoffee = await getOrCreateCategory('Non-Coffee', 'Milk beverages, traditional tsokolate, and refreshing fizz sodas');
-    const catBlendedCoffee = await getOrCreateCategory('Blended Coffee Drinks', '22oz Ice-blended coffee frappés');
-    const catBlendedNonCoffee = await getOrCreateCategory('Blended Non-Coffee Drinks', 'Ice-blended smooth non-coffee cream frappés');
+    const catEspresso = await getOrCreateCategory('Espresso', 'Classic and flavored espresso-based coffee drinks', typeBeverage.id);
+    const catCreamyCoffee = await getOrCreateCategory('Creamy Coffee', 'Rich, velvety specialty espresso beverages', typeBeverage.id);
+    const catOatBased = await getOrCreateCategory('Oat Based', 'Specialty espresso drinks made with creamy oat milk', typeBeverage.id);
+    const catMatcha = await getOrCreateCategory('Matcha Series', 'Premium whisked Japanese green tea matcha drinks', typeBeverage.id);
+    const catNonCoffee = await getOrCreateCategory('Non-Coffee', 'Milk beverages, traditional tsokolate, and refreshing fizz sodas', typeBeverage.id);
+    const catBlendedCoffee = await getOrCreateCategory('Blended Coffee Drinks', '22oz Ice-blended coffee frappés', typeBeverage.id);
+    const catBlendedNonCoffee = await getOrCreateCategory(
+        'Blended Non-Coffee Drinks',
+        'Ice-blended smooth non-coffee cream frappés',
+        typeBeverage.id
+    );
 
     // Food Categories
-    const catWaffles = await getOrCreateCategory('Waffles', 'Freshly baked golden waffle creations');
-    const catPasta = await getOrCreateCategory('Pasta', 'Savory pasta dishes served with sliced toasted bread');
-    const catSnacks = await getOrCreateCategory('Snacks', 'Finger foods and sharing snack platters');
-    const catCookies = await getOrCreateCategory('Cookies', 'Artisanal baked cookies and toasted marshmallow s’mores');
+    const catWaffles = await getOrCreateCategory('Waffles', 'Freshly baked golden waffle creations', typeFood.id);
+    const catPasta = await getOrCreateCategory('Pasta', 'Savory pasta dishes served with sliced toasted bread', typeFood.id);
+    const catSnacks = await getOrCreateCategory('Snacks', 'Finger foods and sharing snack platters', typeFood.id);
+    const catCookies = await getOrCreateCategory('Cookies', 'Artisanal baked cookies and toasted marshmallow s’mores', typeFood.id);
 
     // Attributes & Values
     const tempAttr = await getOrCreateAttribute('Temperature', 'Beverage serving temperature (Hot/Iced)');

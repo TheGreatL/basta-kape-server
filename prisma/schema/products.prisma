@@ -1,8 +1,10 @@
 model ProductCategory {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  products    Product[]
+  id            String       @id @default(uuid())
+  name          String
+  description   String?
+  productTypeId String?
+  type          ProductType? @relation(fields: [productTypeId], references: [id])
+  products      Product[]
 
   createdById String?
   createdBy   User?     @relation("ProductCategoryCreatedBy", fields: [createdById], references: [id])
@@ -13,12 +15,14 @@ model ProductCategory {
   deletedAt   DateTime?
 
   @@index([deletedAt])
+  @@index([productTypeId])
 }
 
 model ProductType {
-  id          String    @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String
   description String?
+  categories  ProductCategory[]
   products    Product[]
 
   createdById String?
@@ -195,7 +199,7 @@ model Ingredient {
 }
 
 model Supplier {
-  id             String               @id @default(uuid())
+  id             String            @id @default(uuid())
   name           String
   address        String?
   notes          String?
@@ -214,23 +218,23 @@ model Supplier {
 }
 
 model IngredientBatch {
-  id               String             @id @default(uuid())
+  id               String     @id @default(uuid())
   ingredientId     String
-  ingredient       Ingredient         @relation(fields: [ingredientId], references: [id])
+  ingredient       Ingredient @relation(fields: [ingredientId], references: [id])
   supplierId       String?
-  supplier         Supplier?          @relation(fields: [supplierId], references: [id])
-  receivedAt       DateTime           @default(now())
+  supplier         Supplier?  @relation(fields: [supplierId], references: [id])
+  receivedAt       DateTime   @default(now())
   expiryDate       DateTime?
-  quantityReceived Float              @default(0)
-  currentQuantity  Float              @default(0)
-  unitCost         Float              @default(0)
-  totalCost        Float              @default(0)
+  quantityReceived Float      @default(0)
+  currentQuantity  Float      @default(0)
+  unitCost         Float      @default(0)
+  totalCost        Float      @default(0)
   batchNumber      String?
 
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
 
-  transactions    StockTransaction[]
+  transactions StockTransaction[]
 
   createdById String?
   createdBy   User?     @relation("IngredientBatchCreatedBy", fields: [createdById], references: [id])
@@ -265,12 +269,11 @@ model StockTransaction {
   reason         String?
 
   createdById String?
-  createdBy   User?     @relation("StockTransactionCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime  @default(now())
+  createdBy   User?    @relation("StockTransactionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
 
   @@index([batchId])
 }
-
 
 model IngredientInventory {
   id                String          @id @default(uuid())
@@ -385,8 +388,8 @@ model PurchaseOrder {
   createdById String
   createdBy   User   @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
 
-  items      PurchaseOrderItem[]
-  batches    IngredientBatch[]
+  items   PurchaseOrderItem[]
+  batches IngredientBatch[]
 
   orderedAt  DateTime?
   receivedAt DateTime?

@@ -6,7 +6,8 @@ import {
     MenuCategoryResponseSchema,
     MenuTypeResponseSchema,
     MenuProductResponseSchema,
-    PaginatedMenuResponseSchema
+    PaginatedMenuResponseSchema,
+    GetMenuCategoryQuerySchema
 } from './menu.types';
 import { z } from 'zod';
 
@@ -50,6 +51,9 @@ registry.registerPath({
     path: '/menu/categories',
     tags: ['Menu'],
     summary: 'Get unpaginated list of active product categories',
+    request: {
+        query: GetMenuCategoryQuerySchema
+    },
     responses: {
         200: {
             description: 'Menu categories retrieved successfully',
@@ -60,7 +64,8 @@ registry.registerPath({
 
 router.get('/categories', async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const result = await service.getCategoryList();
+        const query = GetMenuCategoryQuerySchema.parse(req.query);
+        const result = await service.getCategoryList(query.productTypeId);
         res.json(result);
     } catch (error) {
         next(error);

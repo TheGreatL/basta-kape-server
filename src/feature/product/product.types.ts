@@ -106,7 +106,8 @@ export const ProductResponseSchema = z.object({
     category: z
         .object({
             id: z.string(),
-            name: z.string()
+            name: z.string(),
+            productTypeId: z.string().nullable().optional()
         })
         .nullable()
         .optional(),
