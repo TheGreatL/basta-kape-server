@@ -24,6 +24,8 @@ export class ProductRepository extends BaseRepository {
                 description: data.description || null,
                 isMustTry: data.isMustTry ?? false,
                 isBestSeller: data.isBestSeller ?? false,
+                preparationType: data.preparationType ?? 'MADE_TO_ORDER',
+                defaultShelfLife: data.defaultShelfLife ?? null,
                 productCategoryId: data.productCategoryId || null,
                 productTypeId: data.productTypeId || null,
                 createdById: actorId,
@@ -206,6 +208,10 @@ export class ProductRepository extends BaseRepository {
 
         if (params.isBestSeller !== undefined) {
             where.isBestSeller = params.isBestSeller;
+        }
+
+        if (params.preparationType) {
+            where.preparationType = params.preparationType;
         }
 
         if (params.search) {

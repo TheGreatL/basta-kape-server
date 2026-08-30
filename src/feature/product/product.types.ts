@@ -9,6 +9,7 @@ export const GetProductListQuerySchema = z.object({
     productTypeId: z.string().max(100).optional(),
     isMustTry: z.coerce.boolean().optional(),
     isBestSeller: z.coerce.boolean().optional(),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).optional(),
     status: z.enum(['active', 'archive']).default('active').optional()
 });
 
@@ -21,6 +22,8 @@ export const CreateProductSchema = z.object({
     description: z.string().max(1000).optional().nullable(),
     isMustTry: z.boolean().default(false).optional(),
     isBestSeller: z.boolean().default(false).optional(),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).default('MADE_TO_ORDER').optional(),
+    defaultShelfLife: z.number().int().positive().optional().nullable(),
     productCategoryId: z.string().max(100).optional().nullable(),
     productTypeId: z.string().max(100).optional().nullable()
 });
@@ -33,6 +36,8 @@ export const UpdateProductSchema = z.object({
     description: z.string().max(1000).optional().nullable(),
     isMustTry: z.boolean().optional(),
     isBestSeller: z.boolean().optional(),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).optional(),
+    defaultShelfLife: z.number().int().positive().optional().nullable(),
     productCategoryId: z.string().max(100).optional().nullable(),
     productTypeId: z.string().max(100).optional().nullable()
 });
@@ -101,6 +106,8 @@ export const ProductResponseSchema = z.object({
     description: z.string().nullable(),
     isMustTry: z.boolean(),
     isBestSeller: z.boolean(),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).default('MADE_TO_ORDER'),
+    defaultShelfLife: z.number().nullable().optional(),
     productCategoryId: z.string().nullable(),
     productTypeId: z.string().nullable(),
     category: z

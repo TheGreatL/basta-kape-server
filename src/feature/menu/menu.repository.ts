@@ -74,6 +74,14 @@ export class MenuRepository extends BaseRepository {
                                         }
                                     }
                                 }
+                            },
+                            preparedBatches: {
+                                where: {
+                                    deletedAt: null,
+                                    currentQuantity: { gt: 0 },
+                                    expiresAt: { gt: new Date() }
+                                },
+                                select: { currentQuantity: true }
                             }
                         }
                     }
@@ -125,6 +133,14 @@ export class MenuRepository extends BaseRepository {
                                     }
                                 }
                             }
+                        },
+                        preparedBatches: {
+                            where: {
+                                deletedAt: null,
+                                currentQuantity: { gt: 0 },
+                                expiresAt: { gt: new Date() }
+                            },
+                            select: { currentQuantity: true }
                         }
                     }
                 }

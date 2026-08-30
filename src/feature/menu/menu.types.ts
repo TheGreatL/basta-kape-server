@@ -101,6 +101,8 @@ export const MenuProductResponseSchema = z.object({
     description: z.string().nullable(),
     isMustTry: z.boolean().default(false),
     isBestSeller: z.boolean().default(false),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).default('MADE_TO_ORDER'),
+    defaultShelfLife: z.number().nullable().optional(),
     productCategoryId: z.string().nullable(),
     productTypeId: z.string().nullable(),
     category: MenuCategoryResponseSchema.nullable(),

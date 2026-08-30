@@ -203,7 +203,9 @@ export async function seedProduct(prisma: PrismaClient) {
         categoryId: string,
         typeId: string,
         isMustTry: boolean = false,
-        isBestSeller: boolean = false
+        isBestSeller: boolean = false,
+        preparationType: 'MADE_TO_ORDER' | 'PREPARED_DISPLAY' = 'MADE_TO_ORDER',
+        defaultShelfLife: number | null = null
     ) => {
         const found = await prisma.product.findFirst({ where: { name, deletedAt: null } });
         if (found) {
@@ -215,6 +217,8 @@ export async function seedProduct(prisma: PrismaClient) {
                     productTypeId: typeId,
                     isMustTry,
                     isBestSeller,
+                    preparationType,
+                    defaultShelfLife,
                     updatedById: adminId,
                     updatedAt: SEED_DATE
                 }
@@ -228,6 +232,8 @@ export async function seedProduct(prisma: PrismaClient) {
                 productTypeId: typeId,
                 isMustTry,
                 isBestSeller,
+                preparationType,
+                defaultShelfLife,
                 createdById: adminId,
                 updatedById: adminId,
                 createdAt: SEED_DATE,
@@ -899,9 +905,20 @@ export async function seedProduct(prisma: PrismaClient) {
         description: string,
         price: number,
         isMustTry: boolean = false,
-        isBestSeller: boolean = false
+        isBestSeller: boolean = false,
+        preparationType: 'MADE_TO_ORDER' | 'PREPARED_DISPLAY' = 'MADE_TO_ORDER',
+        defaultShelfLife: number | null = null
     ) => {
-        const product = await getOrCreateProduct(name, description, categoryId, typeFood.id, isMustTry, isBestSeller);
+        const product = await getOrCreateProduct(
+            name,
+            description,
+            categoryId,
+            typeFood.id,
+            isMustTry,
+            isBestSeller,
+            preparationType,
+            defaultShelfLife
+        );
         const cleanedName = name.replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
         const sku = `${cleanedName}-REGULAR`;
         const variant = await getOrCreateVariant(product.id, sku, price, [valRegular.id]);
@@ -973,7 +990,7 @@ export async function seedProduct(prisma: PrismaClient) {
         seededSnacks.push(await seedFoodProduct(catSnacks.id, s.name, s.desc, s.price, s.mustTry, s.bestSeller));
     }
 
-    // --- Cookies ---
+    // --- Cookies (Display batch items with 24-hour shelf life) ---
     const cookieItems = [
         { name: "Biscoff Smore's", desc: "Biscoff flavored cookie with toasted marshmallow s'mores", price: 85, bestSeller: true, mustTry: false },
         { name: "Matcha Smore's", desc: "Matcha infused cookie with toasted marshmallow s'mores", price: 85, bestSeller: false, mustTry: false },
@@ -984,7 +1001,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededCookies = [];
     for (const c of cookieItems) {
-        seededCookies.push(await seedFoodProduct(catCookies.id, c.name, c.desc, c.price, c.mustTry, c.bestSeller));
+        seededCookies.push(await seedFoodProduct(catCookies.id, c.name, c.desc, c.price, c.mustTry, c.bestSeller, 'PREPARED_DISPLAY', 1440));
     }
 
     // ==========================================
@@ -1693,6 +1710,50 @@ export async function seedProduct(prisma: PrismaClient) {
                 const modRecipe = await getOrCreateModifierRecipe(existingOption.id, `${prod.name} - ${option.name} Recipe`);
                 await getOrCreateRecipeIngredient(modRecipe.id, option.ing.id, option.qty, option.unit.id);
             }
+        }
+    }
+
+    // --- 10. Seed Initial Morning Prepared Display Batches for Cookies ---
+    const now = new Date();
+    const expiry24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    for (const { product, variant } of seededCookies) {
+        const existingBatch = await prisma.preparedItemBatch.findFirst({
+            where: { productVariantId: variant.id, deletedAt: null }
+        });
+
+        if (!existingBatch) {
+            const baseSku = (variant.sku || product.name.replace(/\s+/g, '-').toUpperCase()).slice(0, 12);
+            const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+            const batchNumber = `PREP-${baseSku}-${dateStr}-INIT`;
+
+            await prisma.preparedItemBatch.create({
+                data: {
+                    productVariantId: variant.id,
+                    productId: product.id,
+                    batchNumber,
+                    quantityPrepared: 12,
+                    currentQuantity: 12,
+                    preparedAt: now,
+                    shelfLifeMinutes: 1440,
+                    expiresAt: expiry24h,
+                    status: 'FRESH',
+                    notes: 'Initial morning fresh bake for store display',
+                    createdById: adminId,
+                    updatedById: adminId,
+                    createdAt: now,
+                    updatedAt: now,
+                    transactions: {
+                        create: {
+                            quantityChange: 12,
+                            type: 'CORRECTION',
+                            reason: 'Initial seed batch for store display',
+                            createdById: adminId,
+                            createdAt: now
+                        }
+                    }
+                }
+            });
         }
     }
 

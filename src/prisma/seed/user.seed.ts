@@ -109,6 +109,11 @@ export async function seedUsers(prisma: PrismaClient) {
         update: {},
         create: { name: appModules.ORDER_QUEUE, createdAt: SEED_DATE }
     });
+    const foodPrepMod = await prisma.module.upsert({
+        where: { name: appModules.FOOD_PREPARATION },
+        update: {},
+        create: { name: appModules.FOOD_PREPARATION, createdAt: SEED_DATE }
+    });
     const menuMod = await prisma.module.upsert({
         where: { name: appModules.MENU },
         update: {},
@@ -155,6 +160,7 @@ export async function seedUsers(prisma: PrismaClient) {
         purchaseOrdersMod,
         transactionHistoryMod,
         orderQueueMod,
+        foodPrepMod,
         menuMod,
         activityLogMod
     ];
@@ -189,6 +195,10 @@ export async function seedUsers(prisma: PrismaClient) {
 
     const mpOrderQueueReadStore = await ensureModPerm(orderQueueMod.id, read.id);
     const mpOrderQueueUpdateStore = await ensureModPerm(orderQueueMod.id, update.id);
+
+    const mpFoodPrepCreateStore = await ensureModPerm(foodPrepMod.id, create.id);
+    const mpFoodPrepReadStore = await ensureModPerm(foodPrepMod.id, read.id);
+    const mpFoodPrepUpdateStore = await ensureModPerm(foodPrepMod.id, update.id);
 
     // Customers should only access their own data
     const mpOrdersCreateOwn = await ensureModPerm(ordersMod.id, create.id);
@@ -258,7 +268,8 @@ export async function seedUsers(prisma: PrismaClient) {
                     mpSalesReadStore,
                     mpMenuReadStore,
                     mpProductsReadStore,
-                    mpInventoryReadStore
+                    mpInventoryReadStore,
+                    mpFoodPrepReadStore
                 ]
             }
         },
@@ -282,7 +293,8 @@ export async function seedUsers(prisma: PrismaClient) {
                     mpSalesReadStore,
                     mpMenuReadStore,
                     mpProductsReadStore,
-                    mpInventoryReadStore
+                    mpInventoryReadStore,
+                    mpFoodPrepReadStore
                 ]
             }
         }
@@ -300,7 +312,10 @@ export async function seedUsers(prisma: PrismaClient) {
                     mpOrdersReadStore,
                     mpMenuReadStore,
                     mpProductsReadStore,
-                    mpInventoryReadStore
+                    mpInventoryReadStore,
+                    mpFoodPrepCreateStore,
+                    mpFoodPrepReadStore,
+                    mpFoodPrepUpdateStore
                 ]
             }
         },
@@ -317,7 +332,10 @@ export async function seedUsers(prisma: PrismaClient) {
                     mpOrdersReadStore,
                     mpMenuReadStore,
                     mpProductsReadStore,
-                    mpInventoryReadStore
+                    mpInventoryReadStore,
+                    mpFoodPrepCreateStore,
+                    mpFoodPrepReadStore,
+                    mpFoodPrepUpdateStore
                 ]
             }
         }

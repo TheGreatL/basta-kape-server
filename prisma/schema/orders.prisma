@@ -55,11 +55,12 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
   totalPaid     Float         @default(0)
 
-  items         OrderItem[]
-  statusHistory OrderStatusHistory[]
-  payments      OrderPayment[]
-  voidLogs      OrderVoidLog[]
-  discounts     OrderDiscount[]
+  items                    OrderItem[]
+  statusHistory            OrderStatusHistory[]
+  payments                 OrderPayment[]
+  voidLogs                 OrderVoidLog[]
+  discounts                OrderDiscount[]
+  preparedItemTransactions PreparedItemTransaction[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
