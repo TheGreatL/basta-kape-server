@@ -295,41 +295,26 @@ export class InventoryService {
 
         const ingredient = await this.getIngredientById(existing.ingredientId);
 
-        const newQuantityReceived = data.quantityReceived !== undefined ? data.quantityReceived : existing.quantityReceived;
+        // Quantity is locked and immutable to preserve live stock and FEFO calculation accuracy
         const newUnitCost = data.unitCost !== undefined ? data.unitCost : existing.unitCost;
-        const quantityDelta = newQuantityReceived - existing.quantityReceived;
-
-        const newCurrentQuantity = Math.max(0, existing.currentQuantity + quantityDelta);
-        const newTotalCost = newQuantityReceived * newUnitCost;
+        const newTotalCost = existing.quantityReceived * newUnitCost;
 
         const updatedBatch = await this.repository.updateBatch(
             id,
             {
-                ...data,
-                quantityReceived: newQuantityReceived,
-                currentQuantity: newCurrentQuantity,
+                supplierId: data.supplierId,
                 unitCost: newUnitCost,
-                totalCost: newTotalCost
+                totalCost: newTotalCost,
+                batchNumber: data.batchNumber,
+                expiryDate: data.expiryDate
             },
             actorId
         );
 
-        if (quantityDelta !== 0) {
-            await this.repository.adjustStockAndStatus(
-                existing.ingredientId,
-                quantityDelta,
-                false,
-                actorId,
-                'DELIVERY',
-                `Updated delivery batch quantity #${id.substring(0, 8)}`,
-                true
-            );
-        }
-
         await this.activityLogService.logActivity({
             actorId,
-            title: 'Update Ingredient Delivery Log',
-            details: `Updated delivery batch ${updatedBatch.batchNumber || 'N/A'} for ${ingredient.name}: quantity diff ${quantityDelta > 0 ? '+' : ''}${quantityDelta} ${ingredient.defaultUnit.abbreviation || ingredient.defaultUnit.name}, unit cost PHP ${newUnitCost}.`
+            title: 'Update Ingredient Delivery Record',
+            details: `Updated delivery record for ${ingredient.name} (Batch: ${updatedBatch.batchNumber || 'N/A'}, Unit Cost: PHP ${newUnitCost}, Supplier: ${updatedBatch.supplier?.name || 'Unassigned'}).`
         });
 
         return updatedBatch;

@@ -601,7 +601,7 @@ registry.registerPath({
     method: 'put',
     path: '/inventory/deliveries/{id}',
     tags: ['Inventory - Deliveries & Batches'],
-    summary: 'Update an existing ingredient delivery/batch record',
+    summary: 'Update an existing ingredient delivery record metadata (supplier, unitCost, batchNumber, expiryDate). Quantity is locked.',
     security: [{ bearerAuth: [] }],
     request: {
         body: {
@@ -614,7 +614,7 @@ registry.registerPath({
     },
     responses: {
         200: {
-            description: 'Delivery batch updated successfully',
+            description: 'Delivery batch metadata updated successfully',
             content: { 'application/json': { schema: BatchResponseSchema } }
         }
     }
