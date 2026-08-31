@@ -115,18 +115,31 @@ registry.registerPath({
     method: 'get',
     path: '/reports/sales-analytics',
     tags: ['Reports'],
-    summary: 'Retrieve compiled sales analytics data',
+    summary: 'Retrieve compiled sales and financials analytics (revenue, expenses, waste/losses, profitability)',
     security: [{ bearerAuth: [] }],
     request: {
         query: z.object({
             dateFrom: z.string().optional(),
             dateTo: z.string().optional(),
-            type: z.string().optional()
+            type: z
+                .enum([
+                    'summary',
+                    'financials',
+                    'daily-trend',
+                    'losses',
+                    'expenses',
+                    'stock-transactions',
+                    'top-products',
+                    'order-type-breakdown',
+                    'payment-breakdown',
+                    'orders'
+                ])
+                .optional()
         })
     },
     responses: {
         200: {
-            description: 'Sales analytics retrieved successfully'
+            description: 'Sales and financials analytics retrieved successfully'
         }
     }
 });

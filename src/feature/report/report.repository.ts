@@ -43,6 +43,8 @@ export class ReportRepository extends BaseRepository {
                 return this.fetchOrders(filters, pagination);
             case 'sales':
                 return this.fetchSalesSummary(filters, pagination);
+            case 'financials':
+                return this.fetchFinancialsSummary(filters, pagination);
             default:
                 return { rows: [], total: 0 };
         }
@@ -706,6 +708,186 @@ export class ReportRepository extends BaseRepository {
             paymayaSales: formatCurrency(row.paymayaSales),
             cardSales: formatCurrency(row.cardSales)
         }));
+
+        return {
+            total,
+            rows: formattedRows
+        };
+    }
+
+    private async fetchFinancialsSummary(filters: TReportFilters, pagination?: { page: number; limit: number }): Promise<TReportQueryResult> {
+        const orderWhere: Prisma.OrderWhereInput = {
+            status: 'COMPLETED',
+            paymentStatus: 'PAID'
+        };
+        const batchWhere: Prisma.IngredientBatchWhereInput = {
+            deletedAt: null
+        };
+        const rawWasteWhere: Prisma.StockTransactionWhereInput = {
+            quantityChange: { lt: 0 },
+            type: { in: ['WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE'] }
+        };
+        const prepWasteWhere: Prisma.PreparedItemTransactionWhereInput = {
+            quantityChange: { lt: 0 },
+            type: { in: ['EXPIRED', 'SPOILED', 'WASTE', 'SAMPLING', 'DISPOSED'] }
+        };
+
+        if (filters.status === 'active') {
+            orderWhere.deletedAt = null;
+        } else if (filters.status === 'archive') {
+            orderWhere.deletedAt = { not: null };
+        }
+
+        if (filters.dateFrom || filters.dateTo) {
+            const dateFilter: Prisma.DateTimeFilter = {};
+            if (filters.dateFrom) dateFilter.gte = new Date(filters.dateFrom);
+            if (filters.dateTo) {
+                const end = new Date(filters.dateTo);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.lte = end;
+            }
+            orderWhere.createdAt = dateFilter;
+            batchWhere.receivedAt = dateFilter;
+            rawWasteWhere.createdAt = dateFilter;
+            prepWasteWhere.createdAt = dateFilter;
+        }
+
+        const [orders, batches, rawWastes, prepWastes] = await Promise.all([
+            prisma.order.findMany({
+                where: orderWhere,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    createdAt: true,
+                    subtotal: true,
+                    discountAmount: true,
+                    netTotal: true
+                }
+            }),
+            prisma.ingredientBatch.findMany({
+                where: batchWhere,
+                select: {
+                    receivedAt: true,
+                    totalCost: true,
+                    quantityReceived: true,
+                    unitCost: true
+                }
+            }),
+            prisma.stockTransaction.findMany({
+                where: rawWasteWhere,
+                select: {
+                    createdAt: true,
+                    quantityChange: true,
+                    batch: { select: { unitCost: true } }
+                }
+            }),
+            prisma.preparedItemTransaction.findMany({
+                where: prepWasteWhere,
+                select: {
+                    createdAt: true,
+                    quantityChange: true,
+                    batch: { select: { productVariant: { select: { price: true } } } }
+                }
+            })
+        ]);
+
+        const localDateFormatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+
+        const dailyFinancials: Record<
+            string,
+            {
+                date: string;
+                orderCount: number;
+                grossSales: number;
+                discountAmount: number;
+                netSales: number;
+                expenses: number;
+                losses: number;
+            }
+        > = {};
+
+        const getOrCreateDaily = (dateStr: string) => {
+            if (!dailyFinancials[dateStr]) {
+                dailyFinancials[dateStr] = {
+                    date: dateStr,
+                    orderCount: 0,
+                    grossSales: 0,
+                    discountAmount: 0,
+                    netSales: 0,
+                    expenses: 0,
+                    losses: 0
+                };
+            }
+            return dailyFinancials[dateStr];
+        };
+
+        for (const order of orders) {
+            const dateStr = localDateFormatter.format(order.createdAt);
+            const d = getOrCreateDaily(dateStr);
+            d.orderCount += 1;
+            d.grossSales += order.subtotal;
+            d.discountAmount += order.discountAmount;
+            d.netSales += order.netTotal;
+        }
+
+        for (const batch of batches) {
+            const dateStr = localDateFormatter.format(batch.receivedAt);
+            const d = getOrCreateDaily(dateStr);
+            const cost = batch.totalCost || batch.quantityReceived * batch.unitCost || 0;
+            d.expenses += cost;
+        }
+
+        for (const rw of rawWastes) {
+            const dateStr = localDateFormatter.format(rw.createdAt);
+            const d = getOrCreateDaily(dateStr);
+            const qty = Math.abs(rw.quantityChange);
+            const unitCost = rw.batch?.unitCost ?? 0;
+            d.losses += qty * unitCost;
+        }
+
+        for (const pw of prepWastes) {
+            const dateStr = localDateFormatter.format(pw.createdAt);
+            const d = getOrCreateDaily(dateStr);
+            const qty = Math.abs(pw.quantityChange);
+            const price = pw.batch?.productVariant?.price ?? 0;
+            d.losses += qty * price;
+        }
+
+        let rows = Object.values(dailyFinancials);
+
+        if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
+            rows = rows.filter((r) => r.date.includes(searchLower));
+        }
+
+        rows.sort((a, b) => b.date.localeCompare(a.date));
+        const total = rows.length;
+
+        const { skip, take } = this.resolvePagination(pagination);
+        const paginatedRows = rows.slice(skip, skip + take);
+
+        const formattedRows = paginatedRows.map((r) => {
+            const grossProfit = r.netSales - r.expenses;
+            const netProfit = grossProfit - r.losses;
+            const margin = r.netSales > 0 ? (netProfit / r.netSales) * 100 : 0;
+
+            return {
+                date: r.date,
+                orderCount: r.orderCount,
+                grossSales: formatCurrency(r.grossSales),
+                discountAmount: formatCurrency(r.discountAmount),
+                netSales: formatCurrency(r.netSales),
+                expenses: formatCurrency(r.expenses),
+                losses: formatCurrency(r.losses),
+                grossProfit: formatCurrency(grossProfit),
+                netProfit: formatCurrency(netProfit),
+                profitMargin: `${margin.toFixed(2)}%`
+            };
+        });
 
         return {
             total,

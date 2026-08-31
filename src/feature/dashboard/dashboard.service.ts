@@ -5,7 +5,7 @@ import { appModules, appPermissions } from '@/constant';
 const userRepository = new UserRepository();
 
 export class DashboardService {
-    async getSummary(userId: string) {
+    async getSummary(userId: string, dateFrom?: string, dateTo?: string) {
         // 1. Fetch user to resolve their permissions
         const user = await userRepository.findUserByIdentifier(userId);
         if (!user) {
@@ -29,11 +29,12 @@ export class DashboardService {
             return permissions.some((p) => p.module === moduleName.toLowerCase() && p.permission === action.toLowerCase());
         };
 
-        // Date bounds for Today's metrics
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const todayEnd = new Date();
-        todayEnd.setHours(23, 59, 59, 999);
+        // Date bounds for metrics (defaults to Today)
+        const startDate = dateFrom ? new Date(dateFrom) : new Date();
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = dateTo ? new Date(dateTo) : new Date();
+        endDate.setHours(23, 59, 59, 999);
 
         // 3. Compile stats based on permissions
         const summary: Record<string, unknown> = {
@@ -61,8 +62,8 @@ export class DashboardService {
                 where: {
                     status: 'COMPLETED',
                     createdAt: {
-                        gte: todayStart,
-                        lte: todayEnd
+                        gte: startDate,
+                        lte: endDate
                     }
                 }
             });
@@ -73,13 +74,16 @@ export class DashboardService {
             const orderCount = todaySales._count._all;
             const averageOrderValue = orderCount > 0 ? netSales / orderCount : 0;
 
-            summary.salesToday = {
+            const salesData = {
                 grossSales,
                 discountTotal,
                 netSales,
                 orderCount,
                 averageOrderValue
             };
+
+            summary.salesToday = salesData;
+            summary.salesOverview = salesData;
         }
 
         // INVENTORY MANAGEMENT
