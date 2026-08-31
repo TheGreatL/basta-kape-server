@@ -2,6 +2,7 @@ import { ActivityLogService } from '@/feature/activity-log/activity-log.service'
 import { BadRequestException, NotFoundException } from '@/exceptions';
 import { prisma } from '@/lib/prisma';
 import { OrderStatus, OrderType, PaymentMethod, PaymentStatus, Prisma } from '@prisma/client';
+import { format } from 'date-fns';
 import { ReportGenerator } from './report.generator';
 import { ReportRepository } from './report.repository';
 import {
@@ -152,13 +153,7 @@ export class ReportService {
             rows,
             meta: {
                 total,
-                generatedAt: new Date().toLocaleString('en-PH', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }),
+                generatedAt: format(new Date(), 'MMMM dd, yyyy, hh:mm a'),
                 filters,
                 truncated: total > REPORT_MAX_EXPORT_ROWS,
                 generatedBy,

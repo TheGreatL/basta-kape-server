@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
+import { format } from 'date-fns';
 import type { TReportFilters, TReportModule, TReportRow } from './report.types';
 import { getOrderReference } from '../order/order.utils';
 
@@ -11,13 +12,7 @@ type TReportQueryResult = {
 
 const formatDateTime = (value: Date | string | null | undefined): string => {
     if (!value) return '';
-    return new Date(value).toLocaleString('en-PH', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    return format(new Date(value), 'MMM dd, yyyy, hh:mm a');
 };
 
 const formatCurrency = (value: number | null | undefined): string => {
