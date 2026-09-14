@@ -136,66 +136,139 @@ export async function seedUsers(prisma: PrismaClient) {
         return { modulePermissionId: mp.id, createdAt: SEED_DATE, updatedAt: SEED_DATE };
     }
 
-    // Explicitly generate permission nodes we will use for roles:
-
-    // Admin/Owner need an array of ALL nodes
-    const allModules = [
-        usersMod,
-        rolesMod,
-        productsMod,
-        productSettingsMod,
-        inventoryMod,
-        ordersMod,
-        posMod,
-        salesMod,
-        reportsMod,
-        customersMod,
-        suppliersMod,
-        storeSettingsMod,
-        purchaseOrdersMod,
-        transactionHistoryMod,
-        orderQueueMod,
-        menuMod,
-        activityLogMod
-    ];
-
-    //@eslint
-    const allSystemPerms: { modulePermissionId: string; createdAt: Date; updatedAt: Date }[] = [];
-    for (const m of allModules) {
-        allSystemPerms.push(await ensureModPerm(m.id, create.id));
-        allSystemPerms.push(await ensureModPerm(m.id, read.id));
-        allSystemPerms.push(await ensureModPerm(m.id, update.id));
-        allSystemPerms.push(await ensureModPerm(m.id, deletePerm.id));
+    async function getPermNodes(
+        module: { id: string },
+        perms: { id: string }[]
+    ): Promise<{ modulePermissionId: string; createdAt: Date; updatedAt: Date }[]> {
+        const nodes: { modulePermissionId: string; createdAt: Date; updatedAt: Date }[] = [];
+        for (const p of perms) {
+            nodes.push(await ensureModPerm(module.id, p.id));
+        }
+        return nodes;
     }
 
-    // Specific explicit nodes for limited roles
-    const mpPosCreateStore = await ensureModPerm(posMod.id, create.id);
-    const mpPosReadStore = await ensureModPerm(posMod.id, read.id);
-    const mpPosUpdateStore = await ensureModPerm(posMod.id, update.id);
-    const mpPosDeleteStore = await ensureModPerm(posMod.id, deletePerm.id);
+    function deduplicatePerms(
+        perms: { modulePermissionId: string; createdAt: Date; updatedAt: Date }[]
+    ): { modulePermissionId: string; createdAt: Date; updatedAt: Date }[] {
+        const seen = new Set<string>();
+        return perms.filter((p) => {
+            if (seen.has(p.modulePermissionId)) {
+                return false;
+            }
+            seen.add(p.modulePermissionId);
+            return true;
+        });
+    }
 
-    const mpOrdersCreateStore = await ensureModPerm(ordersMod.id, create.id);
-    const mpOrdersReadStore = await ensureModPerm(ordersMod.id, read.id);
-    const mpOrdersUpdateStore = await ensureModPerm(ordersMod.id, update.id);
+    // Standard permission sets
+    const crud = [create, read, update, deletePerm];
+    const readOnly = [read];
+    const readUpdate = [read, update];
+    const createRead = [create, read];
+    const createReadUpdate = [create, read, update];
 
-    const mpTransactionHistoryReadStore = await ensureModPerm(transactionHistoryMod.id, read.id);
+    // Explicit scoped permission sets for each role:
 
-    const mpSalesCreateStore = await ensureModPerm(salesMod.id, create.id);
-    const mpSalesReadStore = await ensureModPerm(salesMod.id, read.id);
+    // 1. OWNER SCOPE
+    // Business Owner with Executive Access:
+    // - Full financial reports & sales analytics (Reports Management, Sales Management)
+    // - Activity logs & audit review
+    // - System-wide monitoring and dashboard overview (Read-only on all shop operational modules)
+    // - No routine daily operations (no taking orders, no editing menu prices, no logging deliveries)
+    const ownerPerms = deduplicatePerms([
+        ...(await getPermNodes(reportsMod, crud)),
+        ...(await getPermNodes(salesMod, crud)),
+        ...(await getPermNodes(activityLogMod, readOnly)),
+        ...(await getPermNodes(usersMod, readOnly)),
+        ...(await getPermNodes(rolesMod, readOnly)),
+        ...(await getPermNodes(productsMod, readOnly)),
+        ...(await getPermNodes(productSettingsMod, readOnly)),
+        ...(await getPermNodes(inventoryMod, readOnly)),
+        ...(await getPermNodes(ordersMod, readOnly)),
+        ...(await getPermNodes(posMod, readOnly)),
+        ...(await getPermNodes(customersMod, readOnly)),
+        ...(await getPermNodes(suppliersMod, readOnly)),
+        ...(await getPermNodes(storeSettingsMod, readOnly)),
+        ...(await getPermNodes(purchaseOrdersMod, readOnly)),
+        ...(await getPermNodes(transactionHistoryMod, readOnly)),
+        ...(await getPermNodes(orderQueueMod, readOnly)),
+        ...(await getPermNodes(menuMod, readOnly))
+    ]);
 
-    const mpMenuReadStore = await ensureModPerm(menuMod.id, read.id);
-    const mpProductsReadStore = await ensureModPerm(productsMod.id, read.id);
-    const mpInventoryReadStore = await ensureModPerm(inventoryMod.id, read.id);
+    // 2. ADMINISTRATOR SCOPE
+    // Management & configuration scope:
+    // - Menu & Recipe Management (Products, Product Settings, Menu)
+    // - Master Inventory & Restock (Inventory, Suppliers, Purchase Orders)
+    // - User Account & Staff Management (Users, Roles & Permissions)
+    // - Store Settings & Discount Config (Store Settings)
+    // - Customer Management (Customers)
+    // - Operational Dashboard & Monitoring (Orders read/update, Order Queue read, Transaction History read, Activity Logs read)
+    // - Order void approval (Point of Sale read & delete for void authorization)
+    // - Excludes Executive Financial Reports and counter POS order processing
+    const adminPerms = deduplicatePerms([
+        ...(await getPermNodes(usersMod, crud)),
+        ...(await getPermNodes(rolesMod, crud)),
+        ...(await getPermNodes(productsMod, crud)),
+        ...(await getPermNodes(productSettingsMod, crud)),
+        ...(await getPermNodes(inventoryMod, crud)),
+        ...(await getPermNodes(suppliersMod, crud)),
+        ...(await getPermNodes(purchaseOrdersMod, crud)),
+        ...(await getPermNodes(storeSettingsMod, crud)),
+        ...(await getPermNodes(customersMod, crud)),
+        ...(await getPermNodes(menuMod, crud)),
+        ...(await getPermNodes(ordersMod, readUpdate)),
+        ...(await getPermNodes(orderQueueMod, readOnly)),
+        ...(await getPermNodes(transactionHistoryMod, readOnly)),
+        ...(await getPermNodes(activityLogMod, readOnly)),
+        ...(await getPermNodes(posMod, [read, deletePerm]))
+    ]);
 
-    const mpOrderQueueReadStore = await ensureModPerm(orderQueueMod.id, read.id);
-    const mpOrderQueueUpdateStore = await ensureModPerm(orderQueueMod.id, update.id);
+    // 3. CASHIER SCOPE
+    // Front-counter operations scope:
+    // - Ordering & Checkout (Point of Sale create/read/update, Orders create/read/update)
+    // - Shift sales report & drawer balancing (Sales Management create/read)
+    // - Transaction history (Transaction History read/update for receipt upload)
+    // - Customer profile creation/search at counter (Customers Management create/read/update)
+    // - Station stock & menu viewing (Inventory read, Menu read, Products read, Product Settings read)
+    // - Restricted from deleting past records or voiding orders without admin approval
+    const cashierPerms = deduplicatePerms([
+        ...(await getPermNodes(posMod, createReadUpdate)),
+        ...(await getPermNodes(ordersMod, createReadUpdate)),
+        ...(await getPermNodes(orderQueueMod, readOnly)),
+        ...(await getPermNodes(transactionHistoryMod, readUpdate)),
+        ...(await getPermNodes(salesMod, createRead)),
+        ...(await getPermNodes(customersMod, createReadUpdate)),
+        ...(await getPermNodes(menuMod, readOnly)),
+        ...(await getPermNodes(productsMod, readOnly)),
+        ...(await getPermNodes(productSettingsMod, readOnly)),
+        ...(await getPermNodes(inventoryMod, readOnly))
+    ]);
 
-    // Customers should only access their own data
-    const mpOrdersCreateOwn = await ensureModPerm(ordersMod.id, create.id);
-    const mpOrdersReadOwn = await ensureModPerm(ordersMod.id, read.id);
-    const mpCustomersReadOwn = await ensureModPerm(customersMod.id, read.id);
-    const mpCustomersUpdateOwn = await ensureModPerm(customersMod.id, update.id);
-    const mpMenuReadALL = await ensureModPerm(menuMod.id, read.id); // Menu is public
+    // 4. BARISTA SCOPE
+    // Drink preparation & Kitchen Display scope:
+    // - Live Order Queue / Kitchen Display & queue stats (Order Queue read/update)
+    // - Order status controls (Orders Management read/update)
+    // - Station stock viewer (Inventory Management read-only)
+    // - Digital menu & drink recipe reference (Menu read, Products read, Product Settings read)
+    const baristaPerms = deduplicatePerms([
+        ...(await getPermNodes(orderQueueMod, readUpdate)),
+        ...(await getPermNodes(ordersMod, readUpdate)),
+        ...(await getPermNodes(menuMod, readOnly)),
+        ...(await getPermNodes(productsMod, readOnly)),
+        ...(await getPermNodes(productSettingsMod, readOnly)),
+        ...(await getPermNodes(inventoryMod, readOnly))
+    ]);
+
+    // 5. CUSTOMER SCOPE
+    // Online ordering patron scope:
+    // - Public digital menu viewing (Menu read)
+    // - Create and view own orders (Orders create/read)
+    // - View and update own customer profile (Customers read/update)
+    const customerPerms = deduplicatePerms([
+        ...(await getPermNodes(menuMod, readOnly)),
+        ...(await getPermNodes(ordersMod, createRead)),
+        ...(await getPermNodes(customersMod, readUpdate))
+    ]);
 
     // ==========================================
     // 4. CREATE ROLES EXPLICITLY
@@ -204,132 +277,91 @@ export async function seedUsers(prisma: PrismaClient) {
     const ownerRole = await prisma.role.upsert({
         where: { name: 'Owner' },
         update: {
+            description: 'Business Owner with Executive Access (Dashboard, Reports, and System-wide Monitoring)',
             updatedAt: SEED_DATE,
             rolePermissions: {
                 deleteMany: {},
-                create: allSystemPerms
+                create: ownerPerms
             }
         },
         create: {
             name: 'Owner',
-            description: 'Business Owner with Full System Access (Dashboard, Reports)',
+            description: 'Business Owner with Executive Access (Dashboard, Reports, and System-wide Monitoring)',
             isSystem: true,
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            rolePermissions: { create: allSystemPerms }
+            rolePermissions: { create: ownerPerms }
         }
     });
 
     const adminRole = await prisma.role.upsert({
         where: { name: 'Administrator' },
         update: {
+            description: 'Administrator with Management Scope (Menu, Inventory, Users, Store Settings)',
             updatedAt: SEED_DATE,
             rolePermissions: {
                 deleteMany: {},
-                create: allSystemPerms
+                create: adminPerms
             }
         },
         create: {
             name: 'Administrator',
-            description: 'Manager of Menu, Inventory, and Staff Accounts',
+            description: 'Administrator with Management Scope (Menu, Inventory, Users, Store Settings)',
             isSystem: true,
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            rolePermissions: { create: allSystemPerms }
+            rolePermissions: { create: adminPerms }
         }
     });
 
     const cashierRole = await prisma.role.upsert({
         where: { name: 'Cashier' },
         update: {
+            description: 'Handles POS counter checkout, shift sales balancing, and transaction history',
             updatedAt: SEED_DATE,
             rolePermissions: {
                 deleteMany: {},
-                create: [
-                    mpPosCreateStore,
-                    mpPosReadStore,
-                    mpPosUpdateStore,
-                    mpPosDeleteStore,
-                    mpOrdersCreateStore,
-                    mpOrdersReadStore,
-                    mpOrdersUpdateStore,
-                    mpTransactionHistoryReadStore,
-                    mpSalesCreateStore,
-                    mpSalesReadStore,
-                    mpMenuReadStore,
-                    mpProductsReadStore,
-                    mpInventoryReadStore
-                ]
+                create: cashierPerms
             }
         },
         create: {
             name: 'Cashier',
-            description: 'Handles POS, shift balancing, and transaction viewing',
+            description: 'Handles POS counter checkout, shift sales balancing, and transaction history',
             isSystem: true,
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            rolePermissions: {
-                create: [
-                    mpPosCreateStore,
-                    mpPosReadStore,
-                    mpPosUpdateStore,
-                    mpPosDeleteStore,
-                    mpOrdersCreateStore,
-                    mpOrdersReadStore,
-                    mpOrdersUpdateStore,
-                    mpTransactionHistoryReadStore,
-                    mpSalesCreateStore,
-                    mpSalesReadStore,
-                    mpMenuReadStore,
-                    mpProductsReadStore,
-                    mpInventoryReadStore
-                ]
-            }
+            rolePermissions: { create: cashierPerms }
         }
     });
 
     const baristaRole = await prisma.role.upsert({
         where: { name: 'Barista' },
         update: {
+            description: 'Handles Kitchen Display / Order Queue, status updates, and station stock viewing',
             updatedAt: SEED_DATE,
             rolePermissions: {
                 deleteMany: {},
-                create: [
-                    mpOrderQueueReadStore,
-                    mpOrderQueueUpdateStore,
-                    mpOrdersReadStore,
-                    mpMenuReadStore,
-                    mpProductsReadStore,
-                    mpInventoryReadStore
-                ]
+                create: baristaPerms
             }
         },
         create: {
             name: 'Barista',
-            description: 'Handles Kitchen Display / Order Queue and views station stock',
+            description: 'Handles Kitchen Display / Order Queue, status updates, and station stock viewing',
             isSystem: true,
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            rolePermissions: {
-                create: [
-                    mpOrderQueueReadStore,
-                    mpOrderQueueUpdateStore,
-                    mpOrdersReadStore,
-                    mpMenuReadStore,
-                    mpProductsReadStore,
-                    mpInventoryReadStore
-                ]
-            }
+            rolePermissions: { create: baristaPerms }
         }
     });
 
     const customerRole = await prisma.role.upsert({
         where: { name: 'Customer' },
         update: {
+            description: 'Online ordering patron',
             updatedAt: SEED_DATE,
             rolePermissions: {
                 deleteMany: {},
-                create: [mpMenuReadALL, mpOrdersCreateOwn, mpOrdersReadOwn, mpCustomersReadOwn, mpCustomersUpdateOwn]
+                create: customerPerms
             }
         },
         create: {
@@ -338,15 +370,7 @@ export async function seedUsers(prisma: PrismaClient) {
             isSystem: true,
             createdAt: SEED_DATE,
             updatedAt: SEED_DATE,
-            rolePermissions: {
-                create: [
-                    mpMenuReadALL, // Customers can read the global public menu
-                    mpOrdersCreateOwn,
-                    mpOrdersReadOwn,
-                    mpCustomersReadOwn,
-                    mpCustomersUpdateOwn
-                ]
-            }
+            rolePermissions: { create: customerPerms }
         }
     });
 
