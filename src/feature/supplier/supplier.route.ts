@@ -3,12 +3,14 @@ import { registry } from '@/docs/swagger';
 import { SupplierService } from './supplier.service';
 import { requireAccess } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
+import { z } from 'zod';
 import {
     GetSupplierListQuerySchema,
     CreateSupplierSchema,
     UpdateSupplierSchema,
     SupplierResponseSchema,
-    PaginatedSupplierResponseSchema
+    PaginatedSupplierResponseSchema,
+    SupplierIngredientResponseSchema
 } from './supplier.types';
 
 const router = Router();
@@ -69,6 +71,34 @@ router.get('/:id', requireAccess(appModules.SUPPLIERS_MANAGEMENT, appPermissions
         next(error);
     }
 });
+
+// GET /suppliers/:id/ingredients
+registry.registerPath({
+    method: 'get',
+    path: '/suppliers/{id}/ingredients',
+    tags: ['Suppliers'],
+    summary: 'Get ingredients linked to a supplier',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Supplier ingredients retrieved successfully',
+            content: { 'application/json': { schema: z.array(SupplierIngredientResponseSchema) } }
+        }
+    }
+});
+
+router.get(
+    '/:id/ingredients',
+    requireAccess(appModules.SUPPLIERS_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await service.getSupplierIngredients(req.params.id as string);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 // POST /suppliers
 registry.registerPath({

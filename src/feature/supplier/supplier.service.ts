@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma';
 import { SupplierRepository } from './supplier.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, ConflictException } from '@/exceptions';
@@ -12,6 +13,35 @@ export class SupplierService {
         this.activityLogService = new ActivityLogService();
     }
 
+    private async normalizeAndValidateIngredients(
+        ingredients?: { ingredientId: string; unitCost?: number }[],
+        ingredientIds?: string[]
+    ): Promise<{ ingredientId: string; unitCost?: number }[] | undefined> {
+        let items: { ingredientId: string; unitCost?: number }[] | undefined;
+
+        if (ingredients !== undefined) {
+            items = ingredients;
+        } else if (ingredientIds !== undefined) {
+            items = ingredientIds.map((id) => ({ ingredientId: id, unitCost: 0 }));
+        }
+
+        if (items !== undefined && items.length > 0) {
+            const uniqueIds = Array.from(new Set(items.map((i) => i.ingredientId)));
+            const existingIngredients = await prisma.ingredient.findMany({
+                where: {
+                    id: { in: uniqueIds },
+                    deletedAt: null
+                }
+            });
+
+            if (existingIngredients.length !== uniqueIds.length) {
+                throw new NotFoundException('One or more selected ingredients do not exist or have been deleted');
+            }
+        }
+
+        return items;
+    }
+
     async getSupplierList(params: TGetSupplierListQuery) {
         return this.repository.getSupplierList(params);
     }
@@ -24,18 +54,25 @@ export class SupplierService {
         return supplier;
     }
 
+    async getSupplierIngredients(id: string) {
+        await this.getSupplierById(id);
+        return this.repository.getSupplierIngredients(id);
+    }
+
     async createSupplier(data: TCreateSupplier, actorId: string) {
         const existing = await this.repository.findSupplierByName(data.name);
         if (existing) {
             throw new ConflictException(`Supplier with name "${data.name}" already exists`);
         }
 
-        const supplier = await this.repository.createSupplier(data, actorId);
+        const items = await this.normalizeAndValidateIngredients(data.ingredients, data.ingredientIds);
+
+        const supplier = await this.repository.createSupplier(data, actorId, items);
 
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Supplier',
-            details: `Successfully created supplier: ${supplier.name}.`
+            details: `Successfully created supplier: ${supplier.name}${items?.length ? ` with ${items.length} linked ingredients` : ''}.`
         });
 
         return supplier;
@@ -51,7 +88,12 @@ export class SupplierService {
             }
         }
 
-        const updated = await this.repository.updateSupplier(id, data, actorId);
+        let items: { ingredientId: string; unitCost?: number }[] | undefined;
+        if (data.ingredients !== undefined || data.ingredientIds !== undefined) {
+            items = await this.normalizeAndValidateIngredients(data.ingredients, data.ingredientIds);
+        }
+
+        const updated = await this.repository.updateSupplier(id, data, actorId, items);
 
         await this.activityLogService.logActivity({
             actorId,
