@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `product` ADD COLUMN `defaultShelfLife` INTEGER NULL,
+ALTER TABLE `Product` ADD COLUMN `defaultShelfLife` INTEGER NULL,
     ADD COLUMN `preparationType` ENUM('MADE_TO_ORDER', 'PREPARED_DISPLAY') NOT NULL DEFAULT 'MADE_TO_ORDER';
 
 -- CreateTable

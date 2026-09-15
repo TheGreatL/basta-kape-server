@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `productcategory` ADD COLUMN `productTypeId` VARCHAR(191) NULL;
+ALTER TABLE `ProductCategory` ADD COLUMN `productTypeId` VARCHAR(191) NULL;
 
 -- CreateIndex
 CREATE INDEX `ProductCategory_productTypeId_idx` ON `ProductCategory`(`productTypeId`);

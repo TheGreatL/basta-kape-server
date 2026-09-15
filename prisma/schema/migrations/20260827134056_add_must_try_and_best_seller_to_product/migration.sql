@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `product` ADD COLUMN `isBestSeller` BOOLEAN NOT NULL DEFAULT false,
+ALTER TABLE `Product` ADD COLUMN `isBestSeller` BOOLEAN NOT NULL DEFAULT false,
     ADD COLUMN `isMustTry` BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateIndex
