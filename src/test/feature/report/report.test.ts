@@ -312,11 +312,138 @@ describe('Report Feature', () => {
         expect(firstRow).toHaveProperty('paymentStatus', 'PAID');
     });
 
-    it('should retrieve sales analytics summary', async () => {
+    it('should retrieve sales analytics summary with financial metrics', async () => {
         const res = await request(app).get('/reports/sales-analytics');
 
         expect(res.status).toBe(200);
         expect(res.body).toHaveProperty('summary');
+        expect(res.body).toHaveProperty('financials');
+        expect(res.body).toHaveProperty('lossBreakdown');
+        expect(res.body).toHaveProperty('expenseBreakdown');
+        expect(res.body).toHaveProperty('dailyTrend');
         expect(res.body).toHaveProperty('paymentBreakdown');
+
+        const summary = res.body.summary;
+        expect(summary).toHaveProperty('grossSales');
+        expect(summary).toHaveProperty('netSales');
+        expect(summary).toHaveProperty('totalExpenses');
+        expect(summary).toHaveProperty('totalLoss');
+        expect(summary).toHaveProperty('grossProfit');
+        expect(summary).toHaveProperty('netProfit');
+        expect(summary).toHaveProperty('profitMargin');
+    });
+
+    it('should retrieve structured P&L financials when type=financials', async () => {
+        const res = await request(app).get('/reports/sales-analytics?type=financials');
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('financials');
+        expect(res.body.financials).toHaveProperty('revenue');
+        expect(res.body.financials).toHaveProperty('expenses');
+        expect(res.body.financials).toHaveProperty('losses');
+        expect(res.body.financials).toHaveProperty('profitability');
+    });
+
+    it('should retrieve daily trend with sales, expenses, losses, and net profit', async () => {
+        const res = await request(app).get('/reports/sales-analytics?type=daily-trend');
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('dailyTrend');
+        expect(Array.isArray(res.body.dailyTrend)).toBe(true);
+        if (res.body.dailyTrend.length > 0) {
+            const day = res.body.dailyTrend[0];
+            expect(day).toHaveProperty('date');
+            expect(day).toHaveProperty('sales');
+            expect(day).toHaveProperty('expenses');
+            expect(day).toHaveProperty('losses');
+            expect(day).toHaveProperty('netProfit');
+        }
+    });
+
+    it('should retrieve loss breakdown with waste and expiration costs', async () => {
+        const res = await request(app).get('/reports/sales-analytics?type=losses');
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('lossBreakdown');
+        expect(res.body.lossBreakdown).toHaveProperty('totalFinancialLoss');
+        expect(res.body.lossBreakdown).toHaveProperty('preparedFoodLoss');
+        expect(res.body.lossBreakdown).toHaveProperty('rawIngredientLoss');
+        expect(res.body.lossBreakdown).toHaveProperty('reasonBreakdown');
+        expect(res.body.lossBreakdown).toHaveProperty('topWastedItems');
+    });
+
+    it('should retrieve expense breakdown with delivery costs, cogs, and stock transactions', async () => {
+        const res = await request(app).get('/reports/sales-analytics?type=expenses');
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('expenseBreakdown');
+        expect(res.body.expenseBreakdown).toHaveProperty('totalExpenses');
+        expect(res.body.expenseBreakdown).toHaveProperty('deliveryCount');
+        expect(res.body.expenseBreakdown).toHaveProperty('cogs');
+        expect(res.body.expenseBreakdown).toHaveProperty('topSuppliers');
+        expect(res.body.expenseBreakdown).toHaveProperty('topIngredients');
+        expect(res.body.expenseBreakdown).toHaveProperty('stockTransactionsSummary');
+    });
+
+    it('should retrieve stock transactions costing summary when type=stock-transactions', async () => {
+        const res = await request(app).get('/reports/sales-analytics?type=stock-transactions');
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('stockTransactionsSummary');
+        const summary = res.body.stockTransactionsSummary;
+        expect(summary).toHaveProperty('totalStockTransactionsCount');
+        expect(summary).toHaveProperty('totalCogs');
+        expect(summary).toHaveProperty('totalProcurement');
+        expect(summary).toHaveProperty('totalWastage');
+        expect(summary).toHaveProperty('totalCorrections');
+        expect(summary).toHaveProperty('transactionsByType');
+        expect(summary.transactionsByType).toHaveProperty('DELIVERY');
+        expect(summary.transactionsByType).toHaveProperty('SALE');
+        expect(summary.transactionsByType).toHaveProperty('WASTE');
+        expect(summary).toHaveProperty('topConsumedIngredients');
+    });
+
+    it('should preview financials report module', async () => {
+        const res = await request(app)
+            .post('/reports/preview')
+            .send({
+                module: 'financials',
+                filters: { status: 'active' },
+                page: 1,
+                limit: 10
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.module).toBe('financials');
+        expect(res.body).toHaveProperty('columns');
+        expect(res.body).toHaveProperty('rows');
+        expect(res.body.columns.some((c: { key: string }) => c.key === 'grossProfit')).toBe(true);
+        expect(res.body.columns.some((c: { key: string }) => c.key === 'netProfit')).toBe(true);
+    });
+
+    it('should export financials report as excel', async () => {
+        const res = await request(app)
+            .post('/reports/export')
+            .send({
+                module: 'financials',
+                filters: { status: 'active' },
+                format: 'excel'
+            })
+            .responseType('blob')
+            .buffer(true)
+            .parse((response, callback) => {
+                const chunks: Buffer[] = [];
+                response.on('data', (chunk: Buffer) => chunks.push(chunk));
+                response.on('end', () => callback(null, Buffer.concat(chunks)));
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.headers['content-type']).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        expect(Buffer.isBuffer(res.body)).toBe(true);
+
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(res.body as unknown as ExcelJS.Buffer);
+        const sheet = workbook.getWorksheet('Report');
+        expect(sheet).toBeDefined();
     });
 });

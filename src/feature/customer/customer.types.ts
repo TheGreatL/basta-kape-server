@@ -108,7 +108,8 @@ export type TUpdateCartItem = z.infer<typeof UpdateCartItemSchema>;
 // Product and attribute association models schemas
 export const ProductCategoryInfoSchema = z.object({
     id: z.string(),
-    name: z.string()
+    name: z.string(),
+    productTypeId: z.string().nullable().optional()
 });
 
 export const ProductTypeInfoSchema = z.object({
@@ -121,6 +122,8 @@ export const ProductInfoSchema = z.object({
     name: z.string(),
     photo: z.string().nullable(),
     description: z.string().nullable(),
+    isMustTry: z.boolean().optional(),
+    isBestSeller: z.boolean().optional(),
     category: ProductCategoryInfoSchema.nullable().optional(),
     type: ProductTypeInfoSchema.nullable().optional()
 });

@@ -6,22 +6,46 @@ export const GetMenuQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).default(10).optional(),
     search: z.string().optional(),
     productCategoryId: z.string().uuid().optional(),
-    productTypeId: z.string().uuid().optional()
+    productTypeId: z.string().uuid().optional(),
+    isMustTry: z.coerce.boolean().optional(),
+    isBestSeller: z.coerce.boolean().optional()
 });
 
 export type TGetMenuQuery = z.infer<typeof GetMenuQuerySchema>;
 
 // Response Schemas for Menu API
+export const GetMenuCategoryQuerySchema = z.object({
+    productTypeId: z.string().uuid().optional()
+});
+export type TGetMenuCategoryQuery = z.infer<typeof GetMenuCategoryQuerySchema>;
+
 export const MenuCategoryResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
-    description: z.string().nullable()
+    description: z.string().nullable(),
+    productTypeId: z.string().nullable().optional(),
+    type: z
+        .object({
+            id: z.string(),
+            name: z.string()
+        })
+        .nullable()
+        .optional()
 });
 
 export const MenuTypeResponseSchema = z.object({
     id: z.string(),
     name: z.string(),
-    description: z.string().nullable()
+    description: z.string().nullable(),
+    categories: z
+        .array(
+            z.object({
+                id: z.string(),
+                name: z.string(),
+                description: z.string().nullable().optional()
+            })
+        )
+        .optional()
 });
 
 export const MenuRecipeIngredientResponseSchema = z.object({
@@ -75,6 +99,10 @@ export const MenuProductResponseSchema = z.object({
     name: z.string(),
     photo: z.string().nullable(),
     description: z.string().nullable(),
+    isMustTry: z.boolean().default(false),
+    isBestSeller: z.boolean().default(false),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).default('MADE_TO_ORDER'),
+    defaultShelfLife: z.number().nullable().optional(),
     productCategoryId: z.string().nullable(),
     productTypeId: z.string().nullable(),
     category: MenuCategoryResponseSchema.nullable(),

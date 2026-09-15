@@ -27,7 +27,8 @@ import { discountConfigRouter, orderDiscountRouter } from './feature/discount/di
 import { voidRouter } from './feature/void/void.route';
 import purchaseOrderRouter from './feature/purchase-order/purchase-order.route';
 import dashboardRouter from './feature/dashboard/dashboard.route';
-
+import foodPrepRouter from './feature/food-prep/food-prep.route';
+import disposalRouter from './feature/disposal/disposal.route';
 const router = Router();
 
 registry.registerPath({
@@ -109,6 +110,8 @@ router.use('/discounts', discountConfigRouter);
 router.use('/modifiers', modifierRouter);
 router.use('/purchase-orders', purchaseOrderRouter);
 router.use('/dashboard', dashboardRouter);
+router.use('/food-prep', foodPrepRouter);
+router.use('/disposals', disposalRouter);
 
 registry.registerPath({
     method: 'get',

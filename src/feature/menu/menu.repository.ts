@@ -19,6 +19,14 @@ export class MenuRepository extends BaseRepository {
             where.productTypeId = params.productTypeId;
         }
 
+        if (params.isMustTry !== undefined) {
+            where.isMustTry = params.isMustTry;
+        }
+
+        if (params.isBestSeller !== undefined) {
+            where.isBestSeller = params.isBestSeller;
+        }
+
         if (params.search) {
             where.OR = [{ name: { contains: params.search } }, { description: { contains: params.search } }];
         }
@@ -66,6 +74,14 @@ export class MenuRepository extends BaseRepository {
                                         }
                                     }
                                 }
+                            },
+                            preparedBatches: {
+                                where: {
+                                    deletedAt: null,
+                                    currentQuantity: { gt: 0 },
+                                    expiresAt: { gt: new Date() }
+                                },
+                                select: { currentQuantity: true }
                             }
                         }
                     }
@@ -117,6 +133,14 @@ export class MenuRepository extends BaseRepository {
                                     }
                                 }
                             }
+                        },
+                        preparedBatches: {
+                            where: {
+                                deletedAt: null,
+                                currentQuantity: { gt: 0 },
+                                expiresAt: { gt: new Date() }
+                            },
+                            select: { currentQuantity: true }
                         }
                     }
                 }
@@ -124,11 +148,20 @@ export class MenuRepository extends BaseRepository {
         });
     }
 
-    async getCategoryList() {
+    async getCategoryList(productTypeId?: string) {
+        const where: Prisma.ProductCategoryWhereInput = {
+            deletedAt: null
+        };
+        if (productTypeId) {
+            where.productTypeId = productTypeId;
+        }
+
         return prisma.productCategory.findMany({
-            where: { deletedAt: null },
+            where,
             orderBy: { name: 'asc' },
-            select: { id: true, name: true, description: true }
+            include: {
+                type: { select: { id: true, name: true } }
+            }
         });
     }
 
@@ -136,7 +169,12 @@ export class MenuRepository extends BaseRepository {
         return prisma.productType.findMany({
             where: { deletedAt: null },
             orderBy: { name: 'asc' },
-            select: { id: true, name: true, description: true }
+            include: {
+                categories: {
+                    where: { deletedAt: null },
+                    select: { id: true, name: true, description: true }
+                }
+            }
         });
     }
 }

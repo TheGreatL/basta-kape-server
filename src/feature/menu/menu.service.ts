@@ -28,6 +28,7 @@ interface IRepositoryProductVariant {
     sku: string | null;
     price: number;
     attributes: unknown[];
+    preparedBatches?: { currentQuantity: number }[];
     recipe: {
         id: string;
         name: string;
@@ -41,6 +42,8 @@ interface IRepositoryProduct {
     name: string;
     photo: string | null;
     description: string | null;
+    preparationType?: 'MADE_TO_ORDER' | 'PREPARED_DISPLAY';
+    defaultShelfLife?: number | null;
     productCategoryId: string | null;
     productTypeId: string | null;
     category: { id: string; name: string; description: string | null } | null;
@@ -48,7 +51,12 @@ interface IRepositoryProduct {
     variants: IRepositoryProductVariant[];
 }
 
-function calculateMaxProduceable(variant: IRepositoryProductVariant): number | null {
+function calculateMaxProduceable(variant: IRepositoryProductVariant, product: IRepositoryProduct): number | null {
+    // If product is prepared for display in advance, max produceable is the sum of fresh display units on hand
+    if (product.preparationType === 'PREPARED_DISPLAY') {
+        return (variant.preparedBatches || []).reduce((sum, b) => sum + b.currentQuantity, 0);
+    }
+
     if (!variant.recipe || !variant.recipe.ingredients || variant.recipe.ingredients.length === 0) {
         return null;
     }
@@ -78,7 +86,7 @@ function formatMenuProduct(product: IRepositoryProduct) {
         ...product,
         variants: (product.variants || []).map((variant) => ({
             ...variant,
-            maxProduceable: calculateMaxProduceable(variant)
+            maxProduceable: calculateMaxProduceable(variant, product)
         }))
     };
 }
@@ -104,8 +112,8 @@ export class MenuService {
         return formatMenuProduct(product as unknown as IRepositoryProduct);
     }
 
-    async getCategoryList() {
-        return this.repository.getCategoryList();
+    async getCategoryList(productTypeId?: string) {
+        return this.repository.getCategoryList(productTypeId);
     }
 
     async getTypeList() {

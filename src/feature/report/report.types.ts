@@ -14,7 +14,8 @@ export const ReportModuleSchema = z.enum([
     'suppliers',
     'activity-logs',
     'orders',
-    'sales'
+    'sales',
+    'financials'
 ]);
 
 export type TReportModule = z.infer<typeof ReportModuleSchema>;
@@ -193,6 +194,19 @@ export const SALES_TRANSACTION_COLUMNS: TReportColumn[] = [
     { key: 'subtotal', header: 'Subtotal', width: 14, align: 'right' },
     { key: 'discountAmount', header: 'Discount', width: 14, align: 'right' },
     { key: 'netTotal', header: 'Net Total', width: 14, align: 'right' }
+];
+
+export const FINANCIALS_COLUMNS: TReportColumn[] = [
+    { key: 'date', header: 'Date', width: 15 },
+    { key: 'orderCount', header: 'Orders', width: 10, align: 'right' },
+    { key: 'grossSales', header: 'Gross Sales', width: 15, align: 'right' },
+    { key: 'discountAmount', header: 'Discounts', width: 14, align: 'right' },
+    { key: 'netSales', header: 'Net Sales', width: 15, align: 'right' },
+    { key: 'expenses', header: 'Procurement Expenses', width: 20, align: 'right' },
+    { key: 'losses', header: 'Loss & Waste', width: 15, align: 'right' },
+    { key: 'grossProfit', header: 'Gross Profit', width: 15, align: 'right' },
+    { key: 'netProfit', header: 'Net Profit', width: 15, align: 'right' },
+    { key: 'profitMargin', header: 'Margin %', width: 12, align: 'right' }
 ];
 
 export const REPORT_MODULE_CATALOG: TReportModuleDefinition[] = [
@@ -395,8 +409,120 @@ export const REPORT_MODULE_CATALOG: TReportModuleDefinition[] = [
             ...commonDateFilters
         ],
         columns: SALES_DAILY_COLUMNS
+    },
+    {
+        id: 'financials',
+        label: 'Sales & Financials (P&L)',
+        description: 'Comprehensive financial statement including revenue, procurement expenses, waste/expiration losses, and net profit margins.',
+        sourceModule: appModules.SALES_MANAGEMENT,
+        filters: [{ key: 'search', label: 'Search', type: 'text' }, commonStatusFilter, ...commonDateFilters],
+        columns: FINANCIALS_COLUMNS
     }
 ];
 
 export const REPORT_MAX_EXPORT_ROWS = 5000;
 export const REPORT_BRAND_NAME = 'Basta Kape';
+
+export type TFinancialSummary = {
+    grossSales: number;
+    discountTotal: number;
+    netSales: number;
+    orderCount: number;
+    averageOrderValue: number;
+    totalExpenses: number;
+    deliveryCount: number;
+    cogs: number;
+    stockTransactionsCount: number;
+    totalLoss: number;
+    rawIngredientLoss: number;
+    preparedFoodLoss: number;
+    totalWastedItemsCount: number;
+    lossRate: number;
+    grossProfit: number;
+    netProfit: number;
+    profitMargin: number;
+};
+
+export type TPnLOverview = {
+    revenue: {
+        grossSales: number;
+        discounts: number;
+        netSales: number;
+    };
+    expenses: {
+        procurementDeliveries: number;
+        cogs: number;
+        totalExpenses: number;
+    };
+    losses: {
+        rawIngredientWaste: number;
+        preparedFoodExpirations: number;
+        totalLoss: number;
+        lossBreakdownByReason: Record<string, number>;
+    };
+    profitability: {
+        grossProfit: number;
+        netProfit: number;
+        grossProfitMargin: number;
+        netProfitMargin: number;
+    };
+};
+
+export type TDailyFinancialTrend = {
+    date: string;
+    sales: number;
+    count: number;
+    expenses: number;
+    losses: number;
+    netProfit: number;
+};
+
+export type TTopWastedItem = {
+    itemName: string;
+    category: 'PREPARED_FOOD' | 'RAW_INGREDIENT';
+    totalQuantity: number;
+    unit: string;
+    totalCostLoss: number;
+};
+
+export type TLossBreakdown = {
+    totalFinancialLoss: number;
+    preparedFoodLoss: number;
+    rawIngredientLoss: number;
+    preparedFoodWastedCount: number;
+    rawIngredientWastedCount: number;
+    totalWastedItemsCount: number;
+    reasonBreakdown: Record<string, number>;
+    topWastedItems: TTopWastedItem[];
+};
+
+export type TStockTransactionCostSummary = {
+    totalStockTransactionsCount: number;
+    totalCogs: number;
+    totalProcurement: number;
+    totalWastage: number;
+    totalCorrections: number;
+    transactionsByType: Record<
+        string,
+        {
+            count: number;
+            totalQuantity: number;
+            totalCost: number;
+        }
+    >;
+    topConsumedIngredients: {
+        ingredientName: string;
+        totalQuantity: number;
+        unit: string;
+        totalCost: number;
+    }[];
+};
+
+export type TExpenseBreakdown = {
+    totalExpenses: number;
+    deliveryCount: number;
+    cogs: number;
+    topSuppliers: { supplierName: string; totalCost: number; batchCount: number }[];
+    topIngredients: { ingredientName: string; totalCost: number; totalQuantity: number; unit: string }[];
+    stockTransactionsSummary: TStockTransactionCostSummary;
+};

@@ -1,5 +1,6 @@
 import { OrderPayment, PaymentMethod, PaymentStatus, Prisma, StoreSetting } from '@prisma/client';
 import PDFDocument from 'pdfkit';
+import { format } from 'date-fns';
 import { getOrderReference } from './order.utils';
 
 /**
@@ -76,10 +77,8 @@ export function generateTextReceipt(
 
     // Meta details
     const refNo = getOrderReference(order.createdAt, order.queueNumber);
-    lines.push(leftRight(`Ref No: ${refNo}`, new Date(order.createdAt).toLocaleDateString()));
-    lines.push(
-        leftRight(`Queue No: ${order.queueNumber || 'N/A'}`, new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-    );
+    lines.push(leftRight(`Ref No: ${refNo}`, format(new Date(order.createdAt), 'MM/dd/yyyy')));
+    lines.push(leftRight(`Queue No: ${order.queueNumber || 'N/A'}`, format(new Date(order.createdAt), 'hh:mm a')));
     lines.push(leftRight(`Receipt ID: ${order.id.slice(0, 8).toUpperCase()}`, `Type: ${order.orderType}`));
     lines.push(leftRight(`Src: ${order.orderSource}`, ''));
 
@@ -181,17 +180,8 @@ export function generateHtmlReceipt(
 ): string {
     const cashierName = 'System';
 
-    const dateStr = new Date(order.createdAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-
-    const timeStr = new Date(order.createdAt).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
+    const dateStr = format(new Date(order.createdAt), 'MM/dd/yyyy');
+    const timeStr = format(new Date(order.createdAt), 'hh:mm a');
 
     const itemsHtml = order.items
         .map(
@@ -672,8 +662,8 @@ export async function generatePdfReceipt(
         y += 8;
 
         // Metadata
-        const dateStr = new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-        const timeStr = new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dateStr = format(new Date(order.createdAt), 'MM/dd/yyyy');
+        const timeStr = format(new Date(order.createdAt), 'hh:mm a');
 
         doc.font('Helvetica').fontSize(8).fillColor('#1f2937');
         doc.text('Receipt ID:', 15, y);

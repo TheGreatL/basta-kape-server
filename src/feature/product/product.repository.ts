@@ -22,6 +22,10 @@ export class ProductRepository extends BaseRepository {
                 name: data.name,
                 photo: data.photo || null,
                 description: data.description || null,
+                isMustTry: data.isMustTry ?? false,
+                isBestSeller: data.isBestSeller ?? false,
+                preparationType: data.preparationType ?? 'MADE_TO_ORDER',
+                defaultShelfLife: data.defaultShelfLife ?? null,
                 productCategoryId: data.productCategoryId || null,
                 productTypeId: data.productTypeId || null,
                 createdById: actorId,
@@ -198,6 +202,18 @@ export class ProductRepository extends BaseRepository {
             where.productTypeId = params.productTypeId;
         }
 
+        if (params.isMustTry !== undefined) {
+            where.isMustTry = params.isMustTry;
+        }
+
+        if (params.isBestSeller !== undefined) {
+            where.isBestSeller = params.isBestSeller;
+        }
+
+        if (params.preparationType) {
+            where.preparationType = params.preparationType;
+        }
+
         if (params.search) {
             where.OR = [{ name: { contains: params.search } }, { description: { contains: params.search } }];
         }
@@ -210,7 +226,7 @@ export class ProductRepository extends BaseRepository {
                 orderBy: { name: 'asc' },
                 include: {
                     category: {
-                        select: { id: true, name: true }
+                        select: { id: true, name: true, productTypeId: true }
                     },
                     type: {
                         select: { id: true, name: true }

@@ -102,6 +102,9 @@ model User {
   updatedRecipeIngredients        RecipeIngredient[]        @relation("RecipeIngredientUpdatedBy")
   createdInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentCreatedBy")
   updatedInventoryAdjustments     InventoryAdjustment[]     @relation("InventoryAdjustmentUpdatedBy")
+  createdPreparedBatches          PreparedItemBatch[]       @relation("PreparedBatchCreatedBy")
+  updatedPreparedBatches          PreparedItemBatch[]       @relation("PreparedBatchUpdatedBy")
+  createdPreparedItemTransactions PreparedItemTransaction[] @relation("PreparedItemTransactionCreatedBy")
 
   statusChanges         OrderStatusHistory[]
   voidedOrders          OrderVoidLog[]

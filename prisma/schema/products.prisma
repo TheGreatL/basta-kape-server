@@ -1,8 +1,10 @@
 model ProductCategory {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  products    Product[]
+  id            String       @id @default(uuid())
+  name          String
+  description   String?
+  productTypeId String?
+  type          ProductType? @relation(fields: [productTypeId], references: [id])
+  products      Product[]
 
   createdById String?
   createdBy   User?     @relation("ProductCategoryCreatedBy", fields: [createdById], references: [id])
@@ -13,12 +15,14 @@ model ProductCategory {
   deletedAt   DateTime?
 
   @@index([deletedAt])
+  @@index([productTypeId])
 }
 
 model ProductType {
-  id          String    @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String
   description String?
+  categories  ProductCategory[]
   products    Product[]
 
   createdById String?
@@ -33,15 +37,20 @@ model ProductType {
 }
 
 model Product {
-  id                String           @id @default(uuid())
+  id                String              @id @default(uuid())
   name              String
   photo             String?
   description       String?
+  isMustTry         Boolean             @default(false)
+  isBestSeller      Boolean             @default(false)
+  preparationType   PreparationType     @default(MADE_TO_ORDER)
+  defaultShelfLife  Int? // Default shelf life in minutes (e.g. 1440 = 24h)
   productCategoryId String?
-  category          ProductCategory? @relation(fields: [productCategoryId], references: [id])
+  category          ProductCategory?    @relation(fields: [productCategoryId], references: [id])
   productTypeId     String?
-  type              ProductType?     @relation(fields: [productTypeId], references: [id])
+  type              ProductType?        @relation(fields: [productTypeId], references: [id])
   variants          ProductVariant[]
+  preparedBatches   PreparedItemBatch[]
 
   createdById    String?
   createdBy      User?           @relation("ProductCreatedBy", fields: [createdById], references: [id])
@@ -55,6 +64,9 @@ model Product {
   @@index([deletedAt])
   @@index([productCategoryId])
   @@index([productTypeId])
+  @@index([isMustTry])
+  @@index([isBestSeller])
+  @@index([preparationType])
 }
 
 model ProductAttribute {
@@ -94,14 +106,15 @@ model ProductAttributeValue {
 }
 
 model ProductVariant {
-  id         String                    @id @default(uuid())
-  productId  String
-  product    Product                   @relation(fields: [productId], references: [id])
-  sku        String?                   @unique
-  price      Float                     @default(0)
-  attributes ProductVariantAttribute[]
-  recipe     Recipe?
-  cartItems  CustomerCart[]
+  id              String                    @id @default(uuid())
+  productId       String
+  product         Product                   @relation(fields: [productId], references: [id])
+  sku             String?                   @unique
+  price           Float                     @default(0)
+  attributes      ProductVariantAttribute[]
+  recipe          Recipe?
+  cartItems       CustomerCart[]
+  preparedBatches PreparedItemBatch[]
 
   createdById String?
   createdBy   User?       @relation("ProductVariantCreatedBy", fields: [createdById], references: [id])
@@ -192,7 +205,7 @@ model Ingredient {
 }
 
 model Supplier {
-  id             String               @id @default(uuid())
+  id             String            @id @default(uuid())
   name           String
   address        String?
   notes          String?
@@ -423,4 +436,78 @@ model PurchaseOrderItem {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+}
+
+enum PreparationType {
+  MADE_TO_ORDER
+  PREPARED_DISPLAY
+}
+
+enum PreparedBatchStatus {
+  FRESH
+  NEAR_EXPIRY
+  EXPIRED
+  DEPLETED
+  DISPOSED
+}
+
+enum PreparedAdjustmentType {
+  SALE
+  EXPIRED
+  SPOILED
+  WASTE
+  SAMPLING
+  DISPOSED
+  CORRECTION
+}
+
+model PreparedItemBatch {
+  id               String              @id @default(uuid())
+  productVariantId String
+  productVariant   ProductVariant      @relation(fields: [productVariantId], references: [id])
+  productId        String
+  product          Product             @relation(fields: [productId], references: [id])
+  batchNumber      String              @unique
+  quantityPrepared Float               @default(0)
+  currentQuantity  Float               @default(0)
+  preparedAt       DateTime            @default(now())
+  shelfLifeMinutes Int                 @default(1440)
+  expiresAt        DateTime
+  status           PreparedBatchStatus @default(FRESH)
+  notes            String?
+
+  transactions PreparedItemTransaction[]
+
+  createdById String?
+  createdBy   User?     @relation("PreparedBatchCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("PreparedBatchUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([productVariantId])
+  @@index([productId])
+  @@index([expiresAt])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model PreparedItemTransaction {
+  id             String                 @id @default(uuid())
+  batchId        String
+  batch          PreparedItemBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  quantityChange Float
+  type           PreparedAdjustmentType
+  reason         String?
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  createdById String?
+  createdBy   User?    @relation("PreparedItemTransactionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([batchId])
+  @@index([orderId])
 }

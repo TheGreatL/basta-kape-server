@@ -45,6 +45,10 @@ export class ProductService {
             if (!category) {
                 throw new NotFoundException(`Product category with ID "${data.productCategoryId}" not found`);
             }
+            // Auto-infer productTypeId if omitted
+            if (!data.productTypeId && category.productTypeId) {
+                data.productTypeId = category.productTypeId;
+            }
         }
 
         // 2. Validate type if provided
@@ -80,6 +84,10 @@ export class ProductService {
             const category = await this.settingsRepository.findCategoryById(data.productCategoryId);
             if (!category) {
                 throw new NotFoundException(`Product category with ID "${data.productCategoryId}" not found`);
+            }
+            // Auto-infer productTypeId if omitted
+            if (!data.productTypeId && category.productTypeId) {
+                data.productTypeId = category.productTypeId;
             }
         }
 

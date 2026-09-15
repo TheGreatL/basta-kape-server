@@ -5,6 +5,7 @@ import type { TGetOrderListQuery } from './order.types';
 import type { IPaginatedResult } from '@/types/base.types';
 import { formatOrderWithReference, formatOrdersWithReference } from './order.utils';
 import { InventoryRepository } from '@/feature/inventory/inventory.repository';
+import { FoodPrepRepository } from '@/feature/food-prep/food-prep.repository';
 import { BadRequestException } from '@/exceptions';
 
 type TCreateOrderRepoData = {
@@ -78,15 +79,26 @@ export class OrderRepository extends BaseRepository {
     async createOrder(data: TCreateOrderRepoData) {
         const createdOrder = await prisma.$transaction(async (tx) => {
             const inventoryRepo = new InventoryRepository();
+            const foodPrepRepo = new FoodPrepRepository();
 
-            // 1. Calculate required ingredient stock for order items
-            const ingredientRequirements = await this.calculateIngredientRequirements(tx, data.items);
+            // 1. Calculate stock requirements (prepared items vs raw ingredients)
+            const { ingredientRequirements, preparedItemRequirements } = await this.calculateOrderRequirements(tx, data.items);
 
             // 2. Check stock sufficiency before creating the order
+            if (preparedItemRequirements.size > 0) {
+                const checkPrepared = await foodPrepRepo.checkPreparedStockAvailability(tx, preparedItemRequirements);
+                if (!checkPrepared.sufficient) {
+                    const details = checkPrepared.insufficientItems
+                        .map((i) => `Variant ID "${i.variantId}" (Required: ${i.required}, Available: ${i.available})`)
+                        .join(', ');
+                    throw new BadRequestException(`Insufficient fresh display stock for food item(s): ${details}`);
+                }
+            }
+
             if (ingredientRequirements.size > 0) {
-                const check = await inventoryRepo.checkIngredientStockAvailability(tx, ingredientRequirements);
-                if (!check.sufficient) {
-                    const details = check.insufficientIngredients
+                const checkIngredients = await inventoryRepo.checkIngredientStockAvailability(tx, ingredientRequirements);
+                if (!checkIngredients.sufficient) {
+                    const details = checkIngredients.insufficientIngredients
                         .map((i) => `${i.ingredientName} (Required: ${i.required}${i.unit}, Available: ${i.available}${i.unit})`)
                         .join(', ');
                     throw new BadRequestException(`Insufficient stock to complete order: ${details}`);
@@ -154,7 +166,12 @@ export class OrderRepository extends BaseRepository {
                 });
             }
 
-            // 4. Deduct ingredient stock immediately upon order creation (holding stock)
+            // 4. Deduct prepared display stock for PREPARED_DISPLAY items
+            for (const [variantId, qty] of preparedItemRequirements.entries()) {
+                await foodPrepRepo.deductPreparedStockFEFO(tx, variantId, qty, order.id, data.queueNumber, data.actorId);
+            }
+
+            // 5. Deduct raw ingredient stock for MADE_TO_ORDER items & modifiers
             for (const [ingredientId, quantity] of ingredientRequirements.entries()) {
                 await inventoryRepo.deductIngredientStockFEFO(
                     tx,
@@ -338,6 +355,7 @@ export class OrderRepository extends BaseRepository {
             });
 
             const inventoryRepo = new InventoryRepository();
+            const foodPrepRepo = new FoodPrepRepository();
 
             // Handle Order Cancellation: Restore Stock
             if (currentOrder.status !== OrderStatus.CANCELLED && status === OrderStatus.CANCELLED) {
@@ -346,7 +364,22 @@ export class OrderRepository extends BaseRepository {
 
             // Handle Re-opening a Cancelled Order: Re-check & Deduct Stock
             if (currentOrder.status === OrderStatus.CANCELLED && status !== OrderStatus.CANCELLED) {
-                const ingredientRequirements = await this.calculateIngredientRequirements(tx, order.items);
+                const { ingredientRequirements, preparedItemRequirements } = await this.calculateOrderRequirements(tx, order.items);
+
+                if (preparedItemRequirements.size > 0) {
+                    const checkPrepared = await foodPrepRepo.checkPreparedStockAvailability(tx, preparedItemRequirements);
+                    if (!checkPrepared.sufficient) {
+                        const details = checkPrepared.insufficientItems
+                            .map((i) => `Variant ID "${i.variantId}" (Required: ${i.required}, Available: ${i.available})`)
+                            .join(', ');
+                        throw new BadRequestException(`Cannot re-open order due to insufficient fresh display stock: ${details}`);
+                    }
+
+                    for (const [variantId, qty] of preparedItemRequirements.entries()) {
+                        await foodPrepRepo.deductPreparedStockFEFO(tx, variantId, qty, order.id, order.queueNumber, actorId);
+                    }
+                }
+
                 if (ingredientRequirements.size > 0) {
                     const check = await inventoryRepo.checkIngredientStockAvailability(tx, ingredientRequirements);
                     if (!check.sufficient) {
@@ -373,18 +406,25 @@ export class OrderRepository extends BaseRepository {
         });
     }
 
-    private async calculateIngredientRequirements(
+    private async calculateOrderRequirements(
         tx: Prisma.TransactionClient,
         items: {
             productVariantId: string;
             quantity: number;
             modifiers?: { modifierOptionId: string }[];
         }[]
-    ): Promise<Map<string, number>> {
+    ): Promise<{
+        ingredientRequirements: Map<string, number>;
+        preparedItemRequirements: Map<string, number>;
+    }> {
         const variantIds = [...new Set(items.map((item) => item.productVariantId))];
         const modifierOptionIds = [...new Set(items.flatMap((item) => item.modifiers?.map((m) => m.modifierOptionId) ?? []))];
 
-        const [variantRecipes, modifierRecipes] = await Promise.all([
+        const [variants, variantRecipes, modifierRecipes] = await Promise.all([
+            tx.productVariant.findMany({
+                where: { id: { in: variantIds } },
+                include: { product: { select: { id: true, name: true, preparationType: true } } }
+            }),
             tx.recipe.findMany({
                 where: { productVariantId: { in: variantIds }, deletedAt: null },
                 include: {
@@ -406,32 +446,42 @@ export class OrderRepository extends BaseRepository {
         ]);
 
         const ingredientRequirements = new Map<string, number>();
+        const preparedItemRequirements = new Map<string, number>();
 
-        const accumulateRequirement = (ingredientId: string, quantity: number) => {
+        const accumulateIngredient = (ingredientId: string, quantity: number) => {
             ingredientRequirements.set(ingredientId, (ingredientRequirements.get(ingredientId) ?? 0) + quantity);
         };
 
         for (const item of items) {
-            const variantRecipe = variantRecipes.find((recipe) => recipe.productVariantId === item.productVariantId);
-            if (variantRecipe) {
-                for (const ingredient of variantRecipe.ingredients) {
-                    accumulateRequirement(ingredient.ingredientId, ingredient.quantity * item.quantity);
+            const variant = variants.find((v) => v.id === item.productVariantId);
+
+            if (variant && variant.product.preparationType === 'PREPARED_DISPLAY') {
+                // Prepared food item: deduct finished ready-to-serve batch stock directly
+                preparedItemRequirements.set(item.productVariantId, (preparedItemRequirements.get(item.productVariantId) ?? 0) + item.quantity);
+            } else {
+                // Made-to-order item: deduct raw recipe ingredients
+                const variantRecipe = variantRecipes.find((recipe) => recipe.productVariantId === item.productVariantId);
+                if (variantRecipe) {
+                    for (const ingredient of variantRecipe.ingredients) {
+                        accumulateIngredient(ingredient.ingredientId, ingredient.quantity * item.quantity);
+                    }
                 }
             }
 
+            // Modifiers always deduct modifier ingredients if a modifier recipe is attached
             if (item.modifiers) {
                 for (const itemMod of item.modifiers) {
                     const modifierRecipe = modifierRecipes.find((recipe) => recipe.modifierOptionId === itemMod.modifierOptionId);
                     if (modifierRecipe) {
                         for (const ingredient of modifierRecipe.ingredients) {
-                            accumulateRequirement(ingredient.ingredientId, ingredient.quantity * item.quantity);
+                            accumulateIngredient(ingredient.ingredientId, ingredient.quantity * item.quantity);
                         }
                     }
                 }
             }
         }
 
-        return ingredientRequirements;
+        return { ingredientRequirements, preparedItemRequirements };
     }
 
     private async restoreInventoryForOrder(
@@ -439,13 +489,14 @@ export class OrderRepository extends BaseRepository {
         order: Prisma.OrderGetPayload<{ include: { items: { include: { modifiers: true } } } }>,
         actorId: string
     ) {
-        const ingredientRequirements = await this.calculateIngredientRequirements(tx, order.items);
-        if (ingredientRequirements.size === 0) {
-            return;
-        }
-
+        const { ingredientRequirements } = await this.calculateOrderRequirements(tx, order.items);
         const inventoryRepo = new InventoryRepository();
+        const foodPrepRepo = new FoodPrepRepository();
 
+        // 1. Restore prepared display items
+        await foodPrepRepo.restorePreparedStockForOrder(tx, order.id, actorId);
+
+        // 2. Restore made-to-order raw ingredients
         for (const [ingredientId, quantity] of ingredientRequirements.entries()) {
             await inventoryRepo.addIngredientStockLatest(
                 tx,

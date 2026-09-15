@@ -134,12 +134,43 @@ describe('Product Settings Feature CRUD', () => {
             expect(res.status).toBe(409);
         });
 
-        it('should retrieve a paginated list of categories', async () => {
+        it('should retrieve a paginated list of categories with optional productTypeId filter', async () => {
             const res = await request(app).get('/product-settings/categories?limit=5');
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('data');
             expect(res.body).toHaveProperty('meta');
             expect(res.body.meta.currentPage).toBe(1);
+        });
+
+        it('should create a category linked to a productTypeId', async () => {
+            // Create a temporary type first
+            const type = await prisma.productType.create({
+                data: {
+                    name: 'Beverage Test Type',
+                    createdById: 'test-product-settings-user-id',
+                    updatedById: 'test-product-settings-user-id'
+                }
+            });
+
+            const payload = {
+                name: 'Linked Test Category',
+                description: 'Category linked to type',
+                productTypeId: type.id
+            };
+
+            const res = await request(app).post('/product-settings/categories').send(payload);
+            expect(res.status).toBe(201);
+            expect(res.body.productTypeId).toBe(type.id);
+
+            // Filter by productTypeId
+            const filterRes = await request(app).get(`/product-settings/categories?productTypeId=${type.id}`);
+            expect(filterRes.status).toBe(200);
+            expect(filterRes.body.data.length).toBeGreaterThanOrEqual(1);
+            expect(filterRes.body.data[0].id).toBe(res.body.id);
+
+            // Clean up temporary category and type
+            await prisma.productCategory.delete({ where: { id: res.body.id } });
+            await prisma.productType.delete({ where: { id: type.id } });
         });
 
         it('should find a category by ID', async () => {
@@ -217,6 +248,13 @@ describe('Product Settings Feature CRUD', () => {
             const res = await request(app).put(`/product-settings/types/${testTypeId}`).send(payload);
             expect(res.status).toBe(200);
             expect(res.body.name).toBe('Updated Test Type');
+        });
+
+        it('should find a type by ID with child categories', async () => {
+            const res = await request(app).get(`/product-settings/types/${testTypeId}`);
+            expect(res.status).toBe(200);
+            expect(res.body.id).toBe(testTypeId);
+            expect(Array.isArray(res.body.categories)).toBe(true);
         });
 
         it('should soft-delete a type by ID', async () => {

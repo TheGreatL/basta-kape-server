@@ -23,6 +23,7 @@ export const appModules = {
     PURCHASE_ORDERS_MANAGEMENT: 'Purchase Orders Management',
     TRANSACTION_HISTORY: 'Transaction History',
     ORDER_QUEUE: 'Order Queue',
+    FOOD_PREPARATION: 'Food Preparation',
     MENU: 'Menu',
     ACTIVITY_LOGS: 'Activity Logs'
 } as const;

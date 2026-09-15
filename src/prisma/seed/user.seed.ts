@@ -109,6 +109,11 @@ export async function seedUsers(prisma: PrismaClient) {
         update: {},
         create: { name: appModules.ORDER_QUEUE, createdAt: SEED_DATE }
     });
+    const foodPrepMod = await prisma.module.upsert({
+        where: { name: appModules.FOOD_PREPARATION },
+        update: {},
+        create: { name: appModules.FOOD_PREPARATION, createdAt: SEED_DATE }
+    });
     const menuMod = await prisma.module.upsert({
         where: { name: appModules.MENU },
         update: {},
@@ -256,7 +261,8 @@ export async function seedUsers(prisma: PrismaClient) {
         ...(await getPermNodes(menuMod, readOnly)),
         ...(await getPermNodes(productsMod, readOnly)),
         ...(await getPermNodes(productSettingsMod, readOnly)),
-        ...(await getPermNodes(inventoryMod, readOnly))
+        ...(await getPermNodes(inventoryMod, readOnly)),
+        ...(await getPermNodes(foodPrepMod, createReadUpdate))
     ]);
 
     // 5. CUSTOMER SCOPE
