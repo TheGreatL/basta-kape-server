@@ -1,4 +1,5 @@
 import { InventoryRepository } from './inventory.repository';
+import { UnitConversionRepository } from '@/feature/unit-conversion/unit-conversion.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { prisma } from '@/lib/prisma';
 import { NotFoundException, ConflictException } from '@/exceptions';
@@ -21,10 +22,12 @@ import type {
 export class InventoryService {
     private repository: InventoryRepository;
     private activityLogService: ActivityLogService;
+    private unitConversionRepo: UnitConversionRepository;
 
     constructor() {
         this.repository = new InventoryRepository();
         this.activityLogService = new ActivityLogService();
+        this.unitConversionRepo = new UnitConversionRepository();
     }
 
     // ==========================================
@@ -204,16 +207,107 @@ export class InventoryService {
     // 3. PHYSICAL COUNT UPDATES
     // ==========================================
 
+    private attachConvertedQuantities<
+        T extends {
+            ingredientId: string;
+            currentQuantity: number;
+            ingredient?: { defaultUnit?: { id: string } };
+        }
+    >(
+        items: T[],
+        conversions: Array<{
+            fromUnitId: string;
+            toUnitId: string;
+            factor: number;
+            ingredientId: string | null;
+            fromUnit: { id: string; name: string; abbreviation: string | null };
+            toUnit: { id: string; name: string; abbreviation: string | null };
+        }>
+    ): (T & {
+        convertedQuantities: Array<{
+            unitId: string;
+            unitName: string;
+            unitAbbreviation: string | null;
+            quantity: number;
+        }>;
+    })[] {
+        return items.map((item) => {
+            const baseUnitId = item.ingredient?.defaultUnit?.id;
+            if (!baseUnitId) {
+                return { ...item, convertedQuantities: [] };
+            }
+
+            const convertedQuantities: {
+                unitId: string;
+                unitName: string;
+                unitAbbreviation: string | null;
+                quantity: number;
+            }[] = [];
+
+            const seenUnitIds = new Set<string>();
+
+            const specificConversions = conversions.filter((c) => c.ingredientId === item.ingredientId);
+            const globalConversions = conversions.filter((c) => !c.ingredientId);
+
+            const checkConversion = (c: (typeof conversions)[number]) => {
+                let targetUnit: { id: string; name: string; abbreviation: string | null } | null = null;
+                let convertedQty = 0;
+
+                if (c.fromUnitId === baseUnitId) {
+                    targetUnit = c.toUnit;
+                    convertedQty = item.currentQuantity * c.factor;
+                } else if (c.toUnitId === baseUnitId) {
+                    targetUnit = c.fromUnit;
+                    convertedQty = item.currentQuantity / c.factor;
+                }
+
+                if (targetUnit && !seenUnitIds.has(targetUnit.id)) {
+                    seenUnitIds.add(targetUnit.id);
+                    convertedQuantities.push({
+                        unitId: targetUnit.id,
+                        unitName: targetUnit.name,
+                        unitAbbreviation: targetUnit.abbreviation,
+                        quantity: Math.round(convertedQty * 100) / 100
+                    });
+                }
+            };
+
+            for (const c of specificConversions) {
+                checkConversion(c);
+            }
+            for (const c of globalConversions) {
+                checkConversion(c);
+            }
+
+            return {
+                ...item,
+                convertedQuantities
+            };
+        });
+    }
+
     async getInventoryLevelsList(params: TGetStockLevelListQuery) {
-        return this.repository.getInventoryLevelsList(params);
+        const [result, conversions] = await Promise.all([
+            this.repository.getInventoryLevelsList(params),
+            this.unitConversionRepo.findAllActiveConversions()
+        ]);
+        result.data = this.attachConvertedQuantities(
+            result.data as Array<{ ingredientId: string; currentQuantity: number; ingredient?: { defaultUnit?: { id: string } } }>,
+            conversions
+        );
+        return result;
     }
 
     async getInventoryLevelByIngredientId(ingredientId: string) {
-        const level = await this.repository.getInventoryLevelByIngredientId(ingredientId);
+        const [level, conversions] = await Promise.all([
+            this.repository.getInventoryLevelByIngredientId(ingredientId),
+            this.unitConversionRepo.findAllActiveConversions()
+        ]);
         if (!level) {
             throw new NotFoundException('Inventory level record not found for this ingredient');
         }
-        return level;
+        const [enriched] = this.attachConvertedQuantities([level], conversions);
+        return enriched;
     }
 
     async updatePhysicalCount(ingredientId: string, currentQuantity: number, actorId: string) {

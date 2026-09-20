@@ -138,7 +138,17 @@ export const InventoryLevelResponseSchema = z.object({
     }),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
-    deletedAt: z.date().nullable().or(z.string().nullable())
+    deletedAt: z.date().nullable().or(z.string().nullable()),
+    convertedQuantities: z
+        .array(
+            z.object({
+                unitId: z.string(),
+                unitName: z.string(),
+                unitAbbreviation: z.string().nullable().optional(),
+                quantity: z.number()
+            })
+        )
+        .optional()
 });
 
 export const PaginatedInventoryLevelResponseSchema = z.object({

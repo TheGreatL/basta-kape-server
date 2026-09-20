@@ -1,5 +1,6 @@
 import { ModifierRepository } from './modifier.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
+import { UnitConversionService, type TUnitConverter } from '@/feature/unit-conversion/unit-conversion.service';
 import { prisma } from '@/lib/prisma';
 import { NotFoundException, BadRequestException } from '@/exceptions';
 import type {
@@ -13,11 +14,13 @@ import type {
 type ModifierServiceConstructor = {
     modifierRepository?: ModifierRepository;
     activityLogService?: ActivityLogService;
+    unitConversionService?: UnitConversionService;
 };
 
 interface IngredientWithInventory {
     id: string;
     name: string;
+    ingredientUnitId?: string;
     inventories: {
         currentQuantity: number;
     }[];
@@ -26,6 +29,8 @@ interface IngredientWithInventory {
 interface RecipeIngredient {
     ingredientId: string;
     quantity: number;
+    ingredientUnitId?: string;
+    unit?: { id: string; name: string; abbreviation: string | null } | null;
     ingredient?: IngredientWithInventory | null;
 }
 
@@ -50,7 +55,7 @@ interface ModifierGroupWithOptions {
     options: ModifierOptionWithRecipe[];
 }
 
-function calculateOptionMaxProduceable(option: ModifierOptionWithRecipe): number | null {
+function calculateOptionMaxProduceable(option: ModifierOptionWithRecipe, converter?: TUnitConverter): number | null {
     if (!option.recipe || !option.recipe.ingredients || option.recipe.ingredients.length === 0) {
         return null;
     }
@@ -61,7 +66,18 @@ function calculateOptionMaxProduceable(option: ModifierOptionWithRecipe): number
         const inventories = ri.ingredient?.inventories || [];
         const inventory = inventories[0];
         const currentQty = inventory ? inventory.currentQuantity : 0;
-        const requiredQty = ri.quantity;
+
+        let requiredQty = ri.quantity;
+        const fromUnitId = ri.ingredientUnitId || ri.unit?.id;
+        const toUnitId = ri.ingredient?.ingredientUnitId;
+
+        if (converter && fromUnitId && toUnitId) {
+            try {
+                requiredQty = converter(fromUnitId, toUnitId, ri.quantity, ri.ingredientId);
+            } catch {
+                requiredQty = ri.quantity;
+            }
+        }
 
         if (requiredQty > 0) {
             const canProduce = Math.floor(currentQty / requiredQty);
@@ -74,11 +90,11 @@ function calculateOptionMaxProduceable(option: ModifierOptionWithRecipe): number
     return maxProduceable === Infinity ? null : maxProduceable;
 }
 
-function formatModifierGroup(group: ModifierGroupWithOptions) {
+function formatModifierGroup(group: ModifierGroupWithOptions, converter?: TUnitConverter) {
     return {
         ...group,
         options: (group.options || []).map((option: ModifierOptionWithRecipe) => {
-            const maxProduceable = calculateOptionMaxProduceable(option);
+            const maxProduceable = calculateOptionMaxProduceable(option, converter);
             return {
                 ...option,
                 maxProduceable
@@ -90,24 +106,26 @@ function formatModifierGroup(group: ModifierGroupWithOptions) {
 export class ModifierService {
     private repository: ModifierRepository;
     private activityLogService: ActivityLogService;
+    private unitConversionService: UnitConversionService;
 
     constructor(deps: ModifierServiceConstructor = {}) {
         this.repository = deps.modifierRepository ?? new ModifierRepository();
         this.activityLogService = deps.activityLogService ?? new ActivityLogService();
+        this.unitConversionService = deps.unitConversionService ?? new UnitConversionService();
     }
 
     async getModifierGroupList(params: TGetModifierGroupListQuery) {
-        const result = await this.repository.getModifierGroupList(params);
-        result.data = ((result.data as ModifierGroupWithOptions[]) || []).map((group) => formatModifierGroup(group));
+        const [result, converter] = await Promise.all([this.repository.getModifierGroupList(params), this.unitConversionService.getConverter()]);
+        result.data = ((result.data as ModifierGroupWithOptions[]) || []).map((group) => formatModifierGroup(group, converter));
         return result;
     }
 
     async getModifierGroupById(id: string) {
-        const group = await this.repository.getModifierGroupById(id);
+        const [group, converter] = await Promise.all([this.repository.getModifierGroupById(id), this.unitConversionService.getConverter()]);
         if (!group) {
             throw new NotFoundException('Modifier group not found');
         }
-        return formatModifierGroup(group as unknown as ModifierGroupWithOptions);
+        return formatModifierGroup(group as unknown as ModifierGroupWithOptions, converter);
     }
 
     async getModifierOptionById(id: string) {

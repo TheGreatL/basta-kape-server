@@ -29,6 +29,7 @@ import purchaseOrderRouter from './feature/purchase-order/purchase-order.route';
 import dashboardRouter from './feature/dashboard/dashboard.route';
 import foodPrepRouter from './feature/food-prep/food-prep.route';
 import disposalRouter from './feature/disposal/disposal.route';
+import unitConversionRouter from './feature/unit-conversion/unit-conversion.route';
 const router = Router();
 
 registry.registerPath({
@@ -112,6 +113,7 @@ router.use('/purchase-orders', purchaseOrderRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/food-prep', foodPrepRouter);
 router.use('/disposals', disposalRouter);
+router.use('/unit-conversions', unitConversionRouter);
 
 registry.registerPath({
     method: 'get',

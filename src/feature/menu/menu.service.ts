@@ -1,6 +1,7 @@
 import { MenuRepository } from './menu.repository';
 import { NotFoundException } from '@/exceptions';
 import type { TGetMenuQuery } from './menu.types';
+import { UnitConversionService, type TUnitConverter } from '@/feature/unit-conversion/unit-conversion.service';
 
 interface IRepositoryIngredientInventory {
     currentQuantity: number;
@@ -13,6 +14,7 @@ interface IRepositoryRecipeIngredient {
     ingredient: {
         id: string;
         name: string;
+        ingredientUnitId?: string;
         inventories: IRepositoryIngredientInventory[];
     };
     unit: {
@@ -51,7 +53,7 @@ interface IRepositoryProduct {
     variants: IRepositoryProductVariant[];
 }
 
-function calculateMaxProduceable(variant: IRepositoryProductVariant, product: IRepositoryProduct): number | null {
+function calculateMaxProduceable(variant: IRepositoryProductVariant, product: IRepositoryProduct, converter?: TUnitConverter): number | null {
     // If product is prepared for display in advance, max produceable is the sum of fresh display units on hand
     if (product.preparationType === 'PREPARED_DISPLAY') {
         return (variant.preparedBatches || []).reduce((sum, b) => sum + b.currentQuantity, 0);
@@ -67,7 +69,15 @@ function calculateMaxProduceable(variant: IRepositoryProductVariant, product: IR
         const inventories = ri.ingredient?.inventories || [];
         const inventory = inventories[0];
         const currentQty = inventory ? inventory.currentQuantity : 0;
-        const requiredQty = ri.quantity;
+
+        let requiredQty = ri.quantity;
+        if (converter && ri.unit?.id && ri.ingredient?.ingredientUnitId) {
+            try {
+                requiredQty = converter(ri.unit.id, ri.ingredient.ingredientUnitId, ri.quantity, ri.ingredientId);
+            } catch {
+                requiredQty = ri.quantity;
+            }
+        }
 
         if (requiredQty > 0) {
             const canProduce = Math.floor(currentQty / requiredQty);
@@ -80,36 +90,38 @@ function calculateMaxProduceable(variant: IRepositoryProductVariant, product: IR
     return maxProduceable === Infinity ? null : maxProduceable;
 }
 
-function formatMenuProduct(product: IRepositoryProduct) {
+function formatMenuProduct(product: IRepositoryProduct, converter?: TUnitConverter) {
     if (!product) return null;
     return {
         ...product,
         variants: (product.variants || []).map((variant) => ({
             ...variant,
-            maxProduceable: calculateMaxProduceable(variant, product)
+            maxProduceable: calculateMaxProduceable(variant, product, converter)
         }))
     };
 }
 
 export class MenuService {
     private repository: MenuRepository;
+    private unitConversionService: UnitConversionService;
 
     constructor() {
         this.repository = new MenuRepository();
+        this.unitConversionService = new UnitConversionService();
     }
 
     async getMenuList(params: TGetMenuQuery) {
-        const result = await this.repository.getMenuList(params);
-        result.data = ((result.data as IRepositoryProduct[]) || []).map((product) => formatMenuProduct(product));
+        const [result, converter] = await Promise.all([this.repository.getMenuList(params), this.unitConversionService.getConverter()]);
+        result.data = ((result.data as IRepositoryProduct[]) || []).map((product) => formatMenuProduct(product, converter));
         return result;
     }
 
     async getMenuProductById(id: string) {
-        const product = await this.repository.getMenuProductById(id);
+        const [product, converter] = await Promise.all([this.repository.getMenuProductById(id), this.unitConversionService.getConverter()]);
         if (!product) {
             throw new NotFoundException('Product not found in the menu');
         }
-        return formatMenuProduct(product as unknown as IRepositoryProduct);
+        return formatMenuProduct(product as unknown as IRepositoryProduct, converter);
     }
 
     async getCategoryList(productTypeId?: string) {

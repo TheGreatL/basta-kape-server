@@ -94,6 +94,37 @@ export async function seedProduct(prisma: PrismaClient) {
         });
     };
 
+    const getOrCreateUnitConversion = async (fromUnitId: string, toUnitId: string, factor: number, ingredientId?: string | null) => {
+        const found = await prisma.unitConversion.findFirst({
+            where: {
+                deletedAt: null,
+                ingredientId: ingredientId || null,
+                OR: [
+                    { fromUnitId, toUnitId },
+                    { fromUnitId: toUnitId, toUnitId: fromUnitId }
+                ]
+            }
+        });
+        if (found) {
+            return prisma.unitConversion.update({
+                where: { id: found.id },
+                data: { factor, updatedById: adminId, updatedAt: SEED_DATE }
+            });
+        }
+        return prisma.unitConversion.create({
+            data: {
+                fromUnitId,
+                toUnitId,
+                factor,
+                ingredientId: ingredientId || null,
+                createdById: adminId,
+                updatedById: adminId,
+                createdAt: SEED_DATE,
+                updatedAt: SEED_DATE
+            }
+        });
+    };
+
     const getOrCreateIngredient = async (
         name: string,
         description: string,
@@ -379,6 +410,26 @@ export async function seedProduct(prisma: PrismaClient) {
     const unitPack = await getOrCreateUnit('Pack', 'pack', 'PACKAGING_MATERIAL');
     const unitBox = await getOrCreateUnit('Box', 'box', 'PACKAGING_MATERIAL');
     const unitSleeve = await getOrCreateUnit('Sleeve', 'sleeve', 'PACKAGING_MATERIAL');
+    const unitTb = await getOrCreateUnit('Tablespoon', 'tb', 'INGREDIENT');
+    const unitTsp = await getOrCreateUnit('Teaspoon', 'tsp', 'INGREDIENT');
+    const unitKg = await getOrCreateUnit('Kilograms', 'kg', 'INGREDIENT');
+    const unitL = await getOrCreateUnit('Liters', 'L', 'INGREDIENT');
+    const unitPump = await getOrCreateUnit('Pump', 'pump', 'INGREDIENT');
+    const unitShot = await getOrCreateUnit('Shot', 'shot', 'INGREDIENT');
+
+    // Standard global unit conversions:
+    // 1 tb = 4 ml (or user requested standard kitchen measure)
+    await getOrCreateUnitConversion(unitTb.id, unitMl.id, 4);
+    // 1 tsp = 5 ml
+    await getOrCreateUnitConversion(unitTsp.id, unitMl.id, 5);
+    // 1 L = 1000 ml
+    await getOrCreateUnitConversion(unitL.id, unitMl.id, 1000);
+    // 1 kg = 1000 g
+    await getOrCreateUnitConversion(unitKg.id, unitG.id, 1000);
+    // 1 pump = 10 ml
+    await getOrCreateUnitConversion(unitPump.id, unitMl.id, 10);
+    // 1 shot = 30 ml
+    await getOrCreateUnitConversion(unitShot.id, unitMl.id, 30);
 
     // ==========================================
     // 4. SEED INGREDIENTS & PACKAGING MATERIALS

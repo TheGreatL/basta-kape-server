@@ -52,6 +52,7 @@ export class ModifierRepository extends BaseRepository {
                                                     id: true,
                                                     name: true,
                                                     type: true,
+                                                    ingredientUnitId: true,
                                                     inventories: {
                                                         where: { deletedAt: null },
                                                         select: { currentQuantity: true }
@@ -95,6 +96,7 @@ export class ModifierRepository extends BaseRepository {
                                                 id: true,
                                                 name: true,
                                                 type: true,
+                                                ingredientUnitId: true,
                                                 inventories: {
                                                     where: { deletedAt: null },
                                                     select: { currentQuantity: true }

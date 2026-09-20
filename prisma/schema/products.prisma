@@ -169,6 +169,8 @@ model IngredientUnit {
   category          UnitCategory       @default(ALL)
   ingredients       Ingredient[]
   recipeIngredients RecipeIngredient[]
+  fromConversions   UnitConversion[]   @relation("FromUnitConversions")
+  toConversions     UnitConversion[]   @relation("ToUnitConversions")
 
   createdById String?
   createdBy   User?     @relation("IngredientUnitCreatedBy", fields: [createdById], references: [id])
@@ -194,6 +196,7 @@ model Ingredient {
   adjustments        InventoryAdjustment[]
   purchaseOrderItems PurchaseOrderItem[]
   suppliers          SupplierIngredient[]
+  unitConversions    UnitConversion[]
 
   createdById String?
   createdBy   User?     @relation("IngredientCreatedBy", fields: [createdById], references: [id])
@@ -205,7 +208,7 @@ model Ingredient {
 }
 
 model Supplier {
-  id             String            @id @default(uuid())
+  id             String               @id @default(uuid())
   name           String
   address        String?
   notes          String?
@@ -510,4 +513,29 @@ model PreparedItemTransaction {
 
   @@index([batchId])
   @@index([orderId])
+}
+
+model UnitConversion {
+  id         String         @id @default(uuid())
+  fromUnitId String
+  fromUnit   IngredientUnit @relation("FromUnitConversions", fields: [fromUnitId], references: [id], onDelete: Cascade)
+  toUnitId   String
+  toUnit     IngredientUnit @relation("ToUnitConversions", fields: [toUnitId], references: [id], onDelete: Cascade)
+  factor     Float
+
+  ingredientId String?
+  ingredient   Ingredient? @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?     @relation("UnitConversionCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("UnitConversionUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([fromUnitId])
+  @@index([toUnitId])
+  @@index([ingredientId])
+  @@index([deletedAt])
 }

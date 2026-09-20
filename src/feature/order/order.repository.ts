@@ -7,6 +7,7 @@ import { formatOrderWithReference, formatOrdersWithReference } from './order.uti
 import { InventoryRepository } from '@/feature/inventory/inventory.repository';
 import { FoodPrepRepository } from '@/feature/food-prep/food-prep.repository';
 import { BadRequestException } from '@/exceptions';
+import { UnitConversionService } from '@/feature/unit-conversion/unit-conversion.service';
 
 type TCreateOrderRepoData = {
     queueNumber: string;
@@ -420,7 +421,7 @@ export class OrderRepository extends BaseRepository {
         const variantIds = [...new Set(items.map((item) => item.productVariantId))];
         const modifierOptionIds = [...new Set(items.flatMap((item) => item.modifiers?.map((m) => m.modifierOptionId) ?? []))];
 
-        const [variants, variantRecipes, modifierRecipes] = await Promise.all([
+        const [variants, variantRecipes, modifierRecipes, activeConversions] = await Promise.all([
             tx.productVariant.findMany({
                 where: { id: { in: variantIds } },
                 include: { product: { select: { id: true, name: true, preparationType: true } } }
@@ -429,7 +430,12 @@ export class OrderRepository extends BaseRepository {
                 where: { productVariantId: { in: variantIds }, deletedAt: null },
                 include: {
                     ingredients: {
-                        where: { deletedAt: null }
+                        where: { deletedAt: null },
+                        include: {
+                            ingredient: {
+                                select: { id: true, name: true, ingredientUnitId: true }
+                            }
+                        }
                     }
                 }
             }),
@@ -438,12 +444,22 @@ export class OrderRepository extends BaseRepository {
                       where: { modifierOptionId: { in: modifierOptionIds }, deletedAt: null },
                       include: {
                           ingredients: {
-                              where: { deletedAt: null }
+                              where: { deletedAt: null },
+                              include: {
+                                  ingredient: {
+                                      select: { id: true, name: true, ingredientUnitId: true }
+                                  }
+                              }
                           }
                       }
                   })
-                : Promise.resolve([])
+                : Promise.resolve([]),
+            tx.unitConversion.findMany({
+                where: { deletedAt: null }
+            })
         ]);
+
+        const converter = UnitConversionService.createConverter(activeConversions);
 
         const ingredientRequirements = new Map<string, number>();
         const preparedItemRequirements = new Map<string, number>();
@@ -463,7 +479,13 @@ export class OrderRepository extends BaseRepository {
                 const variantRecipe = variantRecipes.find((recipe) => recipe.productVariantId === item.productVariantId);
                 if (variantRecipe) {
                     for (const ingredient of variantRecipe.ingredients) {
-                        accumulateIngredient(ingredient.ingredientId, ingredient.quantity * item.quantity);
+                        const baseQuantity = converter(
+                            ingredient.ingredientUnitId,
+                            ingredient.ingredient.ingredientUnitId,
+                            ingredient.quantity * item.quantity,
+                            ingredient.ingredientId
+                        );
+                        accumulateIngredient(ingredient.ingredientId, baseQuantity);
                     }
                 }
             }
@@ -474,7 +496,13 @@ export class OrderRepository extends BaseRepository {
                     const modifierRecipe = modifierRecipes.find((recipe) => recipe.modifierOptionId === itemMod.modifierOptionId);
                     if (modifierRecipe) {
                         for (const ingredient of modifierRecipe.ingredients) {
-                            accumulateIngredient(ingredient.ingredientId, ingredient.quantity * item.quantity);
+                            const baseQuantity = converter(
+                                ingredient.ingredientUnitId,
+                                ingredient.ingredient.ingredientUnitId,
+                                ingredient.quantity * item.quantity,
+                                ingredient.ingredientId
+                            );
+                            accumulateIngredient(ingredient.ingredientId, baseQuantity);
                         }
                     }
                 }

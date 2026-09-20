@@ -105,6 +105,8 @@ model User {
   createdPreparedBatches          PreparedItemBatch[]       @relation("PreparedBatchCreatedBy")
   updatedPreparedBatches          PreparedItemBatch[]       @relation("PreparedBatchUpdatedBy")
   createdPreparedItemTransactions PreparedItemTransaction[] @relation("PreparedItemTransactionCreatedBy")
+  createdUnitConversions          UnitConversion[]          @relation("UnitConversionCreatedBy")
+  updatedUnitConversions          UnitConversion[]          @relation("UnitConversionUpdatedBy")
 
   statusChanges         OrderStatusHistory[]
   voidedOrders          OrderVoidLog[]

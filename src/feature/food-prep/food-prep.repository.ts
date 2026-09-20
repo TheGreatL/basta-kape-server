@@ -3,6 +3,7 @@ import { BaseRepository } from '@/repository/base.repository';
 import { Prisma, PreparedBatchStatus } from '@prisma/client';
 import { InventoryRepository } from '@/feature/inventory/inventory.repository';
 import { BadRequestException, NotFoundException } from '@/exceptions';
+import { UnitConversionService } from '@/feature/unit-conversion/unit-conversion.service';
 import type { TCreatePreparedBatch, TDisposePreparedBatch, TGetPreparedBatchListQuery } from './food-prep.types';
 
 export class FoodPrepRepository extends BaseRepository {
@@ -57,10 +58,18 @@ export class FoodPrepRepository extends BaseRepository {
             }
 
             // 2. Calculate required raw ingredient quantities
+            const activeConversions = await tx.unitConversion.findMany({ where: { deletedAt: null } });
+            const converter = UnitConversionService.createConverter(activeConversions);
+
             const ingredientRequirements = new Map<string, number>();
             for (const item of variant.recipe.ingredients) {
-                const totalNeeded = item.quantity * data.quantity;
-                ingredientRequirements.set(item.ingredientId, (ingredientRequirements.get(item.ingredientId) ?? 0) + totalNeeded);
+                const baseQuantity = converter(
+                    item.ingredientUnitId,
+                    item.ingredient.ingredientUnitId,
+                    item.quantity * data.quantity,
+                    item.ingredientId
+                );
+                ingredientRequirements.set(item.ingredientId, (ingredientRequirements.get(item.ingredientId) ?? 0) + baseQuantity);
             }
 
             // 3. Verify stock availability
