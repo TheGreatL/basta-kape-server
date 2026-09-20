@@ -133,6 +133,15 @@ describe('Purchase Order Feature CRUD', () => {
 
     afterAll(async () => {
         // Cleanup all records created
+        await prisma.stockTransaction.deleteMany({
+            where: { createdById: 'test-po-user-id' }
+        });
+        await prisma.ingredientBatch.deleteMany({
+            where: { createdById: 'test-po-user-id' }
+        });
+        await prisma.ingredientInventory.deleteMany({
+            where: { createdById: 'test-po-user-id' }
+        });
         await prisma.purchaseOrderItem.deleteMany({
             where: {
                 purchaseOrder: {
@@ -143,6 +152,11 @@ describe('Purchase Order Feature CRUD', () => {
         await prisma.purchaseOrder.deleteMany({
             where: {
                 createdById: 'test-po-user-id'
+            }
+        });
+        await prisma.supplierIngredient.deleteMany({
+            where: {
+                supplier: { createdById: 'test-po-user-id' }
             }
         });
         await prisma.ingredient.deleteMany({
@@ -355,6 +369,141 @@ describe('Purchase Order Feature CRUD', () => {
         it('should return 404 for non-existent purchase order ID', async () => {
             const res = await request(app).get('/purchase-orders/00000000-0000-0000-0000-000000000000');
             expect(res.status).toBe(404);
+        });
+    });
+
+    describe('POST /purchase-orders & Delivery Price Population', () => {
+        it('should successfully create a draft purchase order without unitCost, defaulting prices and totalAmount to 0', async () => {
+            const createRes = await request(app)
+                .post('/purchase-orders')
+                .send({
+                    supplierId: testSupplierId1,
+                    notes: 'PO created without unitCost',
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 25
+                        }
+                    ]
+                });
+
+            expect(createRes.status).toBe(201);
+            expect(createRes.body.status).toBe(PurchaseOrderStatus.DRAFT);
+            expect(createRes.body.totalAmount).toBe(0);
+            expect(createRes.body.items).toHaveLength(1);
+            expect(createRes.body.items[0].quantity).toBe(25);
+            expect(createRes.body.items[0].unitCost).toBe(0);
+            expect(createRes.body.items[0].totalCost).toBe(0);
+        });
+
+        it('should automatically populate item prices from SupplierIngredient when marked as RECEIVED', async () => {
+            // 1. Link supplier to ingredient with established catalog unitCost
+            await prisma.supplierIngredient.upsert({
+                where: {
+                    supplierId_ingredientId: {
+                        supplierId: testSupplierId1,
+                        ingredientId: testIngredientId1
+                    }
+                },
+                update: { unitCost: 15.75 },
+                create: {
+                    supplierId: testSupplierId1,
+                    ingredientId: testIngredientId1,
+                    unitCost: 15.75
+                }
+            });
+
+            // 2. Create PO without unitCost
+            const createRes = await request(app)
+                .post('/purchase-orders')
+                .send({
+                    supplierId: testSupplierId1,
+                    notes: 'Delivery auto-price test',
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 20
+                        }
+                    ]
+                });
+
+            expect(createRes.status).toBe(201);
+            const poId = createRes.body.id;
+            expect(createRes.body.totalAmount).toBe(0);
+
+            // 3. Transition to SENT
+            const sentRes = await request(app).patch(`/purchase-orders/${poId}/status`).send({ status: PurchaseOrderStatus.SENT });
+
+            expect(sentRes.status).toBe(200);
+            expect(sentRes.body.status).toBe(PurchaseOrderStatus.SENT);
+
+            // 4. Mark as RECEIVED without passing items (auto-populates from SupplierIngredient)
+            const receivedRes = await request(app).patch(`/purchase-orders/${poId}/status`).send({ status: PurchaseOrderStatus.RECEIVED });
+
+            expect(receivedRes.status).toBe(200);
+            expect(receivedRes.body.status).toBe(PurchaseOrderStatus.RECEIVED);
+            expect(receivedRes.body.totalAmount).toBe(315); // 20 * 15.75
+            expect(receivedRes.body.items).toHaveLength(1);
+            expect(receivedRes.body.items[0].unitCost).toBe(15.75);
+            expect(receivedRes.body.items[0].totalCost).toBe(315);
+
+            // 5. Verify database batch has populated unitCost & totalCost
+            const batch = await prisma.ingredientBatch.findFirst({
+                where: { purchaseOrderId: poId }
+            });
+            expect(batch).not.toBeNull();
+            expect(batch?.quantityReceived).toBe(20);
+            expect(batch?.unitCost).toBe(15.75);
+            expect(batch?.totalCost).toBe(315);
+        });
+
+        it('should allow explicit item price overrides when marking a purchase order as RECEIVED', async () => {
+            // 1. Create PO without unitCost
+            const createRes = await request(app)
+                .post('/purchase-orders')
+                .send({
+                    supplierId: testSupplierId1,
+                    notes: 'Override price delivery test',
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 10
+                        }
+                    ]
+                });
+
+            expect(createRes.status).toBe(201);
+            const poId = createRes.body.id;
+
+            // 2. Transition to SENT
+            await request(app).patch(`/purchase-orders/${poId}/status`).send({ status: PurchaseOrderStatus.SENT });
+
+            // 3. Mark as RECEIVED with explicit price override
+            const receivedRes = await request(app)
+                .patch(`/purchase-orders/${poId}/status`)
+                .send({
+                    status: PurchaseOrderStatus.RECEIVED,
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            unitCost: 22.5
+                        }
+                    ]
+                });
+
+            expect(receivedRes.status).toBe(200);
+            expect(receivedRes.body.status).toBe(PurchaseOrderStatus.RECEIVED);
+            expect(receivedRes.body.totalAmount).toBe(225); // 10 * 22.5
+            expect(receivedRes.body.items[0].unitCost).toBe(22.5);
+            expect(receivedRes.body.items[0].totalCost).toBe(225);
+
+            // 4. Verify batch in DB has overridden cost
+            const batch = await prisma.ingredientBatch.findFirst({
+                where: { purchaseOrderId: poId }
+            });
+            expect(batch).not.toBeNull();
+            expect(batch?.unitCost).toBe(22.5);
+            expect(batch?.totalCost).toBe(225);
         });
     });
 });

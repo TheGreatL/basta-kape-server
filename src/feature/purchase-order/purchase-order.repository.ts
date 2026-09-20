@@ -26,7 +26,7 @@ export class PurchaseOrderRepository extends BaseRepository {
             const poNumber = `PO-${dateStr}-${sequence}`;
 
             // 2. Compute total amount of PO
-            const totalAmount = data.items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
+            const totalAmount = data.items.reduce((sum, item) => sum + item.quantity * (item.unitCost ?? 0), 0);
 
             // 3. Create PO record
             return tx.purchaseOrder.create({
@@ -38,12 +38,15 @@ export class PurchaseOrderRepository extends BaseRepository {
                     supplierId: data.supplierId,
                     createdById: actorId,
                     items: {
-                        create: data.items.map((item) => ({
-                            ingredientId: item.ingredientId,
-                            quantity: item.quantity,
-                            unitCost: item.unitCost,
-                            totalCost: item.quantity * item.unitCost
-                        }))
+                        create: data.items.map((item) => {
+                            const unitCost = item.unitCost ?? 0;
+                            return {
+                                ingredientId: item.ingredientId,
+                                quantity: item.quantity,
+                                unitCost,
+                                totalCost: item.quantity * unitCost
+                            };
+                        })
                     }
                 },
                 include: {
@@ -169,7 +172,12 @@ export class PurchaseOrderRepository extends BaseRepository {
         };
     }
 
-    async updatePurchaseOrderStatus(id: string, status: PurchaseOrderStatus, actorId: string) {
+    async updatePurchaseOrderStatus(
+        id: string,
+        status: PurchaseOrderStatus,
+        actorId: string,
+        itemsPayload?: { ingredientId: string; unitCost?: number }[]
+    ) {
         return prisma.$transaction(async (tx) => {
             const po = await tx.purchaseOrder.findUnique({
                 where: { id, deletedAt: null },
@@ -202,8 +210,39 @@ export class PurchaseOrderRepository extends BaseRepository {
                 });
                 const inventoryByIngredient = new Map(inventories.map((inventory) => [inventory.ingredientId, inventory]));
 
+                // Look up supplier ingredient catalog prices
+                const supplierIngredients = await tx.supplierIngredient.findMany({
+                    where: {
+                        supplierId: po.supplierId,
+                        ingredientId: { in: ingredientIds }
+                    }
+                });
+                const supplierPriceMap = new Map(supplierIngredients.map((si) => [si.ingredientId, si.unitCost ?? 0]));
+
+                let computedTotalAmount = 0;
+
                 // Generate deliveries and increment stock levels
                 for (const item of po.items) {
+                    // Resolve unitCost:
+                    // 1. Explicitly passed in itemsPayload (if provided)
+                    // 2. From supplier catalog (SupplierIngredient)
+                    // 3. Fallback to existing item.unitCost or 0
+                    const customPrice = itemsPayload?.find((p) => p.ingredientId === item.ingredientId);
+                    const unitCost =
+                        customPrice?.unitCost !== undefined ? customPrice.unitCost : (supplierPriceMap.get(item.ingredientId) ?? item.unitCost ?? 0);
+                    const totalCost = item.quantity * unitCost;
+
+                    computedTotalAmount += totalCost;
+
+                    // Update PurchaseOrderItem with resolved pricing
+                    await tx.purchaseOrderItem.update({
+                        where: { id: item.id },
+                        data: {
+                            unitCost,
+                            totalCost
+                        }
+                    });
+
                     // 1. Create batch
                     const batch = await tx.ingredientBatch.create({
                         data: {
@@ -211,8 +250,8 @@ export class PurchaseOrderRepository extends BaseRepository {
                             supplierId: po.supplierId,
                             quantityReceived: item.quantity,
                             currentQuantity: item.quantity,
-                            unitCost: item.unitCost,
-                            totalCost: item.totalCost,
+                            unitCost,
+                            totalCost,
                             batchNumber: po.poNumber, // Use PO Number as batch number
                             purchaseOrderId: po.id,
                             createdById: actorId,
@@ -264,6 +303,8 @@ export class PurchaseOrderRepository extends BaseRepository {
                         }
                     });
                 }
+
+                updates.totalAmount = computedTotalAmount;
             }
 
             return tx.purchaseOrder.update({
@@ -309,7 +350,7 @@ export class PurchaseOrderRepository extends BaseRepository {
 
             if (data.items) {
                 // Compute new total amount
-                const totalAmount = data.items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
+                const totalAmount = data.items.reduce((sum, item) => sum + item.quantity * (item.unitCost ?? 0), 0);
                 updates.totalAmount = totalAmount;
 
                 // Delete existing items
@@ -319,12 +360,15 @@ export class PurchaseOrderRepository extends BaseRepository {
 
                 // Recreate items
                 updates.items = {
-                    create: data.items.map((item) => ({
-                        ingredientId: item.ingredientId,
-                        quantity: item.quantity,
-                        unitCost: item.unitCost,
-                        totalCost: item.quantity * item.unitCost
-                    }))
+                    create: data.items.map((item) => {
+                        const unitCost = item.unitCost ?? 0;
+                        return {
+                            ingredientId: item.ingredientId,
+                            quantity: item.quantity,
+                            unitCost,
+                            totalCost: item.quantity * unitCost
+                        };
+                    })
                 };
             }
 

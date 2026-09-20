@@ -2,7 +2,7 @@ import { PurchaseOrderRepository } from './purchase-order.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { NotFoundException, BadRequestException } from '@/exceptions';
 import { PurchaseOrderStatus } from '@prisma/client';
-import { TCreatePurchaseOrder, TUpdatePurchaseOrder } from './purchase-order.types';
+import { TCreatePurchaseOrder, TUpdatePurchaseOrder, TUpdatePurchaseOrderStatus } from './purchase-order.types';
 import { prisma } from '@/lib/prisma';
 
 export class PurchaseOrderService {
@@ -38,10 +38,12 @@ export class PurchaseOrderService {
 
         const po = await this.repository.createPurchaseOrder(data, actorId);
 
+        const valueDetails = po.totalAmount > 0 ? `with total value PHP ${po.totalAmount.toFixed(2)}` : `with ${data.items.length} item(s)`;
+
         await this.activityLogService.logActivity({
             actorId,
             title: 'Create Purchase Order',
-            details: `Drafted Purchase Order ${po.poNumber} for supplier ${supplier.name} with total value PHP ${po.totalAmount.toFixed(2)}.`
+            details: `Drafted Purchase Order ${po.poNumber} for supplier ${supplier.name} ${valueDetails}.`
         });
 
         return po;
@@ -67,11 +69,14 @@ export class PurchaseOrderService {
         return this.repository.getPurchaseOrderList(params);
     }
 
-    async updatePurchaseOrderStatus(id: string, status: PurchaseOrderStatus, actorId: string) {
+    async updatePurchaseOrderStatus(id: string, statusOrData: PurchaseOrderStatus | TUpdatePurchaseOrderStatus, actorId: string) {
         const po = await this.repository.getPurchaseOrderById(id);
         if (!po) {
             throw new NotFoundException('Purchase Order not found');
         }
+
+        const status = typeof statusOrData === 'string' ? statusOrData : statusOrData.status;
+        const itemsPayload = typeof statusOrData === 'object' ? statusOrData.items : undefined;
 
         // Validate state transitions
         const current = po.status;
@@ -88,12 +93,17 @@ export class PurchaseOrderService {
             throw new BadRequestException('Can only mark as RECEIVED a purchase order that is in SENT state');
         }
 
-        const updatedPo = await this.repository.updatePurchaseOrderStatus(id, status, actorId);
+        const updatedPo = await this.repository.updatePurchaseOrderStatus(id, status, actorId, itemsPayload);
+
+        const details =
+            status === PurchaseOrderStatus.RECEIVED
+                ? `Received Purchase Order ${po.poNumber} from supplier ${po.supplier.name} with total value PHP ${updatedPo.totalAmount.toFixed(2)}.`
+                : `Transitioned Purchase Order ${po.poNumber} status from ${current} to ${status}.`;
 
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Purchase Order Status',
-            details: `Transitioned Purchase Order ${po.poNumber} status from ${current} to ${status}.`
+            details
         });
 
         return updatedPo;

@@ -155,7 +155,7 @@ registry.registerPath({
     method: 'patch',
     path: '/purchase-orders/{id}/status',
     tags: ['Purchase Orders'],
-    summary: 'Update purchase order status',
+    summary: 'Update purchase order status (e.g. SENT, CANCELLED, or RECEIVED with supplier item prices)',
     security: [{ bearerAuth: [] }],
     request: {
         params: z.object({
@@ -171,7 +171,8 @@ registry.registerPath({
     },
     responses: {
         200: {
-            description: 'Purchase order status updated successfully'
+            description: 'Purchase order status updated successfully',
+            content: { 'application/json': { schema: PurchaseOrderResponseSchema } }
         }
     }
 });
@@ -182,7 +183,7 @@ router.patch(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const body = UpdatePurchaseOrderStatusSchema.parse(req.body);
-            const result = await service.updatePurchaseOrderStatus(req.params.id as string, body.status, req.user!.sub);
+            const result = await service.updatePurchaseOrderStatus(req.params.id as string, body, req.user!.sub);
             res.json(result);
         } catch (error) {
             next(error);

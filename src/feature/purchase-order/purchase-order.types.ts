@@ -4,7 +4,7 @@ import { PurchaseOrderStatus } from '@prisma/client';
 export const CreatePurchaseOrderItemSchema = z.object({
     ingredientId: z.string().uuid('Invalid ingredient ID'),
     quantity: z.number().positive('Quantity must be greater than zero'),
-    unitCost: z.number().nonnegative('Unit cost cannot be negative')
+    unitCost: z.number().nonnegative('Unit cost cannot be negative').optional().default(0)
 });
 
 export const CreatePurchaseOrderSchema = z.object({
@@ -13,8 +13,14 @@ export const CreatePurchaseOrderSchema = z.object({
     items: z.array(CreatePurchaseOrderItemSchema).min(1, 'Purchase order must contain at least 1 item')
 });
 
+export const UpdatePurchaseOrderStatusItemSchema = z.object({
+    ingredientId: z.string().uuid('Invalid ingredient ID'),
+    unitCost: z.number().nonnegative('Unit cost cannot be negative').optional()
+});
+
 export const UpdatePurchaseOrderStatusSchema = z.object({
-    status: z.nativeEnum(PurchaseOrderStatus)
+    status: z.nativeEnum(PurchaseOrderStatus),
+    items: z.array(UpdatePurchaseOrderStatusItemSchema).optional()
 });
 
 export const UpdatePurchaseOrderSchema = z.object({
@@ -24,5 +30,6 @@ export const UpdatePurchaseOrderSchema = z.object({
 });
 
 export type TCreatePurchaseOrder = z.infer<typeof CreatePurchaseOrderSchema>;
+export type TUpdatePurchaseOrderStatusItem = z.infer<typeof UpdatePurchaseOrderStatusItemSchema>;
 export type TUpdatePurchaseOrderStatus = z.infer<typeof UpdatePurchaseOrderStatusSchema>;
 export type TUpdatePurchaseOrder = z.infer<typeof UpdatePurchaseOrderSchema>;
