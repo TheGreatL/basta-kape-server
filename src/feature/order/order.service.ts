@@ -162,11 +162,26 @@ export class OrderService {
         const countToday = await this.repository.getOrdersCountToday();
         const queueNumber = `#${String(countToday + 1).padStart(3, '0')}`;
 
+        // Check if GCASH reference number already exists
+        if (data.paymentMethod === 'GCASH' && data.paymentReferenceNumber) {
+            const existingPayment = await prisma.orderPayment.findFirst({
+                where: {
+                    paymentMethod: 'GCASH',
+                    paymentReferenceNumber: data.paymentReferenceNumber.trim()
+                }
+            });
+            if (existingPayment) {
+                throw new ConflictException(
+                    'GCash reference number already exists. A payment with this reference number already exists for this payment method.'
+                );
+            }
+        }
+
         // Create the order in DB
         let paymentDetails = data.paymentMethod
             ? {
                   paymentMethod: data.paymentMethod,
-                  paymentReferenceNumber: data.paymentReferenceNumber,
+                  paymentReferenceNumber: data.paymentReferenceNumber ? data.paymentReferenceNumber.trim() : null,
                   paymentProofPhoto: data.paymentProofPhoto
               }
             : null;
@@ -192,7 +207,9 @@ export class OrderService {
             });
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                throw new ConflictException('A payment with this reference number already exists for this payment method.');
+                throw new ConflictException(
+                    'GCash reference number already exists. A payment with this reference number already exists for this payment method.'
+                );
             }
             throw error;
         }

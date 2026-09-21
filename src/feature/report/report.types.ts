@@ -178,9 +178,7 @@ export const SALES_DAILY_COLUMNS: TReportColumn[] = [
     { key: 'discountAmount', header: 'Discounts', width: 14, align: 'right' },
     { key: 'netSales', header: 'Net Sales', width: 15, align: 'right' },
     { key: 'cashSales', header: 'Cash Sales', width: 14, align: 'right' },
-    { key: 'gcashSales', header: 'GCash Sales', width: 14, align: 'right' },
-    { key: 'paymayaSales', header: 'PayMaya Sales', width: 14, align: 'right' },
-    { key: 'cardSales', header: 'Card Sales', width: 14, align: 'right' }
+    { key: 'gcashSales', header: 'GCash Sales', width: 14, align: 'right' }
 ];
 
 export const SALES_TRANSACTION_COLUMNS: TReportColumn[] = [

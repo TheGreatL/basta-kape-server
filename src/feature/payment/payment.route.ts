@@ -30,7 +30,7 @@ registry.registerPath({
             page: z.coerce.number().min(1).default(1).optional(),
             limit: z.coerce.number().min(1).max(100).default(20).optional(),
             search: z.string().optional(),
-            paymentMethod: z.enum(['CASH', 'GCASH', 'PAYMAYA', 'CREDIT_CARD']).optional(),
+            paymentMethod: z.enum(['CASH', 'GCASH']).optional(),
             paymentStatus: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).optional(),
             dateFrom: z.string().optional(),
             dateTo: z.string().optional()
@@ -73,6 +73,14 @@ router.get(
     }
 );
 
+const UpdateReceiptSchema = z.object({
+    paymentProofPhoto: z.string().optional(),
+    paymentReferenceNumber: z
+        .string()
+        .regex(/^\d{13}$/, 'GCash reference number must be exactly 13 digits')
+        .optional()
+});
+
 // PATCH /orders/payments/{paymentId}/receipt
 registry.registerPath({
     method: 'patch',
@@ -87,10 +95,7 @@ registry.registerPath({
         body: {
             content: {
                 'application/json': {
-                    schema: z.object({
-                        paymentProofPhoto: z.string().optional(),
-                        paymentReferenceNumber: z.string().optional()
-                    })
+                    schema: UpdateReceiptSchema
                 }
             }
         }
@@ -107,7 +112,8 @@ router.patch(
     requireAccess(appModules.TRANSACTION_HISTORY, appPermissions.UPDATE),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const result = await service.updatePaymentReceipt(req.params.paymentId as string, req.body, req.user!.sub);
+            const body = UpdateReceiptSchema.parse(req.body);
+            const result = await service.updatePaymentReceipt(req.params.paymentId as string, body, req.user!.sub);
             res.json(result);
         } catch (error) {
             next(error);

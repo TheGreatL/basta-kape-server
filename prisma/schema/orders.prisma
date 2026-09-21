@@ -20,8 +20,6 @@ enum OrderSource {
 enum PaymentMethod {
   CASH
   GCASH
-  PAYMAYA
-  CREDIT_CARD
 }
 
 enum PaymentStatus {

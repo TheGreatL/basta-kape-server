@@ -703,11 +703,9 @@ export class ReportService {
                 _sum: { amount: true }
             })) as unknown as SalesPaymentRow[];
 
-            const paymentBreakdown = {
+            const paymentBreakdown: Record<string, { count: number; revenue: number }> = {
                 CASH: { count: 0, revenue: 0 },
-                GCASH: { count: 0, revenue: 0 },
-                PAYMAYA: { count: 0, revenue: 0 },
-                CREDIT_CARD: { count: 0, revenue: 0 }
+                GCASH: { count: 0, revenue: 0 }
             };
 
             for (const row of paymentRows) {
@@ -825,11 +823,9 @@ export class ReportService {
             })
         ]);
 
-        const paymentBreakdown = {
+        const paymentBreakdown: Record<string, { count: number; revenue: number }> = {
             CASH: { count: 0, revenue: 0 },
-            GCASH: { count: 0, revenue: 0 },
-            PAYMAYA: { count: 0, revenue: 0 },
-            CREDIT_CARD: { count: 0, revenue: 0 }
+            GCASH: { count: 0, revenue: 0 }
         };
 
         for (const row of paymentRows) {

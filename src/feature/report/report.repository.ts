@@ -628,8 +628,6 @@ export class ReportRepository extends BaseRepository {
                 netSales: number;
                 cashSales: number;
                 gcashSales: number;
-                paymayaSales: number;
-                cardSales: number;
             }
         > = {};
 
@@ -653,9 +651,7 @@ export class ReportRepository extends BaseRepository {
                     discountAmount: 0,
                     netSales: 0,
                     cashSales: 0,
-                    gcashSales: 0,
-                    paymayaSales: 0,
-                    cardSales: 0
+                    gcashSales: 0
                 };
             }
 
@@ -671,10 +667,6 @@ export class ReportRepository extends BaseRepository {
                     group.cashSales += payment.amount;
                 } else if (payment.paymentMethod === 'GCASH') {
                     group.gcashSales += payment.amount;
-                } else if (payment.paymentMethod === 'PAYMAYA') {
-                    group.paymayaSales += payment.amount;
-                } else if (payment.paymentMethod === 'CREDIT_CARD') {
-                    group.cardSales += payment.amount;
                 }
             }
         }
@@ -704,9 +696,7 @@ export class ReportRepository extends BaseRepository {
             discountAmount: formatCurrency(row.discountAmount),
             netSales: formatCurrency(row.netSales),
             cashSales: formatCurrency(row.cashSales),
-            gcashSales: formatCurrency(row.gcashSales),
-            paymayaSales: formatCurrency(row.paymayaSales),
-            cardSales: formatCurrency(row.cardSales)
+            gcashSales: formatCurrency(row.gcashSales)
         }));
 
         return {

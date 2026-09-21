@@ -11,17 +11,7 @@ export const CreatePaymentSchema = z.discriminatedUnion('paymentMethod', [
     }),
     z.object({
         paymentMethod: z.literal(PaymentMethod.GCASH),
-        paymentReferenceNumber: z.string().min(5, 'GCash reference number must be at least 5 characters'),
-        paymentProofPhoto: z.string().max(1000).optional().nullable()
-    }),
-    z.object({
-        paymentMethod: z.literal(PaymentMethod.PAYMAYA),
-        paymentReferenceNumber: z.string().min(5, 'PayMaya reference number must be at least 5 characters'),
-        paymentProofPhoto: z.string().max(1000).optional().nullable()
-    }),
-    z.object({
-        paymentMethod: z.literal(PaymentMethod.CREDIT_CARD),
-        paymentReferenceNumber: z.string().min(5, 'Credit Card reference/transaction number must be at least 5 characters'),
+        paymentReferenceNumber: z.string().regex(/^\d{13}$/, 'GCash reference number must be exactly 13 digits'),
         paymentProofPhoto: z.string().max(1000).optional().nullable()
     })
 ]);

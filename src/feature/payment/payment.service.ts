@@ -63,9 +63,22 @@ export class PaymentService {
             }
             amountChange = Math.round((amountTendered - order.netTotal) * 100) / 100;
         } else {
-            // GCASH, PAYMAYA, or CREDIT_CARD
-            paymentReferenceNumber = data.paymentReferenceNumber;
+            // GCASH
+            paymentReferenceNumber = data.paymentReferenceNumber.trim();
             paymentProofPhoto = data.paymentProofPhoto ?? null;
+
+            // Check if GCASH reference number already exists
+            const existingRef = await prisma.orderPayment.findFirst({
+                where: {
+                    paymentMethod: PaymentMethod.GCASH,
+                    paymentReferenceNumber
+                }
+            });
+            if (existingRef) {
+                throw new ConflictException(
+                    'GCash reference number already exists. A payment with this reference number already exists for this payment method.'
+                );
+            }
         }
 
         // 6. Record payment in database
@@ -86,7 +99,9 @@ export class PaymentService {
             );
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                throw new ConflictException('A payment with this reference number already exists for this payment method.');
+                throw new ConflictException(
+                    'GCash reference number already exists. A payment with this reference number already exists for this payment method.'
+                );
             }
             throw error;
         }
@@ -132,12 +147,34 @@ export class PaymentService {
             throw new BadRequestException('Cannot upload payment receipt for cash transactions.');
         }
 
+        const sanitizedData = { ...data };
+        if (sanitizedData.paymentReferenceNumber !== undefined) {
+            sanitizedData.paymentReferenceNumber = sanitizedData.paymentReferenceNumber.trim();
+            if (!/^\d{13}$/.test(sanitizedData.paymentReferenceNumber)) {
+                throw new BadRequestException('GCash reference number must be exactly 13 digits.');
+            }
+            const existingRef = await prisma.orderPayment.findFirst({
+                where: {
+                    id: { not: paymentId },
+                    paymentMethod: PaymentMethod.GCASH,
+                    paymentReferenceNumber: sanitizedData.paymentReferenceNumber
+                }
+            });
+            if (existingRef) {
+                throw new ConflictException(
+                    'GCash reference number already exists. A payment with this reference number already exists for this payment method.'
+                );
+            }
+        }
+
         let updated;
         try {
-            updated = await this.repository.updatePaymentReceipt(paymentId, data, actorId);
+            updated = await this.repository.updatePaymentReceipt(paymentId, sanitizedData, actorId);
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                throw new ConflictException('A payment with this reference number already exists for this payment method.');
+                throw new ConflictException(
+                    'GCash reference number already exists. A payment with this reference number already exists for this payment method.'
+                );
             }
             throw error;
         }

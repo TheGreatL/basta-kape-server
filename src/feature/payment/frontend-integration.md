@@ -1,6 +1,6 @@
 # Frontend Integration Guide: Digital & Cash Payments (`OrderPayment`)
 
-This guide details the integration endpoints available in the **Basta Kape API** for recording and processing cash and digital payments (GCash, PayMaya, Credit Card) for orders.
+This guide details the integration endpoints available in the **Basta Kape API** for recording and processing cash and GCash payments for orders.
 
 ---
 
@@ -20,7 +20,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 - **Description**: Processes and records a payment for a specific order. If successful and the order status is `PENDING`, the order status will transition to `PREPARING`.
 - **RBAC Permission Required**: `create` (module: `Point of Sale (POS)`)
 - **Request Body**:
-    - This endpoint accepts a payload matching one of the following payment methods:
+    - This endpoint accepts a payload matching one of the following payment methods (`CASH` or `GCASH`):
 
     #### Cash Payment:
     - `paymentMethod` (string, literal: `"CASH"`): Must be `"CASH"`.
@@ -33,15 +33,15 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     }
     ```
 
-    #### GCash / Digital Payment:
-    - `paymentMethod` (string, literal: `"GCASH"`, `"PAYMAYA"`, or `"CREDIT_CARD"`): The payment method name.
-    - `paymentReferenceNumber` (string, required, min 5 chars): The digital receipt reference number printed or shown on screens.
+    #### GCash Payment:
+    - `paymentMethod` (string, literal: `"GCASH"`): Must be `"GCASH"`.
+    - `paymentReferenceNumber` (string, required): The 13-digit numeric GCash reference number (regex: `/^\d{13}$/`). Each reference number must be unique.
     - `paymentProofPhoto` (string, optional): A URL or image file path of the transaction screenshot.
 
     ```json
     {
         "paymentMethod": "GCASH",
-        "paymentReferenceNumber": "9012345678901",
+        "paymentReferenceNumber": "1002345678901",
         "paymentProofPhoto": "/uploads/proofs/gcash-screenshot.jpg"
     }
     ```
@@ -77,11 +77,11 @@ All endpoints in this module require JWT authentication via the `Authorization: 
             "message": "Order not found"
         }
         ```
-    - **409 Conflict**: If the order has already been paid:
+    - **409 Conflict**: If the order has already been paid or the GCash reference number already exists:
         ```json
         {
             "statusCode": 409,
-            "message": "Order has already been paid."
+            "message": "GCash reference number already exists. A payment with this reference number already exists for this payment method."
         }
         ```
 

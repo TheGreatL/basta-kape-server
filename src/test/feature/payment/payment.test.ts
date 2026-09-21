@@ -230,7 +230,7 @@ describe('Payment Feature Integration Tests', () => {
             const order = await createTestOrder();
             const payload = {
                 paymentMethod: 'GCASH',
-                paymentReferenceNumber: 'REF123456789'
+                paymentReferenceNumber: '1002345678901'
             };
 
             const res = await request(app).post(`/orders/${order.id}/payments`).send(payload);
@@ -239,7 +239,7 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.body.paymentMethod).toBe('GCASH');
             expect(res.body.paymentStatus).toBe('PAID');
             expect(res.body.amount).toBe(120.0);
-            expect(res.body.paymentReferenceNumber).toBe('REF123456789');
+            expect(res.body.paymentReferenceNumber).toBe('1002345678901');
 
             const updatedOrder = await prisma.order.findUnique({
                 where: { id: order.id }
@@ -260,11 +260,11 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.body.error).toContain('Amount tendered');
         });
 
-        it('should fail if paymentMethod is GCASH but reference number is missing or too short', async () => {
+        it('should reject MAYA as an unsupported payment method', async () => {
             const order = await createTestOrder();
             const payload = {
-                paymentMethod: 'GCASH',
-                paymentReferenceNumber: '12'
+                paymentMethod: 'PAYMAYA',
+                paymentReferenceNumber: '1002345678901'
             };
 
             const res = await request(app).post(`/orders/${order.id}/payments`).send(payload);
@@ -273,13 +273,41 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.body.error).toBe('Validation failed');
         });
 
+        it('should fail if paymentMethod is GCASH but reference number is not exactly 13 digits', async () => {
+            const order = await createTestOrder();
+
+            // Too short (12 digits)
+            const res1 = await request(app).post(`/orders/${order.id}/payments`).send({
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: '123456789012'
+            });
+            expect(res1.status).toBe(400);
+            expect(JSON.stringify(res1.body)).toContain('GCash reference number must be exactly 13 digits');
+
+            // Too long (14 digits)
+            const res2 = await request(app).post(`/orders/${order.id}/payments`).send({
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: '12345678901234'
+            });
+            expect(res2.status).toBe(400);
+            expect(JSON.stringify(res2.body)).toContain('GCash reference number must be exactly 13 digits');
+
+            // Contains letters (13 chars)
+            const res3 = await request(app).post(`/orders/${order.id}/payments`).send({
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: '123456789012A'
+            });
+            expect(res3.status).toBe(400);
+            expect(JSON.stringify(res3.body)).toContain('GCash reference number must be exactly 13 digits');
+        });
+
         it('should fail if paymentReferenceNumber is duplicate for the same paymentMethod', async () => {
             const order1 = await createTestOrder();
             const order2 = await createTestOrder();
 
             const payload = {
                 paymentMethod: 'GCASH',
-                paymentReferenceNumber: 'DUPREF12345'
+                paymentReferenceNumber: '1002345678902'
             };
 
             // Process first payment successfully
@@ -395,19 +423,66 @@ describe('Payment Feature Integration Tests', () => {
 
             const payload = {
                 paymentProofPhoto: 'https://example.com/proofs/gcash-123.jpg',
-                paymentReferenceNumber: 'GCASH-REF-998877'
+                paymentReferenceNumber: '1002345678903'
             };
 
             const res = await request(app).patch(`/orders/payments/${payment.id}/receipt`).send(payload);
 
             expect(res.status).toBe(200);
             expect(res.body.paymentProofPhoto).toBe('https://example.com/proofs/gcash-123.jpg');
-            expect(res.body.paymentReferenceNumber).toBe('GCASH-REF-998877');
+            expect(res.body.paymentReferenceNumber).toBe('1002345678903');
+        });
+
+        it('should fail with 400 when updating receipt with non-13-digit reference', async () => {
+            const order = await createTestOrder();
+            const payment = await prisma.orderPayment.create({
+                data: {
+                    orderId: order.id,
+                    paymentMethod: 'GCASH',
+                    amount: 120.0,
+                    amountTendered: 120.0
+                }
+            });
+
+            const res = await request(app).patch(`/orders/payments/${payment.id}/receipt`).send({
+                paymentReferenceNumber: 'SHORT123'
+            });
+
+            expect(res.status).toBe(400);
+            expect(JSON.stringify(res.body)).toContain('GCash reference number must be exactly 13 digits');
+        });
+
+        it('should fail with 409 when updating receipt with a reference number already used by another payment', async () => {
+            const order1 = await createTestOrder();
+            await prisma.orderPayment.create({
+                data: {
+                    orderId: order1.id,
+                    paymentMethod: 'GCASH',
+                    amount: 120.0,
+                    paymentReferenceNumber: '1002345678905'
+                }
+            });
+
+            const order2 = await createTestOrder();
+            const payment2 = await prisma.orderPayment.create({
+                data: {
+                    orderId: order2.id,
+                    paymentMethod: 'GCASH',
+                    amount: 120.0
+                }
+            });
+
+            const res = await request(app).patch(`/orders/payments/${payment2.id}/receipt`).send({
+                paymentReferenceNumber: '1002345678905'
+            });
+
+            expect(res.status).toBe(409);
+            expect(res.body.error).toContain('A payment with this reference number already exists for this payment method.');
         });
 
         it('should fail with 404 when payment record does not exist', async () => {
             const res = await request(app).patch('/orders/payments/00000000-0000-0000-0000-000000000000/receipt').send({
-                paymentReferenceNumber: 'FAKE-123'
+                paymentReferenceNumber: '1002345678904'
             });
 
             expect(res.status).toBe(404);

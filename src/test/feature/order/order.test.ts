@@ -58,7 +58,7 @@ describe('Order Feature CRUD', () => {
         // Clean up any leftover payments with this test reference to avoid collisions
         await prisma.orderPayment.deleteMany({
             where: {
-                paymentReferenceNumber: 'DUPCREATE999'
+                paymentReferenceNumber: '9001234567890'
             }
         });
 
@@ -368,12 +368,49 @@ describe('Order Feature CRUD', () => {
             }
         });
 
+        it('should fail to place an order if GCash paymentReferenceNumber is not exactly 13 digits', async () => {
+            const payload = {
+                orderType: 'DINE_IN',
+                orderSource: 'WEBSITE',
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: '12345',
+                paymentProofPhoto: 'https://example.com/proof.jpg',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1
+                    }
+                ]
+            };
+
+            const res = await request(app).post('/orders').send(payload);
+            expect(res.status).toBe(400);
+            expect(JSON.stringify(res.body)).toContain('GCash reference number must be exactly 13 digits');
+        });
+
+        it('should reject MAYA as an invalid payment method', async () => {
+            const payload = {
+                orderType: 'DINE_IN',
+                orderSource: 'POS',
+                paymentMethod: 'PAYMAYA',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1
+                    }
+                ]
+            };
+
+            const res = await request(app).post('/orders').send(payload);
+            expect(res.status).toBe(400);
+        });
+
         it('should fail to place an order if paymentReferenceNumber is duplicate for the same paymentMethod', async () => {
             const payload = {
                 orderType: 'DINE_IN',
                 orderSource: 'WEBSITE',
                 paymentMethod: 'GCASH',
-                paymentReferenceNumber: 'DUPCREATE999',
+                paymentReferenceNumber: '9001234567890',
                 paymentProofPhoto: 'https://example.com/proof.jpg',
                 items: [
                     {
