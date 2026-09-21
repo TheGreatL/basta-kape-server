@@ -51,6 +51,7 @@ describe('Auth Feature Integration Tests', () => {
         });
         if (stuckUser) {
             await prisma.refreshToken.deleteMany({ where: { userId: stuckUser.id } });
+            await prisma.customer.deleteMany({ where: { userId: stuckUser.id } });
             await prisma.user.delete({ where: { id: stuckUser.id } });
         }
     });
@@ -58,6 +59,7 @@ describe('Auth Feature Integration Tests', () => {
     afterAll(async () => {
         if (registeredUserId) {
             await prisma.refreshToken.deleteMany({ where: { userId: registeredUserId } });
+            await prisma.customer.deleteMany({ where: { userId: registeredUserId } });
             await prisma.user.delete({ where: { id: registeredUserId } });
         }
         await prisma.$disconnect();

@@ -108,7 +108,7 @@ export async function seedProduct(prisma: PrismaClient) {
         if (found) {
             return prisma.unitConversion.update({
                 where: { id: found.id },
-                data: { factor, updatedById: adminId, updatedAt: SEED_DATE }
+                data: { fromUnitId, toUnitId, factor, updatedById: adminId, updatedAt: SEED_DATE }
             });
         }
         return prisma.unitConversion.create({
@@ -416,6 +416,9 @@ export async function seedProduct(prisma: PrismaClient) {
     const unitL = await getOrCreateUnit('Liters', 'L', 'INGREDIENT');
     const unitPump = await getOrCreateUnit('Pump', 'pump', 'INGREDIENT');
     const unitShot = await getOrCreateUnit('Shot', 'shot', 'INGREDIENT');
+    const unitScoop = await getOrCreateUnit('Scoop', 'scoop', 'INGREDIENT');
+    const unitCup = await getOrCreateUnit('Cup', 'cup', 'INGREDIENT');
+    const unitFlOz = await getOrCreateUnit('Fluid Ounce', 'fl oz', 'INGREDIENT');
 
     // Standard global unit conversions:
     // 1 tb = 4 ml (or user requested standard kitchen measure)
@@ -430,6 +433,12 @@ export async function seedProduct(prisma: PrismaClient) {
     await getOrCreateUnitConversion(unitPump.id, unitMl.id, 10);
     // 1 shot = 30 ml
     await getOrCreateUnitConversion(unitShot.id, unitMl.id, 30);
+    // 1 cup = 240 ml
+    await getOrCreateUnitConversion(unitCup.id, unitMl.id, 240);
+    // 1 fl oz = 30 ml
+    await getOrCreateUnitConversion(unitFlOz.id, unitMl.id, 30);
+    // 1 scoop = 10 g (standard powder scoop baseline)
+    await getOrCreateUnitConversion(unitScoop.id, unitG.id, 10);
     // 1 pack = 50 pcs (packaging materials e.g. lids, straws, bowls)
     await getOrCreateUnitConversion(unitPack.id, unitPcs.id, 50);
     // 1 sleeve = 50 pcs (cups, sleeves)
@@ -1932,8 +1941,8 @@ export async function seedProduct(prisma: PrismaClient) {
         { name: 'Whipped Cream', price: 30, ing: ingWhippedCream, qty: 20, unit: unitMl },
         { name: 'Seasalt Cream', price: 30, ing: ingSeasaltCream, qty: 30, unit: unitMl },
         { name: 'Coffee Jelly', price: 25, ing: ingCoffeeJelly, qty: 30, unit: unitG },
-        { name: 'Takeaway Carrier Box', price: 15, ing: matCarrierBox, qty: 1, unit: unitBox },
-        { name: 'Takeaway Pack Bag', price: 10, ing: matTakeawayPack, qty: 1, unit: unitPack }
+        { name: 'Takeaway Carrier Box', price: 15, ing: matCarrierBox, qty: 1, unit: unitPcs },
+        { name: 'Takeaway Pack Bag', price: 10, ing: matTakeawayPack, qty: 1, unit: unitPcs }
     ];
 
     for (const prod of allBeverages) {
