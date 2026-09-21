@@ -455,7 +455,12 @@ export class OrderRepository extends BaseRepository {
                   })
                 : Promise.resolve([]),
             tx.unitConversion.findMany({
-                where: { deletedAt: null }
+                where: { deletedAt: null },
+                include: {
+                    fromUnit: { select: { name: true, abbreviation: true } },
+                    toUnit: { select: { name: true, abbreviation: true } },
+                    ingredient: { select: { name: true } }
+                }
             })
         ]);
 

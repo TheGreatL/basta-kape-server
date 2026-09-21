@@ -27,9 +27,14 @@ export class UnitConversionService {
             toUnitId: string;
             factor: number;
             ingredientId?: string | null;
+            fromUnit?: { name: string; abbreviation?: string | null } | null;
+            toUnit?: { name: string; abbreviation?: string | null } | null;
+            ingredient?: { name: string } | null;
         }>
     ): TUnitConverter {
         const map = new Map<string, number>();
+        const unitNameMap = new Map<string, string>();
+        const ingredientNameMap = new Map<string, string>();
 
         for (const conv of activeConversions) {
             const scope = conv.ingredientId ? conv.ingredientId : 'global';
@@ -37,6 +42,18 @@ export class UnitConversionService {
             map.set(`${scope}:${conv.fromUnitId}->${conv.toUnitId}`, conv.factor);
             // Reverse conversion
             map.set(`${scope}:${conv.toUnitId}->${conv.fromUnitId}`, 1 / conv.factor);
+
+            if (conv.fromUnit) {
+                const abbr = conv.fromUnit.abbreviation ? ` (${conv.fromUnit.abbreviation})` : '';
+                unitNameMap.set(conv.fromUnitId, `${conv.fromUnit.name}${abbr}`);
+            }
+            if (conv.toUnit) {
+                const abbr = conv.toUnit.abbreviation ? ` (${conv.toUnit.abbreviation})` : '';
+                unitNameMap.set(conv.toUnitId, `${conv.toUnit.name}${abbr}`);
+            }
+            if (conv.ingredient && conv.ingredientId) {
+                ingredientNameMap.set(conv.ingredientId, conv.ingredient.name);
+            }
         }
 
         return (fromUnitId: string, toUnitId: string, quantity: number, ingredientId?: string | null): number => {
@@ -56,10 +73,16 @@ export class UnitConversionService {
                 return quantity * globalFactor;
             }
 
+            const fromLabel = unitNameMap.get(fromUnitId) || `unit ID "${fromUnitId}"`;
+            const toLabel = unitNameMap.get(toUnitId) || `unit ID "${toUnitId}"`;
+            const ingLabel = ingredientId
+                ? ingredientNameMap.get(ingredientId)
+                    ? ` for ingredient "${ingredientNameMap.get(ingredientId)}"`
+                    : ` for ingredient ID "${ingredientId}"`
+                : '';
+
             throw new BadRequestException(
-                `No unit conversion found from unit ID "${fromUnitId}" to unit ID "${toUnitId}"${
-                    ingredientId ? ` for ingredient ID "${ingredientId}"` : ''
-                }. Please configure this unit conversion in Inventory Settings.`
+                `No unit conversion found from ${fromLabel} to ${toLabel}${ingLabel}. Please configure this unit conversion in Inventory Settings.`
             );
         };
     }

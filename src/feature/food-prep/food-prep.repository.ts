@@ -58,7 +58,14 @@ export class FoodPrepRepository extends BaseRepository {
             }
 
             // 2. Calculate required raw ingredient quantities
-            const activeConversions = await tx.unitConversion.findMany({ where: { deletedAt: null } });
+            const activeConversions = await tx.unitConversion.findMany({
+                where: { deletedAt: null },
+                include: {
+                    fromUnit: { select: { name: true, abbreviation: true } },
+                    toUnit: { select: { name: true, abbreviation: true } },
+                    ingredient: { select: { name: true } }
+                }
+            });
             const converter = UnitConversionService.createConverter(activeConversions);
 
             const ingredientRequirements = new Map<string, number>();

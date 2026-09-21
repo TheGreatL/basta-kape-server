@@ -170,7 +170,7 @@ export class CustomerRepository extends BaseRepository {
      * Finds a single customer by ID (customer ID, user ID, or username).
      */
     async findCustomerById(id: string) {
-        return prisma.customer.findFirst({
+        let customer = await prisma.customer.findFirst({
             where: {
                 OR: [{ id }, { userId: id }, { user: { username: id } }],
                 deletedAt: null
@@ -179,6 +179,29 @@ export class CustomerRepository extends BaseRepository {
                 user: true
             }
         });
+
+        if (!customer) {
+            const user = await prisma.user.findFirst({
+                where: {
+                    OR: [{ id }, { username: id }],
+                    deletedAt: null,
+                    role: { name: 'Customer' }
+                }
+            });
+
+            if (user) {
+                customer = await prisma.customer.create({
+                    data: {
+                        userId: user.id
+                    },
+                    include: {
+                        user: true
+                    }
+                });
+            }
+        }
+
+        return customer;
     }
 
     /**

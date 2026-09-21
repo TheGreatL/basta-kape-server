@@ -430,6 +430,12 @@ export async function seedProduct(prisma: PrismaClient) {
     await getOrCreateUnitConversion(unitPump.id, unitMl.id, 10);
     // 1 shot = 30 ml
     await getOrCreateUnitConversion(unitShot.id, unitMl.id, 30);
+    // 1 pack = 50 pcs (packaging materials e.g. lids, straws, bowls)
+    await getOrCreateUnitConversion(unitPack.id, unitPcs.id, 50);
+    // 1 sleeve = 50 pcs (cups, sleeves)
+    await getOrCreateUnitConversion(unitSleeve.id, unitPcs.id, 50);
+    // 1 box = 50 pcs (carrier boxes)
+    await getOrCreateUnitConversion(unitBox.id, unitPcs.id, 50);
 
     // ==========================================
     // 4. SEED INGREDIENTS & PACKAGING MATERIALS
@@ -866,6 +872,24 @@ export async function seedProduct(prisma: PrismaClient) {
         supplier.id,
         'PACKAGING_MATERIAL'
     );
+
+    // ==========================================
+    // 4.1 SEED INGREDIENT-SPECIFIC CONVERSIONS
+    // ==========================================
+    // Straws: 1 pack contains 100 straws (overrides global 50 pcs/pack)
+    await getOrCreateUnitConversion(unitPack.id, unitPcs.id, 100, matStraw.id);
+
+    // Matcha powder: 1 scoop = 5g
+    await getOrCreateUnitConversion(unitScoop.id, unitG.id, 5, ingMatcha.id);
+
+    // Chocolate powder: 1 scoop = 15g
+    await getOrCreateUnitConversion(unitScoop.id, unitG.id, 15, ingChocolate.id);
+
+    // Espresso beans: 1 shot = 18g (barista dose)
+    await getOrCreateUnitConversion(unitShot.id, unitG.id, 18, ingBeans.id);
+
+    // Fresh milk: 1 cup = 240ml
+    await getOrCreateUnitConversion(unitCup.id, unitMl.id, 240, ingFreshMilk.id);
 
     // ==========================================
     // 5. SEED PRODUCT TYPES, CATEGORIES, & ATTRIBUTES
@@ -1576,7 +1600,7 @@ export async function seedProduct(prisma: PrismaClient) {
         if (temp === 'Hot' && size === '12oz') {
             await getOrCreateRecipeIngredient(recipeId, matPaperCup12oz.id, 1, unitPcs.id);
             await getOrCreateRecipeIngredient(recipeId, matHotLid.id, 1, unitPcs.id);
-            await getOrCreateRecipeIngredient(recipeId, matPaperSleeve.id, 1, unitSleeve.id);
+            await getOrCreateRecipeIngredient(recipeId, matPaperSleeve.id, 1, unitPcs.id);
         } else if (temp === 'Iced' && size === '16oz') {
             await getOrCreateRecipeIngredient(recipeId, matColdCup16oz.id, 1, unitPcs.id);
             await getOrCreateRecipeIngredient(recipeId, matDomeLid.id, 1, unitPcs.id);

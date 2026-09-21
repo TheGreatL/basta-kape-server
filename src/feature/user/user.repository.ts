@@ -89,6 +89,9 @@ export class UserRepository extends BaseRepository {
             phoneNumber: data.phoneNumber,
             role: {
                 connect: { id: customerRole.id }
+            },
+            customer: {
+                create: {}
             }
         };
 
