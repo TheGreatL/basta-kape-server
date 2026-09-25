@@ -446,4 +446,38 @@ describe('Report Feature', () => {
         const sheet = workbook.getWorksheet('Report');
         expect(sheet).toBeDefined();
     });
+
+    it('should include orders that have confirmed payment even if order status is not completed yet', async () => {
+        const preparingOrder = await prisma.order.create({
+            data: {
+                status: 'PREPARING',
+                paymentStatus: 'PAID',
+                totalPaid: 250.0,
+                subtotal: 250.0,
+                discountAmount: 0.0,
+                netTotal: 250.0,
+                payments: {
+                    create: {
+                        paymentMethod: 'GCASH',
+                        amount: 250.0,
+                        paymentReferenceNumber: 'GCASH-PREP-TEST-001'
+                    }
+                }
+            }
+        });
+
+        try {
+            const res = await request(app).get('/reports/sales-analytics?type=orders');
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('orders');
+
+            const found = res.body.orders.find((o: { id: string }) => o.id === preparingOrder.id);
+            expect(found).toBeDefined();
+            expect(found.status).toBe('PREPARING');
+            expect(found.netTotal).toBe(250.0);
+        } finally {
+            await prisma.orderPayment.deleteMany({ where: { orderId: preparingOrder.id } });
+            await prisma.order.deleteMany({ where: { id: preparingOrder.id } });
+        }
+    });
 });

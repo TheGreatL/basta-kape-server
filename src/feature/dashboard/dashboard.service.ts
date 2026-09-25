@@ -59,8 +59,20 @@ export class DashboardService {
                 _count: {
                     _all: true
                 },
+                // @deprecated Previously, only COMPLETED orders were counted in salesToday / salesOverview:
+                // where: {
+                //     status: 'COMPLETED',
+                //     createdAt: {
+                //         gte: startDate,
+                //         lte: endDate
+                //     }
+                // }
+                //
+                // Active: Count all orders with confirmed payment (paymentStatus: 'PAID'),
+                // even if order status is not completed yet, excluding CANCELLED orders.
                 where: {
-                    status: 'COMPLETED',
+                    paymentStatus: 'PAID',
+                    status: { not: 'CANCELLED' },
                     createdAt: {
                         gte: startDate,
                         lte: endDate

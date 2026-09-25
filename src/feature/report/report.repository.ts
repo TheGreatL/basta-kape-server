@@ -526,9 +526,17 @@ export class ReportRepository extends BaseRepository {
     private async fetchSalesSummary(filters: TReportFilters, pagination?: { page: number; limit: number }): Promise<TReportQueryResult> {
         const isTransactionView = filters.groupBy === 'transaction';
 
+        // @deprecated Previously, only COMPLETED orders were included in sales summary:
+        // const where: Prisma.OrderWhereInput = {
+        //     status: 'COMPLETED',
+        //     paymentStatus: 'PAID'
+        // };
+        //
+        // Active: List all orders with confirmed payment (paymentStatus: 'PAID'),
+        // even if order status is not completed yet, excluding CANCELLED orders.
         const where: Prisma.OrderWhereInput = {
-            status: 'COMPLETED',
-            paymentStatus: 'PAID'
+            paymentStatus: 'PAID',
+            status: { not: 'CANCELLED' }
         };
 
         if (filters.status === 'active') where.deletedAt = null;
@@ -706,9 +714,17 @@ export class ReportRepository extends BaseRepository {
     }
 
     private async fetchFinancialsSummary(filters: TReportFilters, pagination?: { page: number; limit: number }): Promise<TReportQueryResult> {
+        // @deprecated Previously, only COMPLETED orders were included in financials revenue:
+        // const orderWhere: Prisma.OrderWhereInput = {
+        //     status: 'COMPLETED',
+        //     paymentStatus: 'PAID'
+        // };
+        //
+        // Active: Include all orders with confirmed payment (paymentStatus: 'PAID'),
+        // even if order status is not completed yet, excluding CANCELLED orders.
         const orderWhere: Prisma.OrderWhereInput = {
-            status: 'COMPLETED',
-            paymentStatus: 'PAID'
+            paymentStatus: 'PAID',
+            status: { not: 'CANCELLED' }
         };
         const batchWhere: Prisma.IngredientBatchWhereInput = {
             deletedAt: null

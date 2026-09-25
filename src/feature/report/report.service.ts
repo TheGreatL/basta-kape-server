@@ -212,9 +212,22 @@ export class ReportService {
             end.setHours(23, 59, 59, 999);
         }
 
+        // @deprecated: Previously, only COMPLETED orders were counted towards sales:
+        // const orderWhere: Prisma.OrderWhereInput = {
+        //     status: OrderStatus.COMPLETED,
+        //     paymentStatus: PaymentStatus.PAID,
+        //     createdAt: {
+        //         gte: start,
+        //         lte: end
+        //     }
+        // };
+        //
+        // Active: Count all orders with confirmed payment (paymentStatus: PAID),
+        // even if fulfillment status is not COMPLETED yet (e.g. PENDING, PREPARING, READY),
+        // excluding CANCELLED orders.
         const orderWhere: Prisma.OrderWhereInput = {
-            status: OrderStatus.COMPLETED,
             paymentStatus: PaymentStatus.PAID,
+            status: { not: OrderStatus.CANCELLED },
             createdAt: {
                 gte: start,
                 lte: end
