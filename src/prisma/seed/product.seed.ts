@@ -233,8 +233,6 @@ export async function seedProduct(prisma: PrismaClient) {
         description: string,
         categoryId: string,
         typeId: string,
-        isMustTry: boolean = false,
-        isBestSeller: boolean = false,
         preparationType: 'MADE_TO_ORDER' | 'PREPARED_DISPLAY' = 'MADE_TO_ORDER',
         defaultShelfLife: number | null = null,
         photo: string | null = null
@@ -248,8 +246,6 @@ export async function seedProduct(prisma: PrismaClient) {
                     productCategoryId: categoryId,
                     productTypeId: typeId,
                     photo: photo !== null ? photo : found.photo,
-                    isMustTry,
-                    isBestSeller,
                     preparationType,
                     defaultShelfLife,
                     updatedById: adminId,
@@ -264,8 +260,6 @@ export async function seedProduct(prisma: PrismaClient) {
                 productCategoryId: categoryId,
                 productTypeId: typeId,
                 photo,
-                isMustTry,
-                isBestSeller,
                 preparationType,
                 defaultShelfLife,
                 createdById: adminId,
@@ -956,21 +950,9 @@ export async function seedProduct(prisma: PrismaClient) {
         icedPrice: number | undefined,
         has22oz: boolean = false,
         iced22ozPrice: number | undefined = undefined,
-        isMustTry: boolean = false,
-        isBestSeller: boolean = false,
         photo: string | null = null
     ) => {
-        const product = await getOrCreateProduct(
-            name,
-            description,
-            categoryId,
-            typeBeverage.id,
-            isMustTry,
-            isBestSeller,
-            'MADE_TO_ORDER',
-            null,
-            photo
-        );
+        const product = await getOrCreateProduct(name, description, categoryId, typeBeverage.id, 'MADE_TO_ORDER', null, photo);
         const createdVariants = [];
 
         // 1. Hot 12oz
@@ -1002,23 +984,11 @@ export async function seedProduct(prisma: PrismaClient) {
         name: string,
         description: string,
         price: number,
-        isMustTry: boolean = false,
-        isBestSeller: boolean = false,
         preparationType: 'MADE_TO_ORDER' | 'PREPARED_DISPLAY' = 'MADE_TO_ORDER',
         defaultShelfLife: number | null = null,
         photo: string | null = null
     ) => {
-        const product = await getOrCreateProduct(
-            name,
-            description,
-            categoryId,
-            typeFood.id,
-            isMustTry,
-            isBestSeller,
-            preparationType,
-            defaultShelfLife,
-            photo
-        );
+        const product = await getOrCreateProduct(name, description, categoryId, typeFood.id, preparationType, defaultShelfLife, photo);
         const cleanedName = name.replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
         const sku = `${cleanedName}-REGULAR`;
         const variant = await getOrCreateVariant(product.id, sku, price, [valRegular.id]);
@@ -1057,7 +1027,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededWaffles = [];
     for (const w of waffleItems) {
-        seededWaffles.push(await seedFoodProduct(catWaffles.id, w.name, w.desc, w.price, w.mustTry, w.bestSeller, 'MADE_TO_ORDER', null, w.photo));
+        seededWaffles.push(await seedFoodProduct(catWaffles.id, w.name, w.desc, w.price, 'MADE_TO_ORDER', null, w.photo));
     }
 
     // --- Pasta ---
@@ -1089,7 +1059,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededPastas = [];
     for (const p of pastaItems) {
-        seededPastas.push(await seedFoodProduct(catPasta.id, p.name, p.desc, p.price, p.mustTry, p.bestSeller, 'MADE_TO_ORDER', null, p.photo));
+        seededPastas.push(await seedFoodProduct(catPasta.id, p.name, p.desc, p.price, 'MADE_TO_ORDER', null, p.photo));
     }
 
     // --- Snacks ---
@@ -1113,7 +1083,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededSnacks = [];
     for (const s of snackItems) {
-        seededSnacks.push(await seedFoodProduct(catSnacks.id, s.name, s.desc, s.price, s.mustTry, s.bestSeller, 'MADE_TO_ORDER', null, s.photo));
+        seededSnacks.push(await seedFoodProduct(catSnacks.id, s.name, s.desc, s.price, 'MADE_TO_ORDER', null, s.photo));
     }
 
     // --- Cookies (Display batch items with 24-hour shelf life) ---
@@ -1169,7 +1139,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededCookies = [];
     for (const c of cookieItems) {
-        seededCookies.push(await seedFoodProduct(catCookies.id, c.name, c.desc, c.price, c.mustTry, c.bestSeller, 'PREPARED_DISPLAY', 1440, c.photo));
+        seededCookies.push(await seedFoodProduct(catCookies.id, c.name, c.desc, c.price, 'PREPARED_DISPLAY', 1440, c.photo));
     }
 
     // ==========================================
@@ -1252,9 +1222,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededEspresso = [];
     for (const e of espressoItems) {
-        seededEspresso.push(
-            await seedDrinkProduct(catEspresso.id, e.name, e.desc, true, e.hot, true, e.iced, false, undefined, e.mustTry, e.bestSeller, e.photo)
-        );
+        seededEspresso.push(await seedDrinkProduct(catEspresso.id, e.name, e.desc, true, e.hot, true, e.iced, false, undefined, e.photo));
     }
 
     // --- Creamy Coffee ---
@@ -1290,20 +1258,7 @@ export async function seedProduct(prisma: PrismaClient) {
     const seededCreamyCoffee = [];
     for (const c of creamyCoffeeItems) {
         seededCreamyCoffee.push(
-            await seedDrinkProduct(
-                catCreamyCoffee.id,
-                c.name,
-                c.desc,
-                c.hot !== undefined,
-                c.hot,
-                true,
-                c.iced,
-                false,
-                undefined,
-                c.mustTry,
-                c.bestSeller,
-                c.photo
-            )
+            await seedDrinkProduct(catCreamyCoffee.id, c.name, c.desc, c.hot !== undefined, c.hot, true, c.iced, false, undefined, c.photo)
         );
     }
 
@@ -1330,9 +1285,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededOatBased = [];
     for (const o of oatBasedItems) {
-        seededOatBased.push(
-            await seedDrinkProduct(catOatBased.id, o.name, o.desc, false, undefined, true, o.iced, false, undefined, o.mustTry, o.bestSeller, o.photo)
-        );
+        seededOatBased.push(await seedDrinkProduct(catOatBased.id, o.name, o.desc, false, undefined, true, o.iced, false, undefined, o.photo));
     }
 
     // --- Matcha Series ---
@@ -1394,22 +1347,7 @@ export async function seedProduct(prisma: PrismaClient) {
     ];
     const seededMatcha = [];
     for (const m of matchaItems) {
-        seededMatcha.push(
-            await seedDrinkProduct(
-                catMatcha.id,
-                m.name,
-                m.desc,
-                m.hot !== undefined,
-                m.hot,
-                true,
-                m.iced,
-                false,
-                undefined,
-                m.mustTry,
-                m.bestSeller,
-                m.photo
-            )
-        );
+        seededMatcha.push(await seedDrinkProduct(catMatcha.id, m.name, m.desc, m.hot !== undefined, m.hot, true, m.iced, false, undefined, m.photo));
     }
 
     // --- Non-Coffee ---
@@ -1472,32 +1410,12 @@ export async function seedProduct(prisma: PrismaClient) {
     const seededNonCoffee = [];
     for (const n of nonCoffeeItems) {
         seededNonCoffee.push(
-            await seedDrinkProduct(
-                catNonCoffee.id,
-                n.name,
-                n.desc,
-                n.hot !== undefined,
-                n.hot,
-                true,
-                n.iced,
-                false,
-                undefined,
-                n.mustTry,
-                n.bestSeller,
-                n.photo
-            )
+            await seedDrinkProduct(catNonCoffee.id, n.name, n.desc, n.hot !== undefined, n.hot, true, n.iced, false, undefined, n.photo)
         );
     }
 
     // Bottled Water
-    const waterProduct = await getOrCreateProduct(
-        'Bottled Water',
-        'Refreshingly clean bottled drinking water',
-        catNonCoffee.id,
-        typeBeverage.id,
-        false,
-        false
-    );
+    const waterProduct = await getOrCreateProduct('Bottled Water', 'Refreshingly clean bottled drinking water', catNonCoffee.id, typeBeverage.id);
     const waterVariant = await getOrCreateVariant(waterProduct.id, 'BOTTLED-WATER-500ML', 15, [val500ml.id]);
 
     // --- Blended Coffee Drinks (22oz) ---
@@ -1530,20 +1448,7 @@ export async function seedProduct(prisma: PrismaClient) {
     const seededBlendedCoffee = [];
     for (const b of blendedCoffeeItems) {
         seededBlendedCoffee.push(
-            await seedDrinkProduct(
-                catBlendedCoffee.id,
-                b.name,
-                b.desc,
-                false,
-                undefined,
-                false,
-                undefined,
-                true,
-                b.price,
-                b.mustTry,
-                b.bestSeller,
-                b.photo
-            )
+            await seedDrinkProduct(catBlendedCoffee.id, b.name, b.desc, false, undefined, false, undefined, true, b.price, b.photo)
         );
     }
 
@@ -1585,20 +1490,7 @@ export async function seedProduct(prisma: PrismaClient) {
     const seededBlendedNonCoffee = [];
     for (const bn of blendedNonCoffeeItems) {
         seededBlendedNonCoffee.push(
-            await seedDrinkProduct(
-                catBlendedNonCoffee.id,
-                bn.name,
-                bn.desc,
-                false,
-                undefined,
-                true,
-                bn.price,
-                false,
-                undefined,
-                bn.mustTry,
-                bn.bestSeller,
-                bn.photo
-            )
+            await seedDrinkProduct(catBlendedNonCoffee.id, bn.name, bn.desc, false, undefined, true, bn.price, false, undefined, bn.photo)
         );
     }
 

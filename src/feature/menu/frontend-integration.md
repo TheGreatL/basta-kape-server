@@ -14,7 +14,7 @@ All endpoints in this module require JWT authentication via the `Authorization: 
 
 ### 1. `GET /menu`
 
-- **Description**: Retrieves a paginated catalog list of all active products for the customer menu, complete with categories, product types, promo badges (`isMustTry`, `isBestSeller`), and available pricing variants.
+- **Description**: Retrieves a paginated catalog list of all active products for the customer menu, complete with categories, product types, and available pricing variants.
 - **RBAC Permission Required**: `read` (module: `MENU`)
 - **Query Parameters**:
     - `page` (number, optional, default: `1`): Current catalog page.
@@ -22,8 +22,6 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     - `search` (string, optional): Matches on product name or description.
     - `productCategoryId` (string, UUID, optional): Filter products by category.
     - `productTypeId` (string, UUID, optional): Filter products by product type (Food/Beverage).
-    - `isMustTry` (boolean, optional): Filter for "Must Try" promotional items.
-    - `isBestSeller` (boolean, optional): Filter for "Best Seller" items.
 - **Response (200 OK)**:
     ```json
     {
@@ -33,8 +31,6 @@ All endpoints in this module require JWT authentication via the `Authorization: 
                 "name": "Spanish Latte",
                 "photo": "https://api.bastakape.com/uploads/spanish-latte.jpg",
                 "description": "Espresso with sweetened condensed milk and fresh milk.",
-                "isMustTry": false,
-                "isBestSeller": true,
                 "productCategoryId": "category-uuid-1",
                 "productTypeId": "type-uuid-1",
                 "category": {

@@ -41,8 +41,6 @@ model Product {
   name              String
   photo             String?
   description       String?
-  isMustTry         Boolean             @default(false)
-  isBestSeller      Boolean             @default(false)
   preparationType   PreparationType     @default(MADE_TO_ORDER)
   defaultShelfLife  Int? // Default shelf life in minutes (e.g. 1440 = 24h)
   productCategoryId String?
@@ -64,8 +62,6 @@ model Product {
   @@index([deletedAt])
   @@index([productCategoryId])
   @@index([productTypeId])
-  @@index([isMustTry])
-  @@index([isBestSeller])
   @@index([preparationType])
 }
 

@@ -24,14 +24,12 @@ All endpoints in this module require JWT authentication via the `Authorization: 
     - `search` (string, optional): Matches on product name or description.
     - `productCategoryId` (string, UUID, optional): Filter by category.
     - `productTypeId` (string, UUID, optional): Filter by product type.
-    - `isMustTry` (boolean, optional): Filter for "Must Try" items.
-    - `isBestSeller` (boolean, optional): Filter for "Best Seller" items.
     - `status` (enum: `"active" | "archive"`, optional, default: `"active"`): Filter soft-deleted items.
-- **Response (200 OK)**: Paginated structure containing `data` (list of products, including categories, types, badges, and active variant listings) and `meta`.
+- **Response (200 OK)**: Paginated structure containing `data` (list of products, including categories, types, and active variant listings) and `meta`.
 
 #### `GET /products/:id`
 
-- **Description**: Retrieves a specific product, complete with its assigned category, product type, promo badges, and list of all active pricing variants.
+- **Description**: Retrieves a specific product, complete with its assigned category, product type, and list of all active pricing variants.
 - **RBAC**: `read`
 - **Response (200 OK)**:
 
@@ -41,8 +39,6 @@ All endpoints in this module require JWT authentication via the `Authorization: 
       "name": "string",
       "photo": "string (URL) | null",
       "description": "string | null",
-      "isMustTry": "boolean",
-      "isBestSeller": "boolean",
       "productCategoryId": "string (UUID) | null",
       "productTypeId": "string (UUID) | null",
       "category": {

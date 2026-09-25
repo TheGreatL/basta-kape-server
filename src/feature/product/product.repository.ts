@@ -22,8 +22,6 @@ export class ProductRepository extends BaseRepository {
                 name: data.name,
                 photo: data.photo || null,
                 description: data.description || null,
-                isMustTry: data.isMustTry ?? false,
-                isBestSeller: data.isBestSeller ?? false,
                 preparationType: data.preparationType ?? 'MADE_TO_ORDER',
                 defaultShelfLife: data.defaultShelfLife ?? null,
                 productCategoryId: data.productCategoryId || null,
@@ -200,14 +198,6 @@ export class ProductRepository extends BaseRepository {
 
         if (params.productTypeId) {
             where.productTypeId = params.productTypeId;
-        }
-
-        if (params.isMustTry !== undefined) {
-            where.isMustTry = params.isMustTry;
-        }
-
-        if (params.isBestSeller !== undefined) {
-            where.isBestSeller = params.isBestSeller;
         }
 
         if (params.preparationType) {
