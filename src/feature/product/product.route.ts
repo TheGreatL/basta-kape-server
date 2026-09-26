@@ -15,9 +15,12 @@ import {
     PaginatedProductResponseSchema,
     BulkSyncProductVariantsSchema
 } from './product.types';
+import { MenuService } from '@/feature/menu/menu.service';
+import { GetBestSellersQuerySchema, BestSellerProductResponseSchema } from '@/feature/menu/menu.types';
 
 const router = Router();
 const service = new ProductService();
+const menuService = new MenuService();
 
 // ============================================================================
 // 1. PRODUCT ENDPOINTS
@@ -45,6 +48,33 @@ router.get('/', requireAccess(appModules.PRODUCTS_MANAGEMENT, appPermissions.REA
     try {
         const query = GetProductListQuerySchema.parse(req.query);
         const result = await service.getProductList(query);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// GET /products/best-sellers (Public endpoint)
+registry.registerPath({
+    method: 'get',
+    path: '/products/best-sellers',
+    tags: ['Products'],
+    summary: 'Get top best selling products based on orders (public)',
+    request: {
+        query: GetBestSellersQuerySchema
+    },
+    responses: {
+        200: {
+            description: 'Top best selling products retrieved successfully',
+            content: { 'application/json': { schema: z.array(BestSellerProductResponseSchema) } }
+        }
+    }
+});
+
+router.get('/best-sellers', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const query = GetBestSellersQuerySchema.parse(req.query);
+        const result = await menuService.getBestSellers(query);
         res.json(result);
     } catch (error) {
         next(error);

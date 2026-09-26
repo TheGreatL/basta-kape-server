@@ -116,3 +116,23 @@ export const PaginatedMenuResponseSchema = z.object({
         hasMore: z.boolean()
     })
 });
+
+// Best Sellers Query and Response Schemas
+export const GetBestSellersQuerySchema = z.object({
+    limit: z.coerce.number().min(1).max(50).default(10).optional(),
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
+    productCategoryId: z.string().uuid().optional(),
+    productTypeId: z.string().uuid().optional()
+});
+
+export type TGetBestSellersQuery = z.infer<typeof GetBestSellersQuerySchema>;
+
+export const BestSellerProductResponseSchema = MenuProductResponseSchema.extend({
+    totalQuantitySold: z.number(),
+    totalRevenue: z.number(),
+    minPrice: z.number(),
+    maxPrice: z.number()
+});
+
+export type TBestSellerProductResponse = z.infer<typeof BestSellerProductResponseSchema>;

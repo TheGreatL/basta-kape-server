@@ -7,7 +7,9 @@ import {
     MenuTypeResponseSchema,
     MenuProductResponseSchema,
     PaginatedMenuResponseSchema,
-    GetMenuCategoryQuerySchema
+    GetMenuCategoryQuerySchema,
+    GetBestSellersQuerySchema,
+    BestSellerProductResponseSchema
 } from './menu.types';
 import { z } from 'zod';
 
@@ -89,6 +91,34 @@ registry.registerPath({
 router.get('/types', async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await service.getTypeList();
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// GET /menu/best-sellers
+registry.registerPath({
+    method: 'get',
+    path: '/menu/best-sellers',
+    tags: ['Menu'],
+    summary: 'Get top best selling products based on orders',
+    description: 'Public endpoint returning the top best-selling products ranked by order volume and sales',
+    request: {
+        query: GetBestSellersQuerySchema
+    },
+    responses: {
+        200: {
+            description: 'Top best selling products retrieved successfully',
+            content: { 'application/json': { schema: z.array(BestSellerProductResponseSchema) } }
+        }
+    }
+});
+
+router.get('/best-sellers', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const query = GetBestSellersQuerySchema.parse(req.query);
+        const result = await service.getBestSellers(query);
         res.json(result);
     } catch (error) {
         next(error);

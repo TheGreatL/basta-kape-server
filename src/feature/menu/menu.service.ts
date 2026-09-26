@@ -1,6 +1,6 @@
 import { MenuRepository } from './menu.repository';
 import { NotFoundException } from '@/exceptions';
-import type { TGetMenuQuery } from './menu.types';
+import type { TGetMenuQuery, TGetBestSellersQuery } from './menu.types';
 import { UnitConversionService, type TUnitConverter } from '@/feature/unit-conversion/unit-conversion.service';
 
 interface IRepositoryIngredientInventory {
@@ -130,5 +130,27 @@ export class MenuService {
 
     async getTypeList() {
         return this.repository.getTypeList();
+    }
+
+    async getBestSellers(params: TGetBestSellersQuery) {
+        const [bestSellersData, converter] = await Promise.all([
+            this.repository.getBestSellingProducts(params),
+            this.unitConversionService.getConverter()
+        ]);
+
+        return bestSellersData.map(({ product, totalQuantitySold, totalRevenue }) => {
+            const formattedProduct = formatMenuProduct(product as unknown as IRepositoryProduct, converter);
+            const variantPrices = (formattedProduct?.variants || []).map((v) => v.price);
+            const minPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+            const maxPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : 0;
+
+            return {
+                ...formattedProduct,
+                totalQuantitySold,
+                totalRevenue,
+                minPrice,
+                maxPrice
+            };
+        });
     }
 }

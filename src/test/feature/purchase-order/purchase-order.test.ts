@@ -274,7 +274,7 @@ describe('Purchase Order Feature CRUD', () => {
             const updateRes = await request(app).put(`/purchase-orders/${poId}`).send({ notes: 'Attempt update' });
 
             expect(updateRes.status).toBe(400);
-            expect(updateRes.body.error).toContain('Cannot update a purchase order that is not in DRAFT status');
+            expect(updateRes.body.error).toContain('Cannot update a purchase order that is not in DRAFT or FINAL_DRAFT status');
         });
 
         it('should fail with 404 when updating with a non-existent supplierId', async () => {

@@ -25,7 +25,7 @@ vi.mock('@/middleware/rbac.middleware', () => ({
 
 import request from 'supertest';
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, OrderStatus, PaymentStatus } from '@prisma/client';
 import menuRouter from '@/feature/menu/menu.route';
 import { HttpException } from '@/exceptions/http.exception';
 
@@ -38,6 +38,10 @@ describe('Customer Menu Feature CRUD', () => {
     let testTypeId: string;
     let testProductId: string;
     let testVariantId: string;
+    let testProductId2: string;
+    let testVariantId2: string;
+    let testOrderId1: string;
+    let testOrderId2: string;
     let testRecipeId: string;
     let testUnitId: string;
     let testIngredientId: string;
@@ -163,10 +167,91 @@ describe('Customer Menu Feature CRUD', () => {
                 updatedById: 'test-menu-user-id'
             }
         });
+
+        // 5. Create second active product & variant for ranking comparison
+        const product2 = await prisma.product.create({
+            data: {
+                name: 'Menu Americano',
+                description: 'Rich dark espresso with hot water',
+                productCategoryId: testCategoryId,
+                productTypeId: testTypeId,
+                createdById: 'test-menu-user-id',
+                updatedById: 'test-menu-user-id'
+            }
+        });
+        testProductId2 = product2.id;
+
+        const variant2 = await prisma.productVariant.create({
+            data: {
+                productId: testProductId2,
+                sku: 'TEST-MENU-AME-LRG',
+                price: 120.0,
+                createdById: 'test-menu-user-id',
+                updatedById: 'test-menu-user-id'
+            }
+        });
+        testVariantId2 = variant2.id;
+
+        // 6. Create completed & paid order: 3 Cappuccinos, 7 Americanos
+        const order1 = await prisma.order.create({
+            data: {
+                status: OrderStatus.COMPLETED,
+                paymentStatus: PaymentStatus.PAID,
+                subtotal: 1380,
+                netTotal: 1380,
+                totalPaid: 1380,
+                items: {
+                    create: [
+                        {
+                            productVariantId: testVariantId, // Cappuccino
+                            quantity: 3,
+                            unitPrice: 180,
+                            totalPrice: 540
+                        },
+                        {
+                            productVariantId: testVariantId2, // Americano
+                            quantity: 7,
+                            unitPrice: 120,
+                            totalPrice: 840
+                        }
+                    ]
+                }
+            }
+        });
+        testOrderId1 = order1.id;
+
+        // 7. Create cancelled order: 100 Cappuccinos (should NOT be counted)
+        const order2 = await prisma.order.create({
+            data: {
+                status: OrderStatus.CANCELLED,
+                paymentStatus: PaymentStatus.FAILED,
+                subtotal: 18000,
+                netTotal: 18000,
+                items: {
+                    create: [
+                        {
+                            productVariantId: testVariantId,
+                            quantity: 100,
+                            unitPrice: 180,
+                            totalPrice: 18000
+                        }
+                    ]
+                }
+            }
+        });
+        testOrderId2 = order2.id;
     });
 
     afterAll(async () => {
         // Cleanup all records created in correct dependency order
+        if (testOrderId1 || testOrderId2) {
+            await prisma.orderItem.deleteMany({
+                where: { orderId: { in: [testOrderId1, testOrderId2].filter(Boolean) } }
+            });
+            await prisma.order.deleteMany({
+                where: { id: { in: [testOrderId1, testOrderId2].filter(Boolean) } }
+            });
+        }
         await prisma.recipeIngredient.deleteMany({ where: { createdById: 'test-menu-user-id' } });
         await prisma.recipe.deleteMany({ where: { createdById: 'test-menu-user-id' } });
         await prisma.productVariant.deleteMany({ where: { createdById: 'test-menu-user-id' } });
@@ -233,6 +318,42 @@ describe('Customer Menu Feature CRUD', () => {
             const found = res.body.find((t: { name: string }) => t.name === 'Test Menu Type');
             expect(found).toBeDefined();
             expect(found.id).toBe(testTypeId);
+        });
+
+        it('should retrieve top best selling products based on orders', async () => {
+            const res = await request(app).get('/menu/best-sellers');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body.length).toBeGreaterThanOrEqual(2);
+
+            // Americano (7 sold) should be ranked higher than Cappuccino (3 sold)
+            const americanoIndex = res.body.findIndex((p: { id: string }) => p.id === testProductId2);
+            const cappuccinoIndex = res.body.findIndex((p: { id: string }) => p.id === testProductId);
+
+            expect(americanoIndex).toBeGreaterThanOrEqual(0);
+            expect(cappuccinoIndex).toBeGreaterThanOrEqual(0);
+            expect(americanoIndex).toBeLessThan(cappuccinoIndex);
+
+            const americano = res.body[americanoIndex];
+            expect(americano.name).toBe('Menu Americano');
+            expect(americano.totalQuantitySold).toBe(7);
+            expect(americano.totalRevenue).toBe(840);
+            expect(americano.minPrice).toBe(120);
+            expect(americano.maxPrice).toBe(120);
+
+            const cappuccino = res.body[cappuccinoIndex];
+            expect(cappuccino.name).toBe('Menu Cappuccino');
+            expect(cappuccino.totalQuantitySold).toBe(3);
+            expect(cappuccino.totalRevenue).toBe(540);
+        });
+
+        it('should respect the limit parameter on best-sellers', async () => {
+            const res = await request(app).get('/menu/best-sellers?limit=1');
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+            expect(res.body.length).toBe(1);
+            expect(res.body[0].id).toBe(testProductId2);
+            expect(res.body[0].totalQuantitySold).toBe(7);
         });
     });
 });

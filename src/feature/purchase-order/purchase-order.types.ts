@@ -15,11 +15,16 @@ export const CreatePurchaseOrderSchema = z.object({
 
 export const UpdatePurchaseOrderStatusItemSchema = z.object({
     ingredientId: z.string().uuid('Invalid ingredient ID'),
-    unitCost: z.number().nonnegative('Unit cost cannot be negative').optional()
+    quantityReceived: z.number().nonnegative('Quantity received cannot be negative').optional(),
+    unitCost: z.number().nonnegative('Unit cost cannot be negative').optional(),
+    batchNumber: z.string().max(100).optional().nullable(),
+    expiryDate: z.string().optional().nullable()
 });
 
 export const UpdatePurchaseOrderStatusSchema = z.object({
     status: z.nativeEnum(PurchaseOrderStatus),
+    closeOrder: z.boolean().optional(),
+    deliveryBatchNumber: z.string().max(100).optional().nullable(),
     items: z.array(UpdatePurchaseOrderStatusItemSchema).optional()
 });
 

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { PurchaseOrderStatus, InventoryStatus, Prisma } from '@prisma/client';
-import { TCreatePurchaseOrder, TUpdatePurchaseOrder } from './purchase-order.types';
+import { TCreatePurchaseOrder, TUpdatePurchaseOrder, TUpdatePurchaseOrderStatus } from './purchase-order.types';
 
 export class PurchaseOrderRepository extends BaseRepository {
     async createPurchaseOrder(data: TCreatePurchaseOrder, actorId: string) {
@@ -95,7 +95,25 @@ export class PurchaseOrderRepository extends BaseRepository {
                         }
                     }
                 },
-                batches: true
+                batches: {
+                    where: { deletedAt: null },
+                    include: {
+                        ingredient: {
+                            include: {
+                                defaultUnit: true
+                            }
+                        },
+                        createdBy: {
+                            select: {
+                                id: true,
+                                username: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    },
+                    orderBy: { receivedAt: 'desc' }
+                }
             }
         });
     }
@@ -172,12 +190,7 @@ export class PurchaseOrderRepository extends BaseRepository {
         };
     }
 
-    async updatePurchaseOrderStatus(
-        id: string,
-        status: PurchaseOrderStatus,
-        actorId: string,
-        itemsPayload?: { ingredientId: string; unitCost?: number }[]
-    ) {
+    async updatePurchaseOrderStatus(id: string, status: PurchaseOrderStatus, actorId: string, options?: TUpdatePurchaseOrderStatus) {
         return prisma.$transaction(async (tx) => {
             const po = await tx.purchaseOrder.findUnique({
                 where: { id, deletedAt: null },
@@ -186,6 +199,9 @@ export class PurchaseOrderRepository extends BaseRepository {
                         include: {
                             ingredient: true
                         }
+                    },
+                    batches: {
+                        where: { deletedAt: null }
                     }
                 }
             });
@@ -195,113 +211,206 @@ export class PurchaseOrderRepository extends BaseRepository {
             }
 
             const updates: Prisma.PurchaseOrderUpdateInput = {
-                status,
                 updatedAt: new Date()
             };
 
-            if (status === PurchaseOrderStatus.SENT) {
+            if (status === PurchaseOrderStatus.DRAFT) {
+                updates.status = PurchaseOrderStatus.DRAFT;
+            } else if (status === PurchaseOrderStatus.FINAL_DRAFT) {
+                updates.status = PurchaseOrderStatus.FINAL_DRAFT;
+            } else if (status === PurchaseOrderStatus.SENT) {
+                updates.status = PurchaseOrderStatus.SENT;
                 updates.orderedAt = new Date();
-            } else if (status === PurchaseOrderStatus.RECEIVED) {
-                updates.receivedAt = new Date();
+            } else if (status === PurchaseOrderStatus.CANCELLED) {
+                updates.status = PurchaseOrderStatus.CANCELLED;
+            } else if (status === PurchaseOrderStatus.RECEIVED || status === PurchaseOrderStatus.PARTIALLY_RECEIVED) {
+                // Calculate existing received quantities per ingredient from prior batches
+                const existingReceivedMap = new Map<string, number>();
+                for (const b of po.batches) {
+                    const prev = existingReceivedMap.get(b.ingredientId) || 0;
+                    existingReceivedMap.set(b.ingredientId, prev + b.quantityReceived);
+                }
 
-                const ingredientIds = po.items.map((item) => item.ingredientId);
-                const inventories = await tx.ingredientInventory.findMany({
-                    where: { ingredientId: { in: ingredientIds }, deletedAt: null }
-                });
-                const inventoryByIngredient = new Map(inventories.map((inventory) => [inventory.ingredientId, inventory]));
+                // Determine which items to receive in this delivery attempt
+                const itemsToReceive: {
+                    ingredientId: string;
+                    quantityReceived: number;
+                    unitCost?: number;
+                    batchNumber?: string | null;
+                    expiryDate?: string | null;
+                }[] =
+                    options?.items && options.items.length > 0
+                        ? options.items
+                              .map((item) => ({
+                                  ingredientId: item.ingredientId,
+                                  quantityReceived:
+                                      item.quantityReceived !== undefined
+                                          ? item.quantityReceived
+                                          : Math.max(
+                                                0,
+                                                (po.items.find((pi) => pi.ingredientId === item.ingredientId)?.quantity ?? 0) -
+                                                    (existingReceivedMap.get(item.ingredientId) ?? 0)
+                                            ),
+                                  unitCost: item.unitCost,
+                                  batchNumber: item.batchNumber,
+                                  expiryDate: item.expiryDate
+                              }))
+                              .filter((item) => item.quantityReceived > 0)
+                        : po.items
+                              .map((poItem) => ({
+                                  ingredientId: poItem.ingredientId,
+                                  quantityReceived: Math.max(0, poItem.quantity - (existingReceivedMap.get(poItem.ingredientId) || 0)),
+                                  unitCost: poItem.unitCost && Number(poItem.unitCost) > 0 ? Number(poItem.unitCost) : undefined,
+                                  batchNumber: undefined,
+                                  expiryDate: undefined
+                              }))
+                              .filter((item) => item.quantityReceived > 0);
 
-                // Look up supplier ingredient catalog prices
-                const supplierIngredients = await tx.supplierIngredient.findMany({
-                    where: {
-                        supplierId: po.supplierId,
-                        ingredientId: { in: ingredientIds }
-                    }
-                });
-                const supplierPriceMap = new Map(supplierIngredients.map((si) => [si.ingredientId, si.unitCost ?? 0]));
-
-                let computedTotalAmount = 0;
-
-                // Generate deliveries and increment stock levels
-                for (const item of po.items) {
-                    // Resolve unitCost:
-                    // 1. Explicitly passed in itemsPayload (if provided)
-                    // 2. From supplier catalog (SupplierIngredient)
-                    // 3. Fallback to existing item.unitCost or 0
-                    const customPrice = itemsPayload?.find((p) => p.ingredientId === item.ingredientId);
-                    const unitCost =
-                        customPrice?.unitCost !== undefined ? customPrice.unitCost : (supplierPriceMap.get(item.ingredientId) ?? item.unitCost ?? 0);
-                    const totalCost = item.quantity * unitCost;
-
-                    computedTotalAmount += totalCost;
-
-                    // Update PurchaseOrderItem with resolved pricing
-                    await tx.purchaseOrderItem.update({
-                        where: { id: item.id },
-                        data: {
-                            unitCost,
-                            totalCost
-                        }
+                if (itemsToReceive.length > 0) {
+                    const allIncomingIngredientIds = itemsToReceive.map((i) => i.ingredientId);
+                    const inventories = await tx.ingredientInventory.findMany({
+                        where: { ingredientId: { in: allIncomingIngredientIds }, deletedAt: null }
                     });
+                    const inventoryByIngredient = new Map(inventories.map((inventory) => [inventory.ingredientId, inventory]));
 
-                    // 1. Create batch
-                    const batch = await tx.ingredientBatch.create({
-                        data: {
-                            ingredientId: item.ingredientId,
+                    const supplierIngredients = await tx.supplierIngredient.findMany({
+                        where: {
                             supplierId: po.supplierId,
-                            quantityReceived: item.quantity,
-                            currentQuantity: item.quantity,
-                            unitCost,
-                            totalCost,
-                            batchNumber: po.poNumber, // Use PO Number as batch number
-                            purchaseOrderId: po.id,
-                            createdById: actorId,
-                            updatedById: actorId
+                            ingredientId: { in: allIncomingIngredientIds }
                         }
                     });
-
-                    // Log stock transaction
-                    await tx.stockTransaction.create({
-                        data: {
-                            batchId: batch.id,
-                            quantityChange: item.quantity,
-                            type: 'DELIVERY',
-                            reason: `Received from Purchase Order ${po.poNumber}`,
-                            createdById: actorId
+                    const supplierPriceMap = new Map<string, number>();
+                    for (const si of supplierIngredients) {
+                        if (si.unitCost !== null && si.unitCost !== undefined && Number(si.unitCost) > 0) {
+                            supplierPriceMap.set(si.ingredientId, Number(si.unitCost));
                         }
+                    }
+
+                    const allIngredients = await tx.ingredient.findMany({
+                        where: { id: { in: allIncomingIngredientIds } }
                     });
+                    const ingredientMap = new Map(allIngredients.map((i) => [i.id, i]));
 
-                    // 2. Adjust stock & status
-                    let inventory = inventoryByIngredient.get(item.ingredientId);
+                    const nextDeliveryIndex = po.batches.length + 1;
+                    const defaultBatchNum = options?.deliveryBatchNumber || `${po.poNumber}-D${nextDeliveryIndex}`;
 
-                    if (!inventory) {
-                        inventory = await tx.ingredientInventory.create({
+                    for (const item of itemsToReceive) {
+                        const poItem = po.items.find((p) => p.ingredientId === item.ingredientId);
+                        const unitCost =
+                            item.unitCost !== undefined
+                                ? item.unitCost
+                                : (supplierPriceMap.get(item.ingredientId) ?? (poItem && Number(poItem.unitCost) > 0 ? Number(poItem.unitCost) : 0));
+                        const totalCost = item.quantityReceived * unitCost;
+                        const batchNumber = item.batchNumber || defaultBatchNum;
+
+                        const batch = await tx.ingredientBatch.create({
                             data: {
                                 ingredientId: item.ingredientId,
-                                currentQuantity: 0,
-                                status: InventoryStatus.OUT_OF_STOCK,
+                                supplierId: po.supplierId,
+                                quantityReceived: item.quantityReceived,
+                                currentQuantity: item.quantityReceived,
+                                unitCost,
+                                totalCost,
+                                batchNumber,
+                                expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
+                                purchaseOrderId: po.id,
                                 createdById: actorId,
                                 updatedById: actorId
                             }
                         });
-                        inventoryByIngredient.set(item.ingredientId, inventory);
-                    }
 
-                    const newQuantity = Math.max(0, inventory.currentQuantity + item.quantity);
-                    let newStatus: InventoryStatus = InventoryStatus.SAFE;
-                    if (newQuantity <= 0) {
-                        newStatus = InventoryStatus.OUT_OF_STOCK;
-                    } else if (newQuantity <= item.ingredient.reorderPoint) {
-                        newStatus = InventoryStatus.CRITICAL;
-                    }
+                        await tx.stockTransaction.create({
+                            data: {
+                                batchId: batch.id,
+                                quantityChange: item.quantityReceived,
+                                type: 'DELIVERY',
+                                reason: `Received from Purchase Order ${po.poNumber}`,
+                                createdById: actorId
+                            }
+                        });
 
-                    await tx.ingredientInventory.update({
-                        where: { id: inventory.id },
-                        data: {
-                            currentQuantity: newQuantity,
-                            status: newStatus,
-                            updatedById: actorId
+                        const ingredientMeta = ingredientMap.get(item.ingredientId);
+                        let inventory = inventoryByIngredient.get(item.ingredientId);
+
+                        if (!inventory) {
+                            inventory = await tx.ingredientInventory.create({
+                                data: {
+                                    ingredientId: item.ingredientId,
+                                    currentQuantity: 0,
+                                    status: InventoryStatus.OUT_OF_STOCK,
+                                    createdById: actorId,
+                                    updatedById: actorId
+                                }
+                            });
+                            inventoryByIngredient.set(item.ingredientId, inventory);
                         }
-                    });
+
+                        const newQuantity = Math.max(0, inventory.currentQuantity + item.quantityReceived);
+                        let newStatus: InventoryStatus = InventoryStatus.SAFE;
+                        if (newQuantity <= 0) {
+                            newStatus = InventoryStatus.OUT_OF_STOCK;
+                        } else if (ingredientMeta && newQuantity <= ingredientMeta.reorderPoint) {
+                            newStatus = InventoryStatus.CRITICAL;
+                        }
+
+                        await tx.ingredientInventory.update({
+                            where: { id: inventory.id },
+                            data: {
+                                currentQuantity: newQuantity,
+                                status: newStatus,
+                                updatedById: actorId
+                            }
+                        });
+
+                        // If item was on the PO, update its unitCost and totalCost if not set
+                        if (poItem) {
+                            await tx.purchaseOrderItem.update({
+                                where: { id: poItem.id },
+                                data: {
+                                    unitCost,
+                                    totalCost: (poItem.quantity || item.quantityReceived) * unitCost
+                                }
+                            });
+                        } else {
+                            // Extra / free item: create PO line item so it displays on the order breakdown
+                            await tx.purchaseOrderItem.create({
+                                data: {
+                                    purchaseOrderId: po.id,
+                                    ingredientId: item.ingredientId,
+                                    quantity: item.quantityReceived,
+                                    unitCost,
+                                    totalCost
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // Query all batches now attached to this PO to evaluate cumulative fulfillment & total cost
+                const updatedBatches = await tx.ingredientBatch.findMany({
+                    where: { purchaseOrderId: po.id, deletedAt: null }
+                });
+
+                const cumulativeMap = new Map<string, number>();
+                let computedTotalAmount = 0;
+                for (const b of updatedBatches) {
+                    const prev = cumulativeMap.get(b.ingredientId) || 0;
+                    cumulativeMap.set(b.ingredientId, prev + b.quantityReceived);
+                    computedTotalAmount += b.totalCost;
+                }
+
+                const updatedPoItems = await tx.purchaseOrderItem.findMany({
+                    where: { purchaseOrderId: po.id, deletedAt: null }
+                });
+
+                const isFullyFulfilled =
+                    updatedPoItems.length > 0 && updatedPoItems.every((pi) => (cumulativeMap.get(pi.ingredientId) || 0) >= pi.quantity);
+
+                if (options?.closeOrder || isFullyFulfilled) {
+                    updates.status = PurchaseOrderStatus.RECEIVED;
+                    updates.receivedAt = po.receivedAt || new Date();
+                } else {
+                    updates.status = PurchaseOrderStatus.PARTIALLY_RECEIVED;
                 }
 
                 updates.totalAmount = computedTotalAmount;
@@ -328,6 +437,25 @@ export class PurchaseOrderRepository extends BaseRepository {
                                 }
                             }
                         }
+                    },
+                    batches: {
+                        where: { deletedAt: null },
+                        include: {
+                            ingredient: {
+                                include: {
+                                    defaultUnit: true
+                                }
+                            },
+                            createdBy: {
+                                select: {
+                                    id: true,
+                                    username: true,
+                                    firstName: true,
+                                    lastName: true
+                                }
+                            }
+                        },
+                        orderBy: { receivedAt: 'desc' }
                     }
                 }
             });

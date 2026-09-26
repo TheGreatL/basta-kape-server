@@ -392,7 +392,9 @@ model InventoryAdjustment {
 
 enum PurchaseOrderStatus {
   DRAFT
+  FINAL_DRAFT
   SENT
+  PARTIALLY_RECEIVED
   RECEIVED
   CANCELLED
 }

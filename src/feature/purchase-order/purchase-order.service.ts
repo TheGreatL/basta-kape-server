@@ -76,7 +76,7 @@ export class PurchaseOrderService {
         }
 
         const status = typeof statusOrData === 'string' ? statusOrData : statusOrData.status;
-        const itemsPayload = typeof statusOrData === 'object' ? statusOrData.items : undefined;
+        const options = typeof statusOrData === 'object' ? statusOrData : undefined;
 
         // Validate state transitions
         const current = po.status;
@@ -85,19 +85,31 @@ export class PurchaseOrderService {
             throw new BadRequestException(`Cannot change status of a completed/cancelled purchase order. Current status: ${current}`);
         }
 
-        if (status === PurchaseOrderStatus.SENT && current !== PurchaseOrderStatus.DRAFT) {
-            throw new BadRequestException('Can only send a purchase order that is in DRAFT state');
+        if (status === PurchaseOrderStatus.FINAL_DRAFT && current !== PurchaseOrderStatus.DRAFT) {
+            throw new BadRequestException('Can only move to FINAL_DRAFT from DRAFT state');
         }
 
-        if (status === PurchaseOrderStatus.RECEIVED && current !== PurchaseOrderStatus.SENT) {
-            throw new BadRequestException('Can only mark as RECEIVED a purchase order that is in SENT state');
+        if (status === PurchaseOrderStatus.DRAFT && current !== PurchaseOrderStatus.FINAL_DRAFT) {
+            throw new BadRequestException('Can only revert to DRAFT from FINAL_DRAFT state');
         }
 
-        const updatedPo = await this.repository.updatePurchaseOrderStatus(id, status, actorId, itemsPayload);
+        if (status === PurchaseOrderStatus.SENT && current !== PurchaseOrderStatus.FINAL_DRAFT && current !== PurchaseOrderStatus.DRAFT) {
+            throw new BadRequestException('Can only send a purchase order that is in FINAL_DRAFT state');
+        }
+
+        if (
+            (status === PurchaseOrderStatus.RECEIVED || status === PurchaseOrderStatus.PARTIALLY_RECEIVED) &&
+            current !== PurchaseOrderStatus.SENT &&
+            current !== PurchaseOrderStatus.PARTIALLY_RECEIVED
+        ) {
+            throw new BadRequestException('Can only receive a purchase order that is in SENT or PARTIALLY_RECEIVED state');
+        }
+
+        const updatedPo = await this.repository.updatePurchaseOrderStatus(id, status, actorId, options);
 
         const details =
-            status === PurchaseOrderStatus.RECEIVED
-                ? `Received Purchase Order ${po.poNumber} from supplier ${po.supplier.name} with total value PHP ${updatedPo.totalAmount.toFixed(2)}.`
+            updatedPo.status === PurchaseOrderStatus.RECEIVED || updatedPo.status === PurchaseOrderStatus.PARTIALLY_RECEIVED
+                ? `Received delivery for Purchase Order ${po.poNumber} from supplier ${po.supplier.name}. Status: ${updatedPo.status}. Total Value: PHP ${updatedPo.totalAmount.toFixed(2)}.`
                 : `Transitioned Purchase Order ${po.poNumber} status from ${current} to ${status}.`;
 
         await this.activityLogService.logActivity({
@@ -116,8 +128,8 @@ export class PurchaseOrderService {
             throw new NotFoundException('Purchase Order not found');
         }
 
-        if (po.status !== PurchaseOrderStatus.DRAFT) {
-            throw new BadRequestException(`Cannot update a purchase order that is not in DRAFT status. Current status: ${po.status}`);
+        if (po.status !== PurchaseOrderStatus.DRAFT && po.status !== PurchaseOrderStatus.FINAL_DRAFT) {
+            throw new BadRequestException(`Cannot update a purchase order that is not in DRAFT or FINAL_DRAFT status. Current status: ${po.status}`);
         }
 
         // 2. Validate Supplier if provided
