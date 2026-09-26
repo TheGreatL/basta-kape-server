@@ -3,6 +3,15 @@ import { BaseRepository } from '@/repository/base.repository';
 import type { TCreateRecipe, TUpdateRecipe } from './recipe.types';
 import { auditSelect } from '@/types/base.types';
 
+const ingredientSelect = {
+    id: true,
+    name: true,
+    ingredientUnitId: true,
+    defaultUnit: {
+        select: { id: true, name: true, abbreviation: true }
+    }
+};
+
 export class RecipeRepository extends BaseRepository {
     async findRecipeByVariantId(variantId: string) {
         return prisma.recipe.findFirst({
@@ -14,7 +23,7 @@ export class RecipeRepository extends BaseRepository {
                     where: { deletedAt: null },
                     include: {
                         ingredient: {
-                            select: { id: true, name: true }
+                            select: ingredientSelect
                         },
                         unit: {
                             select: { id: true, name: true, abbreviation: true }
@@ -35,7 +44,7 @@ export class RecipeRepository extends BaseRepository {
                     where: { deletedAt: null },
                     include: {
                         ingredient: {
-                            select: { id: true, name: true }
+                            select: ingredientSelect
                         },
                         unit: {
                             select: { id: true, name: true, abbreviation: true }
@@ -123,7 +132,7 @@ export class RecipeRepository extends BaseRepository {
                         where: { deletedAt: null },
                         include: {
                             ingredient: {
-                                select: { id: true, name: true }
+                                select: ingredientSelect
                             },
                             unit: {
                                 select: { id: true, name: true, abbreviation: true }
@@ -184,7 +193,7 @@ export class RecipeRepository extends BaseRepository {
                         where: { deletedAt: null },
                         include: {
                             ingredient: {
-                                select: { id: true, name: true }
+                                select: ingredientSelect
                             },
                             unit: {
                                 select: { id: true, name: true, abbreviation: true }
@@ -229,7 +238,7 @@ export class RecipeRepository extends BaseRepository {
                 ingredients: {
                     include: {
                         ingredient: {
-                            select: { id: true, name: true }
+                            select: ingredientSelect
                         },
                         unit: {
                             select: { id: true, name: true, abbreviation: true }
@@ -290,7 +299,7 @@ export class RecipeRepository extends BaseRepository {
                     where: { deletedAt: null },
                     include: {
                         ingredient: {
-                            select: { id: true, name: true }
+                            select: ingredientSelect
                         },
                         unit: {
                             select: { id: true, name: true, abbreviation: true }
@@ -310,7 +319,7 @@ export class RecipeRepository extends BaseRepository {
                 ingredients: {
                     include: {
                         ingredient: {
-                            select: { id: true, name: true }
+                            select: ingredientSelect
                         },
                         unit: {
                             select: { id: true, name: true, abbreviation: true }
@@ -372,7 +381,7 @@ export class RecipeRepository extends BaseRepository {
                         where: { deletedAt: null },
                         include: {
                             ingredient: {
-                                select: { id: true, name: true }
+                                select: ingredientSelect
                             },
                             unit: {
                                 select: { id: true, name: true, abbreviation: true }

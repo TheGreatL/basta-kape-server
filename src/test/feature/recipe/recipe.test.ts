@@ -226,6 +226,9 @@ describe('Recipe Feature CRUD API', () => {
             expect(res.body.name).toBe('Cocoa Standard Recipe');
             expect(res.body.ingredients).toHaveLength(1);
             expect(res.body.ingredients[0].ingredient.name).toBe('Recipe Cocoa Powder');
+            expect(res.body.ingredients[0].ingredient.ingredientUnitId).toBe(testUnitId);
+            expect(res.body.ingredients[0].ingredient.defaultUnit).toBeDefined();
+            expect(res.body.ingredients[0].ingredient.defaultUnit.name).toBe('Grams Recipe');
         });
 
         it('should successfully update recipe details and sync ingredients', async () => {

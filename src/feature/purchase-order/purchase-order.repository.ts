@@ -44,7 +44,9 @@ export class PurchaseOrderRepository extends BaseRepository {
                                 ingredientId: item.ingredientId,
                                 quantity: item.quantity,
                                 unitCost,
-                                totalCost: item.quantity * unitCost
+                                totalCost: item.quantity * unitCost,
+                                inputQuantity: item.inputQuantity,
+                                inputUnitId: item.inputUnitId
                             };
                         })
                     }
@@ -65,7 +67,8 @@ export class PurchaseOrderRepository extends BaseRepository {
                                 include: {
                                     defaultUnit: true
                                 }
-                            }
+                            },
+                            inputUnit: true
                         }
                     }
                 }
@@ -92,7 +95,8 @@ export class PurchaseOrderRepository extends BaseRepository {
                             include: {
                                 defaultUnit: true
                             }
-                        }
+                        },
+                        inputUnit: true
                     }
                 },
                 batches: {
@@ -103,6 +107,7 @@ export class PurchaseOrderRepository extends BaseRepository {
                                 defaultUnit: true
                             }
                         },
+                        inputUnit: true,
                         createdBy: {
                             select: {
                                 id: true,
@@ -238,6 +243,8 @@ export class PurchaseOrderRepository extends BaseRepository {
                     unitCost?: number;
                     batchNumber?: string | null;
                     expiryDate?: string | null;
+                    inputQuantity?: number | null;
+                    inputUnitId?: string | null;
                 }[] =
                     options?.items && options.items.length > 0
                         ? options.items
@@ -253,7 +260,9 @@ export class PurchaseOrderRepository extends BaseRepository {
                                             ),
                                   unitCost: item.unitCost,
                                   batchNumber: item.batchNumber,
-                                  expiryDate: item.expiryDate
+                                  expiryDate: item.expiryDate,
+                                  inputQuantity: item.inputQuantity,
+                                  inputUnitId: item.inputUnitId
                               }))
                               .filter((item) => item.quantityReceived > 0)
                         : po.items
@@ -262,7 +271,9 @@ export class PurchaseOrderRepository extends BaseRepository {
                                   quantityReceived: Math.max(0, poItem.quantity - (existingReceivedMap.get(poItem.ingredientId) || 0)),
                                   unitCost: poItem.unitCost && Number(poItem.unitCost) > 0 ? Number(poItem.unitCost) : undefined,
                                   batchNumber: undefined,
-                                  expiryDate: undefined
+                                  expiryDate: undefined,
+                                  inputQuantity: poItem.inputQuantity,
+                                  inputUnitId: poItem.inputUnitId
                               }))
                               .filter((item) => item.quantityReceived > 0);
 
@@ -313,6 +324,8 @@ export class PurchaseOrderRepository extends BaseRepository {
                                 totalCost,
                                 batchNumber,
                                 expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
+                                inputQuantity: item.inputQuantity,
+                                inputUnitId: item.inputUnitId,
                                 purchaseOrderId: po.id,
                                 createdById: actorId,
                                 updatedById: actorId
@@ -494,7 +507,9 @@ export class PurchaseOrderRepository extends BaseRepository {
                             ingredientId: item.ingredientId,
                             quantity: item.quantity,
                             unitCost,
-                            totalCost: item.quantity * unitCost
+                            totalCost: item.quantity * unitCost,
+                            inputQuantity: item.inputQuantity,
+                            inputUnitId: item.inputUnitId
                         };
                     })
                 };
@@ -519,7 +534,8 @@ export class PurchaseOrderRepository extends BaseRepository {
                                 include: {
                                     defaultUnit: true
                                 }
-                            }
+                            },
+                            inputUnit: true
                         }
                     }
                 }

@@ -171,7 +171,9 @@ export const CreateBatchSchema = z.object({
     quantityReceived: z.number().positive(),
     unitCost: z.number().nonnegative(),
     batchNumber: z.string().max(100).optional().nullable(),
-    expiryDate: z.string().datetime().or(z.string().date()).optional().nullable()
+    expiryDate: z.string().datetime().or(z.string().date()).optional().nullable(),
+    inputQuantity: z.number().positive().optional().nullable(),
+    inputUnitId: z.string().uuid().optional().nullable()
 });
 export type TCreateBatch = z.infer<typeof CreateBatchSchema>;
 
@@ -180,7 +182,9 @@ export const UpdateBatchSchema = z.object({
     quantityReceived: z.number().positive().optional(),
     unitCost: z.number().nonnegative().optional(),
     batchNumber: z.string().max(100).optional().nullable(),
-    expiryDate: z.string().datetime().or(z.string().date()).optional().nullable()
+    expiryDate: z.string().datetime().or(z.string().date()).optional().nullable(),
+    inputQuantity: z.number().positive().optional().nullable(),
+    inputUnitId: z.string().uuid().optional().nullable()
 });
 export type TUpdateBatch = z.infer<typeof UpdateBatchSchema>;
 
@@ -193,6 +197,16 @@ export const BatchResponseSchema = z.object({
     unitCost: z.number(),
     totalCost: z.number(),
     batchNumber: z.string().nullable(),
+    inputQuantity: z.number().nullable().optional(),
+    inputUnitId: z.string().nullable().optional(),
+    inputUnit: z
+        .object({
+            id: z.string(),
+            name: z.string(),
+            abbreviation: z.string().nullable().optional()
+        })
+        .nullable()
+        .optional(),
     expiryDate: z.date().nullable().or(z.string().nullable()),
     receivedAt: z.date().or(z.string()),
     createdAt: z.date().or(z.string()),
@@ -227,14 +241,18 @@ export const CreateAdjustmentSchema = z.object({
     ingredientId: z.string().uuid(),
     quantity: z.number(), // Can be negative (waste) or positive (physical count correction)
     type: z.enum(['WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE', 'PHYSICAL_COUNT_DISCREPANCY']),
-    reason: z.string().max(500).optional().nullable()
+    reason: z.string().max(500).optional().nullable(),
+    inputQuantity: z.number().optional().nullable(),
+    inputUnitId: z.string().uuid().optional().nullable()
 });
 export type TCreateAdjustment = z.infer<typeof CreateAdjustmentSchema>;
 
 export const UpdateAdjustmentSchema = z.object({
     quantity: z.number().optional(),
     type: z.enum(['WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE', 'PHYSICAL_COUNT_DISCREPANCY']).optional(),
-    reason: z.string().max(500).optional().nullable()
+    reason: z.string().max(500).optional().nullable(),
+    inputQuantity: z.number().optional().nullable(),
+    inputUnitId: z.string().uuid().optional().nullable()
 });
 export type TUpdateAdjustment = z.infer<typeof UpdateAdjustmentSchema>;
 
@@ -244,6 +262,16 @@ export const AdjustmentResponseSchema = z.object({
     quantity: z.number(),
     type: z.enum(['WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE', 'PHYSICAL_COUNT_DISCREPANCY']),
     reason: z.string().nullable(),
+    inputQuantity: z.number().nullable().optional(),
+    inputUnitId: z.string().nullable().optional(),
+    inputUnit: z
+        .object({
+            id: z.string(),
+            name: z.string(),
+            abbreviation: z.string().nullable().optional()
+        })
+        .nullable()
+        .optional(),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     deletedAt: z.date().nullable().or(z.string().nullable())

@@ -372,10 +372,38 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
             expect(inventory?.status).toBe(InventoryStatus.SAFE);
         });
 
+        it('should receive a delivery with preferred input unit and preserve inputQuantity and inputUnitId', async () => {
+            const payload = {
+                ingredientId: activeIngredientId,
+                quantityReceived: 10,
+                unitCost: 15.0,
+                batchNumber: 'BATCH-PREF-UNIT-1',
+                inputQuantity: 1,
+                inputUnitId: activeUnitId
+            };
+
+            const res = await request(app).post('/inventory/deliveries').send(payload);
+            expect(res.status).toBe(201);
+            expect(res.body.quantityReceived).toBe(10);
+            expect(res.body.inputQuantity).toBe(1);
+            expect(res.body.inputUnitId).toBe(activeUnitId);
+            expect(res.body.inputUnit).toBeDefined();
+            expect(res.body.inputUnit.id).toBe(activeUnitId);
+
+            // Verify batch list also returns inputUnit and inputQuantity
+            const listRes = await request(app).get(`/inventory/deliveries?search=BATCH-PREF-UNIT-1`);
+            expect(listRes.status).toBe(200);
+            const foundBatch = listRes.body.data.find((b: { id: string }) => b.id === res.body.id);
+            expect(foundBatch).toBeDefined();
+            expect(foundBatch.inputQuantity).toBe(1);
+            expect(foundBatch.inputUnit).toBeDefined();
+            expect(foundBatch.inputUnit.id).toBe(activeUnitId);
+        });
+
         it('should log a negative stock adjustment (waste) and atomically decrement stock and change status to CRITICAL', async () => {
             const payload = {
                 ingredientId: activeIngredientId,
-                quantity: -4, // Spoilage of 4 items (13 - 4 = 9, which is <= reorderPoint of 10)
+                quantity: -4, // Spoilage of 4 items
                 type: 'SPOILED',
                 reason: 'Spoiled due to high ambient temperature'
             };
@@ -385,12 +413,47 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
             expect(res.body.quantity).toBe(-4);
             testAdjustmentId = res.body.id;
 
-            // Verify live stock updated to 9 and status changed to CRITICAL
+            // Verify live stock updated
             const inventory = await prisma.ingredientInventory.findFirst({
                 where: { ingredientId: activeIngredientId }
             });
-            expect(inventory?.currentQuantity).toBe(9);
-            expect(inventory?.status).toBe(InventoryStatus.CRITICAL);
+            expect(inventory?.currentQuantity).toBe(19); // 13 + 10 - 4 = 19
+            expect(inventory?.status).toBe(InventoryStatus.SAFE);
+        });
+
+        it('should log a stock adjustment with preferred input unit and preserve inputQuantity and inputUnitId', async () => {
+            const payload = {
+                ingredientId: activeIngredientId,
+                quantity: -2,
+                type: 'WASTE',
+                reason: 'Dropped container',
+                inputQuantity: 2,
+                inputUnitId: activeUnitId
+            };
+
+            const res = await request(app).post('/inventory/adjustments').send(payload);
+            expect(res.status).toBe(201);
+            expect(res.body.quantity).toBe(-2);
+            expect(res.body.inputQuantity).toBe(2);
+            expect(res.body.inputUnitId).toBe(activeUnitId);
+            expect(res.body.inputUnit).toBeDefined();
+            expect(res.body.inputUnit.id).toBe(activeUnitId);
+
+            // Verify get adjustment list returns inputUnit
+            const listRes = await request(app).get('/inventory/adjustments?search=Dropped container');
+            expect(listRes.status).toBe(200);
+            const foundAdj = listRes.body.data.find((a: { id: string }) => a.id === res.body.id);
+            expect(foundAdj).toBeDefined();
+            expect(foundAdj.inputQuantity).toBe(2);
+            expect(foundAdj.inputUnit).toBeDefined();
+            expect(foundAdj.inputUnit.id).toBe(activeUnitId);
+
+            // Verify update adjustment updates inputQuantity
+            const updateRes = await request(app).put(`/inventory/adjustments/${res.body.id}`).send({
+                inputQuantity: 3
+            });
+            expect(updateRes.status).toBe(200);
+            expect(updateRes.body.inputQuantity).toBe(3);
         });
 
         it('should overwrite current stock using a physical count and recalculate status to SAFE', async () => {

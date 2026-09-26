@@ -756,10 +756,13 @@ export class InventoryRepository extends BaseRepository {
                     totalCost: data.totalCost,
                     batchNumber: data.batchNumber,
                     expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+                    inputQuantity: data.inputQuantity,
+                    inputUnitId: data.inputUnitId,
                     createdById: actorId,
                     updatedById: actorId
                 },
                 include: {
+                    inputUnit: true,
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
                 }
@@ -786,6 +789,7 @@ export class InventoryRepository extends BaseRepository {
                 ingredient: {
                     include: { defaultUnit: true }
                 },
+                inputUnit: true,
                 supplier: true,
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
@@ -810,6 +814,7 @@ export class InventoryRepository extends BaseRepository {
                 ingredient: {
                     include: { defaultUnit: true }
                 },
+                inputUnit: true,
                 supplier: true,
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
@@ -871,6 +876,7 @@ export class InventoryRepository extends BaseRepository {
                     ingredient: {
                         include: { defaultUnit: true }
                     },
+                    inputUnit: true,
                     supplier: true,
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
@@ -893,10 +899,13 @@ export class InventoryRepository extends BaseRepository {
                 quantity: data.quantity,
                 type: data.type,
                 reason: data.reason,
+                inputQuantity: data.inputQuantity,
+                inputUnitId: data.inputUnitId,
                 createdById: actorId,
                 updatedById: actorId
             },
             include: {
+                inputUnit: true,
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -910,6 +919,7 @@ export class InventoryRepository extends BaseRepository {
                 ingredient: {
                     include: { defaultUnit: true }
                 },
+                inputUnit: true,
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -923,12 +933,15 @@ export class InventoryRepository extends BaseRepository {
                 ...(data.quantity !== undefined && { quantity: data.quantity }),
                 ...(data.type !== undefined && { type: data.type }),
                 ...(data.reason !== undefined && { reason: data.reason }),
+                ...(data.inputQuantity !== undefined && { inputQuantity: data.inputQuantity }),
+                ...(data.inputUnitId !== undefined && { inputUnitId: data.inputUnitId }),
                 updatedById: actorId
             },
             include: {
                 ingredient: {
                     include: { defaultUnit: true }
                 },
+                inputUnit: true,
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -984,6 +997,7 @@ export class InventoryRepository extends BaseRepository {
                     ingredient: {
                         include: { defaultUnit: true }
                     },
+                    inputUnit: true,
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
                 }

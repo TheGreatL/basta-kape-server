@@ -159,14 +159,17 @@ enum UnitCategory {
 }
 
 model IngredientUnit {
-  id                String             @id @default(uuid())
-  name              String // e.g., "Grams", "Milliliters", "Pieces"
-  abbreviation      String? // e.g., "g", "ml", "pcs"
-  category          UnitCategory       @default(ALL)
-  ingredients       Ingredient[]
-  recipeIngredients RecipeIngredient[]
-  fromConversions   UnitConversion[]   @relation("FromUnitConversions")
-  toConversions     UnitConversion[]   @relation("ToUnitConversions")
+  id                        String                @id @default(uuid())
+  name                      String // e.g., "Grams", "Milliliters", "Pieces"
+  abbreviation              String? // e.g., "g", "ml", "pcs"
+  category                  UnitCategory          @default(ALL)
+  ingredients               Ingredient[]
+  recipeIngredients         RecipeIngredient[]
+  fromConversions           UnitConversion[]      @relation("FromUnitConversions")
+  toConversions             UnitConversion[]      @relation("ToUnitConversions")
+  purchaseOrderItemsInput   PurchaseOrderItem[]   @relation("PurchaseOrderItemInputUnit")
+  ingredientBatchesInput    IngredientBatch[]     @relation("IngredientBatchInputUnit")
+  inventoryAdjustmentsInput InventoryAdjustment[] @relation("InventoryAdjustmentInputUnit")
 
   createdById String?
   createdBy   User?     @relation("IngredientUnitCreatedBy", fields: [createdById], references: [id])
@@ -252,6 +255,10 @@ model IngredientBatch {
   unitCost         Float      @default(0)
   totalCost        Float      @default(0)
   batchNumber      String?
+
+  inputQuantity Float?
+  inputUnitId   String?
+  inputUnit     IngredientUnit? @relation("IngredientBatchInputUnit", fields: [inputUnitId], references: [id])
 
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
@@ -381,6 +388,10 @@ model InventoryAdjustment {
   type         AdjustmentType
   reason       String?
 
+  inputQuantity Float?
+  inputUnitId   String?
+  inputUnit     IngredientUnit? @relation("InventoryAdjustmentInputUnit", fields: [inputUnitId], references: [id])
+
   createdById String?
   createdBy   User?     @relation("InventoryAdjustmentCreatedBy", fields: [createdById], references: [id])
   updatedById String?
@@ -433,6 +444,10 @@ model PurchaseOrderItem {
   quantity  Float @default(0)
   unitCost  Float @default(0)
   totalCost Float @default(0)
+
+  inputQuantity Float?
+  inputUnitId   String?
+  inputUnit     IngredientUnit? @relation("PurchaseOrderItemInputUnit", fields: [inputUnitId], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

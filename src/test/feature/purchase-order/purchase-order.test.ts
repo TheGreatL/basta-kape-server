@@ -505,5 +505,142 @@ describe('Purchase Order Feature CRUD', () => {
             expect(batch?.unitCost).toBe(22.5);
             expect(batch?.totalCost).toBe(225);
         });
+
+        it('should preserve inputQuantity and inputUnitId when creating and updating purchase order items', async () => {
+            const createRes = await request(app)
+                .post('/purchase-orders')
+                .send({
+                    supplierId: testSupplierId1,
+                    notes: 'PO with preferred input unit',
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 5000,
+                            unitCost: 1.2,
+                            inputQuantity: 5,
+                            inputUnitId: testUnitId
+                        }
+                    ]
+                });
+
+            expect(createRes.status).toBe(201);
+            expect(createRes.body.items).toHaveLength(1);
+            expect(createRes.body.items[0].quantity).toBe(5000);
+            expect(createRes.body.items[0].inputQuantity).toBe(5);
+            expect(createRes.body.items[0].inputUnitId).toBe(testUnitId);
+            expect(createRes.body.items[0].inputUnit).toBeDefined();
+            expect(createRes.body.items[0].inputUnit.id).toBe(testUnitId);
+            const poId = createRes.body.id;
+
+            // Update item inputQuantity
+            const updateRes = await request(app)
+                .put(`/purchase-orders/${poId}`)
+                .send({
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 10000,
+                            unitCost: 1.2,
+                            inputQuantity: 10,
+                            inputUnitId: testUnitId
+                        }
+                    ]
+                });
+
+            expect(updateRes.status).toBe(200);
+            expect(updateRes.body.items[0].quantity).toBe(10000);
+            expect(updateRes.body.items[0].inputQuantity).toBe(10);
+            expect(updateRes.body.items[0].inputUnitId).toBe(testUnitId);
+        });
+
+        it('should transfer inputQuantity and inputUnitId to IngredientBatch upon receiving purchase order', async () => {
+            // 1. Create PO with inputQuantity & inputUnitId
+            const createRes = await request(app)
+                .post('/purchase-orders')
+                .send({
+                    supplierId: testSupplierId1,
+                    notes: 'PO receive unit transfer test',
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 2000,
+                            unitCost: 2.5,
+                            inputQuantity: 2,
+                            inputUnitId: testUnitId
+                        }
+                    ]
+                });
+
+            expect(createRes.status).toBe(201);
+            const poId = createRes.body.id;
+
+            // 2. Transition to SENT
+            await request(app).patch(`/purchase-orders/${poId}/status`).send({ status: PurchaseOrderStatus.SENT });
+
+            // 3. Mark as RECEIVED without overriding items (carries over PO item's inputQuantity & inputUnitId)
+            const receivedRes = await request(app).patch(`/purchase-orders/${poId}/status`).send({ status: PurchaseOrderStatus.RECEIVED });
+
+            expect(receivedRes.status).toBe(200);
+
+            // 4. Verify batch in DB has inputQuantity & inputUnitId populated
+            const batch = await prisma.ingredientBatch.findFirst({
+                where: { purchaseOrderId: poId }
+            });
+            expect(batch).not.toBeNull();
+            expect(batch?.quantityReceived).toBe(2000);
+            expect(batch?.inputQuantity).toBe(2);
+            expect(batch?.inputUnitId).toBe(testUnitId);
+        });
+
+        it('should allow custom inputQuantity and inputUnitId overrides when receiving items', async () => {
+            // 1. Create PO
+            const createRes = await request(app)
+                .post('/purchase-orders')
+                .send({
+                    supplierId: testSupplierId1,
+                    notes: 'PO receive custom input unit override test',
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantity: 3000,
+                            unitCost: 1.5,
+                            inputQuantity: 3,
+                            inputUnitId: testUnitId
+                        }
+                    ]
+                });
+
+            expect(createRes.status).toBe(201);
+            const poId = createRes.body.id;
+
+            // 2. Transition to SENT
+            await request(app).patch(`/purchase-orders/${poId}/status`).send({ status: PurchaseOrderStatus.SENT });
+
+            // 3. Mark as RECEIVED with explicit inputQuantity & inputUnitId
+            const receivedRes = await request(app)
+                .patch(`/purchase-orders/${poId}/status`)
+                .send({
+                    status: PurchaseOrderStatus.RECEIVED,
+                    items: [
+                        {
+                            ingredientId: testIngredientId1,
+                            quantityReceived: 3000,
+                            unitCost: 1.5,
+                            inputQuantity: 6,
+                            inputUnitId: testUnitId
+                        }
+                    ]
+                });
+
+            expect(receivedRes.status).toBe(200);
+
+            // 4. Verify batch in DB has overridden inputQuantity
+            const batch = await prisma.ingredientBatch.findFirst({
+                where: { purchaseOrderId: poId }
+            });
+            expect(batch).not.toBeNull();
+            expect(batch?.inputQuantity).toBe(6);
+            expect(batch?.inputUnitId).toBe(testUnitId);
+        });
     });
 });

@@ -36,7 +36,15 @@ export const RecipeIngredientResponseSchema = z.object({
     ingredientUnitId: z.string(),
     ingredient: z.object({
         id: z.string(),
-        name: z.string()
+        name: z.string(),
+        ingredientUnitId: z.string().optional(),
+        defaultUnit: z
+            .object({
+                id: z.string(),
+                name: z.string(),
+                abbreviation: z.string().nullable()
+            })
+            .optional()
     }),
     unit: z.object({
         id: z.string(),

@@ -4,7 +4,9 @@ import { PurchaseOrderStatus } from '@prisma/client';
 export const CreatePurchaseOrderItemSchema = z.object({
     ingredientId: z.string().uuid('Invalid ingredient ID'),
     quantity: z.number().positive('Quantity must be greater than zero'),
-    unitCost: z.number().nonnegative('Unit cost cannot be negative').optional().default(0)
+    unitCost: z.number().nonnegative('Unit cost cannot be negative').optional().default(0),
+    inputQuantity: z.number().positive().optional().nullable(),
+    inputUnitId: z.string().uuid().optional().nullable()
 });
 
 export const CreatePurchaseOrderSchema = z.object({
@@ -18,7 +20,9 @@ export const UpdatePurchaseOrderStatusItemSchema = z.object({
     quantityReceived: z.number().nonnegative('Quantity received cannot be negative').optional(),
     unitCost: z.number().nonnegative('Unit cost cannot be negative').optional(),
     batchNumber: z.string().max(100).optional().nullable(),
-    expiryDate: z.string().optional().nullable()
+    expiryDate: z.string().optional().nullable(),
+    inputQuantity: z.number().positive().optional().nullable(),
+    inputUnitId: z.string().uuid().optional().nullable()
 });
 
 export const UpdatePurchaseOrderStatusSchema = z.object({
