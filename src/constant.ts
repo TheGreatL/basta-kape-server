@@ -8,6 +8,7 @@ export type TDataStatus = (typeof dataStatus)[keyof typeof dataStatus];
 export const dataStatusEnum = Object.values(dataStatus);
 
 export const appModules = {
+    DASHBOARD: 'Dashboard',
     USERS_MANAGEMENT: 'Users Management',
     ROLES_AND_PERMISSIONS: 'Roles and Permissions',
     PRODUCTS_MANAGEMENT: 'Products Management',

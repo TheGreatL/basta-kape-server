@@ -34,6 +34,11 @@ export async function seedUsers(prisma: PrismaClient) {
     // ==========================================
     // 2. CREATE MODULES
     // ==========================================
+    const dashboardMod = await prisma.module.upsert({
+        where: { name: appModules.DASHBOARD },
+        update: {},
+        create: { name: appModules.DASHBOARD, createdAt: SEED_DATE }
+    });
     const usersMod = await prisma.module.upsert({
         where: { name: appModules.USERS_MANAGEMENT },
         update: {},
@@ -181,6 +186,7 @@ export async function seedUsers(prisma: PrismaClient) {
     // - System-wide monitoring and dashboard overview (Read-only on all shop operational modules)
     // - No routine daily operations (no taking orders, no editing menu prices, no logging deliveries)
     const ownerPerms = deduplicatePerms([
+        ...(await getPermNodes(dashboardMod, readOnly)),
         ...(await getPermNodes(reportsMod, crud)),
         ...(await getPermNodes(salesMod, crud)),
         ...(await getPermNodes(activityLogMod, readOnly)),
@@ -211,6 +217,7 @@ export async function seedUsers(prisma: PrismaClient) {
     // - Order void approval (Point of Sale read & delete for void authorization)
     // - Excludes Executive Financial Reports and counter POS order processing
     const adminPerms = deduplicatePerms([
+        ...(await getPermNodes(dashboardMod, readOnly)),
         ...(await getPermNodes(usersMod, crud)),
         ...(await getPermNodes(rolesMod, crud)),
         ...(await getPermNodes(productsMod, crud)),
