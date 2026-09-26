@@ -174,6 +174,11 @@ export class UserRepository extends BaseRepository {
             ];
         }
         where.customer = { is: null };
+        if (!params.role) {
+            where.role = {
+                name: { not: 'Customer' }
+            };
+        }
 
         const [data, totalRows] = await Promise.all([
             prisma.user.findMany({
