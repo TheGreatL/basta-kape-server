@@ -2,7 +2,7 @@ import type { IPaginatedResult, IPaginationParams } from '@/types/base.types';
 
 export abstract class BaseRepository {
     protected readonly DEFAULT_LIMIT: number = 10;
-    protected readonly MAX_LIMIT: number = 50;
+    protected readonly MAX_LIMIT: number = 100;
     protected readonly DEFAULT_PAGE: number = 1;
 
     /**
