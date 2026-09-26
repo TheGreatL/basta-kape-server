@@ -173,6 +173,7 @@ export class UserRepository extends BaseRepository {
                 { lastName: { contains: searchLower } }
             ];
         }
+        where.customer = { is: null };
 
         const [data, totalRows] = await Promise.all([
             prisma.user.findMany({
