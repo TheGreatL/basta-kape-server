@@ -9,6 +9,7 @@ import {
     CreateUserSchema,
     UpdateUserSchema,
     UpdateSelfProfileSchema,
+    AdminResetPasswordSchema,
     PaginatedUserResponseSchema,
     UserResponseSchema
 } from './user.types';
@@ -309,5 +310,44 @@ router.post('/:id/profile-picture', authenticate, upload.single('file'), async (
         next(error);
     }
 });
+
+// ==========================================
+// PATCH /users/:id/reset-password
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/users/{id}/reset-password',
+    tags: ['Users'],
+    summary: 'Admin reset password for user by ID',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: AdminResetPasswordSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Password reset successfully'
+        }
+    }
+});
+
+router.patch(
+    '/:id/reset-password',
+    requireAccess(appModules.USERS_MANAGEMENT, appPermissions.UPDATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = AdminResetPasswordSchema.parse(req.body);
+            const result = await userService.resetPassword(req.params.id as string, body.newPassword, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 export default router;

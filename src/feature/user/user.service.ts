@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { UserRepository } from './user.repository';
 import { UploadService } from '@/feature/upload/upload.service';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
@@ -143,5 +144,19 @@ export class UserService {
         });
 
         return { url };
+    }
+
+    async resetPassword(id: string, newPassword: string, actorId: string) {
+        const user = await this.getUserById(id);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await this.userRepository.updatePassword(id, hashedPassword);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Reset User Password',
+            details: `Administrator reset password for user ${user.username} (${user.email}).`
+        });
+
+        return { message: 'Password reset successfully' };
     }
 }

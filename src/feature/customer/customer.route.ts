@@ -16,6 +16,7 @@ import {
     ClearCartSchema,
     GetCustomerOrdersQuerySchema
 } from './customer.types';
+import { AdminResetPasswordSchema } from '@/feature/user/user.types';
 
 const router = Router();
 const customerService = new CustomerService();
@@ -197,6 +198,45 @@ router.patch(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const result = await customerService.restoreCustomer(req.params.id as string, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ==========================================
+// PATCH /customers/:id/reset-password
+// ==========================================
+registry.registerPath({
+    method: 'patch',
+    path: '/customers/{id}/reset-password',
+    tags: ['Customers'],
+    summary: 'Admin reset password for customer by ID',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: AdminResetPasswordSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Customer password reset successfully'
+        }
+    }
+});
+
+router.patch(
+    '/:id/reset-password',
+    requireAccess(appModules.CUSTOMERS_MANAGEMENT, appPermissions.UPDATE),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = AdminResetPasswordSchema.parse(req.body);
+            const result = await customerService.resetPassword(req.params.id as string, body.newPassword, req.user!.sub);
             res.json(result);
         } catch (error) {
             next(error);

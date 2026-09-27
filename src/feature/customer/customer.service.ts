@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { CustomerRepository } from './customer.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
@@ -113,6 +114,33 @@ export class CustomerService {
         });
 
         return customer;
+    }
+
+    async resetPassword(id: string, newPassword: string, actorId: string) {
+        let customer = await this.customerRepository.findCustomerById(id);
+        if (!customer) {
+            customer = await prisma.customer.findFirst({
+                where: { userId: id },
+                include: { user: true }
+            });
+        }
+        if (!customer) {
+            throw new NotFoundException('Customer not found');
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: customer.userId },
+            data: { password: hashedPassword }
+        });
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Reset Customer Password',
+            details: `Administrator reset password for customer ${customer.user.username} (${customer.user.email}).`
+        });
+
+        return { message: 'Customer password reset successfully' };
     }
 
     // ==========================================

@@ -45,6 +45,7 @@ import request from 'supertest';
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import userRouter from '@/feature/user/user.route';
+import { ZodError } from 'zod';
 import { HttpException } from '@/exceptions/http.exception';
 
 describe('User Feature CRUD & Profile Photo Upload', () => {
@@ -62,8 +63,12 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
 
         // Error handler
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        app.use((err: HttpException, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-            const status = err.statusCode || 500;
+        app.use((err: HttpException | Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+            if (err instanceof ZodError) {
+                res.status(400).json({ error: 'Validation failed', details: err.issues });
+                return;
+            }
+            const status = err instanceof HttpException ? err.statusCode : 500;
             res.status(status).json({ error: err.message });
         });
 
@@ -203,6 +208,27 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
             // Verify restored (deletedAt is null)
             const user = await prisma.user.findUnique({ where: { id: createdUserId } });
             expect(user?.deletedAt).toBeNull();
+        });
+    });
+
+    describe('PATCH /users/:id/reset-password', () => {
+        it('should allow admin to reset a user password', async () => {
+            const res = await request(app).patch(`/users/${createdUserId}/reset-password`).send({ newPassword: 'NewPassword123' });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('message', 'Password reset successfully');
+
+            // Verify password was updated in db
+            const user = await prisma.user.findUnique({ where: { id: createdUserId } });
+            const bcrypt = await import('bcryptjs');
+            const match = await bcrypt.compare('NewPassword123', user!.password);
+            expect(match).toBe(true);
+        });
+
+        it('should reject invalid password', async () => {
+            const res = await request(app).patch(`/users/${createdUserId}/reset-password`).send({ newPassword: 'short' });
+
+            expect(res.status).toBe(400);
         });
     });
 });

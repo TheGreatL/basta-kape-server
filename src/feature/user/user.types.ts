@@ -37,6 +37,15 @@ export const UpdateUserSchema = z.object({
 
 export type TUpdateUser = z.infer<typeof UpdateUserSchema>;
 
+export const AdminResetPasswordSchema = z.object({
+    newPassword: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/^(?=.*[A-Z])(?=.*\d).+$/, 'Password must contain at least one uppercase letter and one number')
+});
+
+export type TAdminResetPassword = z.infer<typeof AdminResetPasswordSchema>;
+
 export const UpdateSelfProfileSchema = z.object({
     firstName: z.string().min(2).optional(),
     lastName: z.string().min(2).optional(),
