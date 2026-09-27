@@ -72,9 +72,11 @@ export class DashboardService {
                 prisma.orderPayment.groupBy({
                     by: ['paymentMethod'],
                     where: {
-                        paymentStatus: 'PAID',
                         createdAt: { gte: startDate, lte: endDate },
-                        order: { status: { not: 'CANCELLED' } }
+                        order: {
+                            status: { not: 'CANCELLED' },
+                            paymentStatus: 'PAID'
+                        }
                     },
                     _sum: { amount: true },
                     _count: { id: true }

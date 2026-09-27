@@ -45,7 +45,7 @@ describe('Dashboard Feature Integration Tests', () => {
         });
 
         // Ensure test user with Administrator role exists in DB
-        await prisma.user.upsert({
+        const user = await prisma.user.upsert({
             where: { id: 'test-dashboard-user-id' },
             update: {},
             create: {
@@ -61,8 +61,27 @@ describe('Dashboard Feature Integration Tests', () => {
                         create: { name: 'Administrator', isSystem: true }
                     }
                 }
-            }
+            },
+            include: { role: true }
         });
+
+        // Ensure Administrator has all permissions so all dashboard data branches are exercised
+        if (user.roleId) {
+            const allModulePerms = await prisma.modulePermission.findMany();
+            for (const mp of allModulePerms) {
+                const existing = await prisma.rolePermission.findFirst({
+                    where: { roleId: user.roleId, modulePermissionId: mp.id }
+                });
+                if (!existing) {
+                    await prisma.rolePermission.create({
+                        data: {
+                            roleId: user.roleId,
+                            modulePermissionId: mp.id
+                        }
+                    });
+                }
+            }
+        }
     });
 
     afterAll(async () => {
@@ -79,6 +98,13 @@ describe('Dashboard Feature Integration Tests', () => {
             expect(res.body.user).toHaveProperty('username', 'dashboardtestuser');
             expect(res.body.user).toHaveProperty('firstName', 'Dashboard');
             expect(res.body.user).toHaveProperty('lastName', 'Admin');
+            expect(res.body).toHaveProperty('salesToday');
+            expect(res.body).toHaveProperty('paymentBreakdown');
+            expect(res.body).toHaveProperty('channelBreakdown');
+            expect(res.body).toHaveProperty('profitability');
+            expect(res.body).toHaveProperty('procurementSummary');
+            expect(res.body).toHaveProperty('inventorySummary');
+            expect(res.body).toHaveProperty('ordersSummary');
         });
     });
 });
