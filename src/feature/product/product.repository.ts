@@ -160,6 +160,7 @@ export class ProductRepository extends BaseRepository {
                         },
                         attributes: {
                             where: { deletedAt: null },
+                            orderBy: { attributeValue: { attribute: { name: 'asc' } } },
                             include: {
                                 attributeValue: {
                                     include: {
@@ -233,6 +234,7 @@ export class ProductRepository extends BaseRepository {
                             },
                             attributes: {
                                 where: { deletedAt: null },
+                                orderBy: { attributeValue: { attribute: { name: 'asc' } } },
                                 include: {
                                     attributeValue: {
                                         include: {
@@ -290,6 +292,7 @@ export class ProductRepository extends BaseRepository {
                     updatedBy: { select: auditSelect },
                     attributes: {
                         where: { deletedAt: null },
+                        orderBy: { attributeValue: { attribute: { name: 'asc' } } },
                         include: {
                             attributeValue: {
                                 include: {
@@ -356,6 +359,7 @@ export class ProductRepository extends BaseRepository {
                     updatedBy: { select: auditSelect },
                     attributes: {
                         where: { deletedAt: null },
+                        orderBy: { attributeValue: { attribute: { name: 'asc' } } },
                         include: {
                             attributeValue: {
                                 include: {
@@ -586,6 +590,7 @@ export class ProductRepository extends BaseRepository {
                 updatedBy: { select: auditSelect },
                 attributes: {
                     where: { deletedAt: null },
+                    orderBy: { attributeValue: { attribute: { name: 'asc' } } },
                     include: {
                         attributeValue: {
                             include: {
