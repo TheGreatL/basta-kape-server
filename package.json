@@ -9,7 +9,8 @@
         "dev": "nodemon -r tsconfig-paths/register --exec ts-node src/server.ts",
         "build": "tsc && tsc-alias",
         "start": "node dist/server.js",
-        "format": "prettier --write \"src/**/*.ts\"",
+        "format": "prettier --write .",
+        "check": "prettier --check .",
         "lint": "eslint src/**/*.ts",
         "lint:fix": "eslint src/**/*.ts --fix",
         "prepare": "husky",
@@ -78,9 +79,12 @@
         "vitest": "^4.1.8"
     },
     "lint-staged": {
-        "*.ts": [
+        "*.{ts,js,mjs}": [
             "prettier --write",
             "eslint --fix"
+        ],
+        "*.{json,md}": [
+            "prettier --write"
         ]
     },
     "prisma": {
