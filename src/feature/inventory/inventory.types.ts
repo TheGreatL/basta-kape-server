@@ -168,6 +168,7 @@ export const PaginatedInventoryLevelResponseSchema = z.object({
 export const CreateBatchSchema = z.object({
     ingredientId: z.string().uuid(),
     supplierId: z.string().uuid().optional().nullable(),
+    purchaseOrderId: z.string().uuid().optional().nullable(),
     quantityReceived: z.number().positive(),
     unitCost: z.number().nonnegative(),
     batchNumber: z.string().max(100).optional().nullable(),
@@ -179,6 +180,7 @@ export type TCreateBatch = z.infer<typeof CreateBatchSchema>;
 
 export const UpdateBatchSchema = z.object({
     supplierId: z.string().uuid().optional().nullable(),
+    purchaseOrderId: z.string().uuid().optional().nullable(),
     quantityReceived: z.number().positive().optional(),
     unitCost: z.number().nonnegative().optional(),
     batchNumber: z.string().max(100).optional().nullable(),
@@ -192,6 +194,15 @@ export const BatchResponseSchema = z.object({
     id: z.string(),
     ingredientId: z.string(),
     supplierId: z.string().nullable(),
+    purchaseOrderId: z.string().nullable().optional(),
+    purchaseOrder: z
+        .object({
+            id: z.string(),
+            poNumber: z.string(),
+            status: z.string().optional()
+        })
+        .nullable()
+        .optional(),
     quantityReceived: z.number(),
     currentQuantity: z.number(),
     unitCost: z.number(),

@@ -750,6 +750,7 @@ export class InventoryRepository extends BaseRepository {
                 data: {
                     ingredientId: data.ingredientId,
                     supplierId: data.supplierId,
+                    purchaseOrderId: data.purchaseOrderId,
                     quantityReceived: data.quantityReceived,
                     currentQuantity: data.quantityReceived,
                     unitCost: data.unitCost,
@@ -763,6 +764,13 @@ export class InventoryRepository extends BaseRepository {
                 },
                 include: {
                     inputUnit: true,
+                    purchaseOrder: {
+                        select: {
+                            id: true,
+                            poNumber: true,
+                            status: true
+                        }
+                    },
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
                 }
@@ -791,6 +799,13 @@ export class InventoryRepository extends BaseRepository {
                 },
                 inputUnit: true,
                 supplier: true,
+                purchaseOrder: {
+                    select: {
+                        id: true,
+                        poNumber: true,
+                        status: true
+                    }
+                },
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -802,6 +817,7 @@ export class InventoryRepository extends BaseRepository {
             where: { id },
             data: {
                 ...(data.supplierId !== undefined && { supplierId: data.supplierId }),
+                ...(data.purchaseOrderId !== undefined && { purchaseOrderId: data.purchaseOrderId }),
                 ...(data.quantityReceived !== undefined && { quantityReceived: data.quantityReceived }),
                 ...(data.currentQuantity !== undefined && { currentQuantity: data.currentQuantity }),
                 ...(data.unitCost !== undefined && { unitCost: data.unitCost }),
@@ -816,6 +832,13 @@ export class InventoryRepository extends BaseRepository {
                 },
                 inputUnit: true,
                 supplier: true,
+                purchaseOrder: {
+                    select: {
+                        id: true,
+                        poNumber: true,
+                        status: true
+                    }
+                },
                 createdBy: { select: auditSelect },
                 updatedBy: { select: auditSelect }
             }
@@ -862,6 +885,11 @@ export class InventoryRepository extends BaseRepository {
                     supplier: {
                         name: { contains: params.search }
                     }
+                },
+                {
+                    purchaseOrder: {
+                        poNumber: { contains: params.search }
+                    }
                 }
             ];
         }
@@ -878,6 +906,13 @@ export class InventoryRepository extends BaseRepository {
                     },
                     inputUnit: true,
                     supplier: true,
+                    purchaseOrder: {
+                        select: {
+                            id: true,
+                            poNumber: true,
+                            status: true
+                        }
+                    },
                     createdBy: { select: auditSelect },
                     updatedBy: { select: auditSelect }
                 }
