@@ -212,7 +212,7 @@ registry.registerPath({
     method: 'put',
     path: '/unit-conversions/{id}',
     tags: ['Inventory - Unit Conversions'],
-    summary: 'Update unit conversion factor',
+    summary: 'Update unit conversion',
     security: [{ bearerAuth: [] }],
     parameters: [
         {

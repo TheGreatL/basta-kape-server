@@ -53,9 +53,25 @@ export const CreateUnitConversionSchema = z
 
 export type TCreateUnitConversion = z.infer<typeof CreateUnitConversionSchema>;
 
-export const UpdateUnitConversionSchema = z.object({
-    factor: z.number().positive('Factor must be greater than 0')
-});
+export const UpdateUnitConversionSchema = z
+    .object({
+        fromUnitId: z.string().min(1).optional(),
+        toUnitId: z.string().min(1).optional(),
+        factor: z.number().positive('Factor must be greater than 0').optional(),
+        ingredientId: z.string().nullable().optional()
+    })
+    .refine(
+        (data) => {
+            if (data.fromUnitId && data.toUnitId) {
+                return data.fromUnitId !== data.toUnitId;
+            }
+            return true;
+        },
+        {
+            message: 'From unit and To unit cannot be the same',
+            path: ['toUnitId']
+        }
+    );
 
 export type TUpdateUnitConversion = z.infer<typeof UpdateUnitConversionSchema>;
 

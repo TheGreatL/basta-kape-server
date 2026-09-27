@@ -310,6 +310,19 @@ describe('Unit Conversion Integration & Logic Tests', () => {
             expect(res.body.factor).toBe(4.5);
         });
 
+        it('updates conversion fromUnit, toUnit, ingredientId, and factor', async () => {
+            const res = await request(app).put(`/unit-conversions/${createdConversionId}`).send({
+                fromUnitId: unitTbId,
+                toUnitId: unitMlId,
+                factor: 5,
+                ingredientId: testIngredientId
+            });
+
+            expect(res.status).toBe(200);
+            expect(res.body.factor).toBe(5);
+            expect(res.body.ingredientId).toBe(testIngredientId);
+        });
+
         it('deletes the unit conversion', async () => {
             const res = await request(app).delete(`/unit-conversions/${createdConversionId}`);
             expect(res.status).toBe(200);

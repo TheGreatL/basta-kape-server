@@ -152,13 +152,63 @@ export class UnitConversionService {
     async updateConversion(id: string, data: TUpdateUnitConversion, actorId: string) {
         const conversion = await this.getConversionById(id);
 
-        const updated = await this.repository.updateConversion(id, data, actorId);
+        const nextFromUnitId = data.fromUnitId ?? conversion.fromUnitId;
+        const nextToUnitId = data.toUnitId ?? conversion.toUnitId;
+        const nextIngredientId = data.ingredientId !== undefined ? data.ingredientId : conversion.ingredientId;
+        const nextFactor = data.factor ?? conversion.factor;
 
-        const scopeLabel = conversion.ingredient ? ` for ingredient "${conversion.ingredient.name}"` : ' globally';
+        if (nextFromUnitId === nextToUnitId) {
+            throw new BadRequestException('From unit and To unit cannot be the same');
+        }
+
+        const [fromUnit, toUnit] = await Promise.all([
+            prisma.ingredientUnit.findFirst({ where: { id: nextFromUnitId, deletedAt: null } }),
+            prisma.ingredientUnit.findFirst({ where: { id: nextToUnitId, deletedAt: null } })
+        ]);
+
+        if (!fromUnit) {
+            throw new NotFoundException(`From unit with ID "${nextFromUnitId}" not found`);
+        }
+        if (!toUnit) {
+            throw new NotFoundException(`To unit with ID "${nextToUnitId}" not found`);
+        }
+
+        let ingredientName: string | undefined;
+        if (nextIngredientId) {
+            const ingredient = await prisma.ingredient.findFirst({
+                where: { id: nextIngredientId, deletedAt: null }
+            });
+            if (!ingredient) {
+                throw new NotFoundException(`Ingredient with ID "${nextIngredientId}" not found`);
+            }
+            ingredientName = ingredient.name;
+        }
+
+        const existing = await this.repository.findExistingConversion(nextFromUnitId, nextToUnitId, nextIngredientId, id);
+        if (existing) {
+            throw new ConflictException(
+                `A conversion between "${fromUnit.name}" and "${toUnit.name}" already exists${
+                    ingredientName ? ` for ingredient "${ingredientName}"` : ' globally'
+                }`
+            );
+        }
+
+        const updated = await this.repository.updateConversion(
+            id,
+            {
+                fromUnitId: nextFromUnitId,
+                toUnitId: nextToUnitId,
+                ingredientId: nextIngredientId,
+                factor: nextFactor
+            },
+            actorId
+        );
+
+        const scopeLabel = ingredientName ? ` for ingredient "${ingredientName}"` : ' globally';
         await this.activityLogService.logActivity({
             actorId,
             title: 'Update Unit Conversion',
-            details: `Updated unit conversion 1 ${conversion.fromUnit.name} = ${data.factor} ${conversion.toUnit.name}${scopeLabel} (was ${conversion.factor}).`
+            details: `Updated unit conversion: 1 ${fromUnit.name} = ${nextFactor} ${toUnit.name}${scopeLabel}.`
         });
 
         return updated;

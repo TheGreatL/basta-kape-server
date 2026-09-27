@@ -48,7 +48,10 @@ export class UnitConversionRepository extends BaseRepository {
         return prisma.unitConversion.update({
             where: { id },
             data: {
-                factor: data.factor,
+                ...(data.fromUnitId !== undefined && { fromUnitId: data.fromUnitId }),
+                ...(data.toUnitId !== undefined && { toUnitId: data.toUnitId }),
+                ...(data.ingredientId !== undefined && { ingredientId: data.ingredientId || null }),
+                ...(data.factor !== undefined && { factor: data.factor }),
                 updatedById: actorId
             },
             include: unitConversionInclude
@@ -72,12 +75,13 @@ export class UnitConversionRepository extends BaseRepository {
         });
     }
 
-    async findExistingConversion(fromUnitId: string, toUnitId: string, ingredientId?: string | null) {
+    async findExistingConversion(fromUnitId: string, toUnitId: string, ingredientId?: string | null, excludeId?: string) {
         const targetIngredientId = ingredientId || null;
         return prisma.unitConversion.findFirst({
             where: {
                 deletedAt: null,
                 ingredientId: targetIngredientId,
+                ...(excludeId ? { id: { not: excludeId } } : {}),
                 OR: [
                     { fromUnitId, toUnitId },
                     { fromUnitId: toUnitId, toUnitId: fromUnitId }
