@@ -217,7 +217,6 @@ export class ReportGenerator {
             drawPageHeader();
 
             const columnWidths = this.calculatePdfColumnWidths(dataset.columns, pageWidth);
-            const rowHeight = 22;
             const headerHeight = 26;
             const signatureBlockHeight = 34;
             const summaryLineHeight = 14;
@@ -254,31 +253,53 @@ export class ReportGenerator {
                 }
             };
 
+            const minRowHeight = 22;
+            const cellPaddingTop = 6;
+            const cellPaddingX = 4;
+            const cellFontSize = 7.5;
+
             drawTableHeader();
 
             dataset.rows.forEach((row, rowIndex) => {
-                ensureSpace(rowHeight);
+                // Calculate dynamic row height by measuring each cell's text
+                doc.font('Helvetica').fontSize(cellFontSize);
+                let maxCellHeight = minRowHeight;
+
+                dataset.columns.forEach((column, index) => {
+                    const width = columnWidths[index];
+                    const text = String(getCellValue(row, column));
+                    const textHeight = doc.heightOfString(text, {
+                        width: width - cellPaddingX * 2
+                    });
+                    const cellHeight = textHeight + cellPaddingTop * 2;
+                    if (cellHeight > maxCellHeight) maxCellHeight = cellHeight;
+                });
+
+                const dynamicRowHeight = Math.ceil(maxCellHeight);
+                ensureSpace(dynamicRowHeight);
 
                 let x = doc.page.margins.left;
                 const fillColor = rowIndex % 2 === 1 ? '#F5F0EB' : '#FFFFFF';
 
                 dataset.columns.forEach((column, index) => {
                     const width = columnWidths[index];
+                    const text = String(getCellValue(row, column));
                     doc.save();
-                    doc.rect(x, y, width, rowHeight).fill(fillColor);
+                    doc.rect(x, y, width, dynamicRowHeight).fill(fillColor);
                     doc.fillColor('#000000')
                         .font('Helvetica')
-                        .fontSize(7.5)
-                        .text(String(getCellValue(row, column)), x + 4, y + 6, {
-                            width: width - 8,
+                        .fontSize(cellFontSize)
+                        .text(text, x + cellPaddingX, y + cellPaddingTop, {
+                            width: width - cellPaddingX * 2,
+                            height: dynamicRowHeight - cellPaddingTop,
                             align: column.align ?? 'left',
-                            lineBreak: false
+                            lineBreak: true
                         });
                     doc.restore();
                     x += width;
                 });
 
-                y += rowHeight;
+                y += dynamicRowHeight;
             });
 
             ensureSpace(footerBlockHeight);
