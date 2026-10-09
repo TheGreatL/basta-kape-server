@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { OrderPaymentResponseSchema, PaymentStatusEnum } from '@/feature/payment/payment.types';
 
-export const OrderStatusEnum = z.enum(['PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED']);
+export const OrderStatusEnum = z.enum(['PENDING', 'APPROVED', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED']);
 export type TOrderStatus = z.infer<typeof OrderStatusEnum>;
 
 export const OrderTypeEnum = z.enum(['DINE_IN', 'TAKE_OUT', 'DELIVERY']);

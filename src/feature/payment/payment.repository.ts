@@ -75,14 +75,14 @@ export class PaymentRepository extends BaseRepository {
             if (order && order.status === OrderStatus.PENDING) {
                 await tx.order.update({
                     where: { id: orderId },
-                    data: { status: OrderStatus.PREPARING }
+                    data: { status: OrderStatus.APPROVED }
                 });
 
                 await tx.orderStatusHistory.create({
                     data: {
                         orderId,
-                        status: OrderStatus.PREPARING,
-                        notes: `Paid via ${data.paymentMethod}. Status updated to PREPARING.`,
+                        status: OrderStatus.APPROVED,
+                        notes: `Paid via ${data.paymentMethod}. Status updated to APPROVED.`,
                         changedById: actorId
                     }
                 });
@@ -204,14 +204,14 @@ export class PaymentRepository extends BaseRepository {
             if (payment.order && payment.order.status === OrderStatus.PENDING) {
                 await tx.order.update({
                     where: { id: payment.orderId },
-                    data: { status: OrderStatus.PREPARING }
+                    data: { status: OrderStatus.APPROVED }
                 });
 
                 await tx.orderStatusHistory.create({
                     data: {
                         orderId: payment.orderId,
-                        status: OrderStatus.PREPARING,
-                        notes: `Digital payment proof uploaded. Status updated to PREPARING.`,
+                        status: OrderStatus.APPROVED,
+                        notes: `Digital payment proof uploaded. Status updated to APPROVED.`,
                         changedById: actorId
                     }
                 });
