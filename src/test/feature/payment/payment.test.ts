@@ -212,15 +212,15 @@ describe('Payment Feature Integration Tests', () => {
             expect(res.body.amountTendered).toBe(150.0);
             expect(res.body.amountChange).toBe(30.0);
 
-            // Verify order status is PREPARING
+            // Verify order status is APPROVED
             const updatedOrder = await prisma.order.findUnique({
                 where: { id: order.id }
             });
-            expect(updatedOrder?.status).toBe('PREPARING');
+            expect(updatedOrder?.status).toBe('APPROVED');
 
             // Verify order status history logged
             const history = await prisma.orderStatusHistory.findFirst({
-                where: { orderId: order.id, status: 'PREPARING' }
+                where: { orderId: order.id, status: 'APPROVED' }
             });
             expect(history).toBeDefined();
             expect(history?.notes).toContain('Paid via CASH');
@@ -244,7 +244,7 @@ describe('Payment Feature Integration Tests', () => {
             const updatedOrder = await prisma.order.findUnique({
                 where: { id: order.id }
             });
-            expect(updatedOrder?.status).toBe('PREPARING');
+            expect(updatedOrder?.status).toBe('APPROVED');
         });
 
         it('should fail if paymentMethod is CASH but amountTendered is insufficient', async () => {
