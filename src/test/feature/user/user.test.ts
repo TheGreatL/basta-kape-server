@@ -72,8 +72,10 @@ describe('User Feature CRUD & Profile Photo Upload', () => {
             res.status(status).json({ error: err.message });
         });
 
-        // Seed a role to test role updating
-        const role = await prisma.role.findFirst();
+        // Seed a role to test role updating (must not be Customer so it's included in getList)
+        const role = await prisma.role.findFirst({
+            where: { name: { not: 'Customer' } }
+        });
         if (role) {
             seededRoleId = role.id;
         } else {
