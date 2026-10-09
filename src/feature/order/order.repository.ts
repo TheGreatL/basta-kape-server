@@ -59,19 +59,19 @@ export class OrderRepository extends BaseRepository {
 
     async getOrderQueueCount(): Promise<{
         count: number;
-        pending: number;
+        approve: number;
         preparing: number;
         ready: number;
     }> {
-        const [pending, preparing, ready] = await Promise.all([
-            prisma.order.count({ where: { status: 'PENDING' } }),
+        const [approve, preparing, ready] = await Promise.all([
+            prisma.order.count({ where: { status: 'APPROVED' } }),
             prisma.order.count({ where: { status: 'PREPARING' } }),
             prisma.order.count({ where: { status: 'READY' } })
         ]);
 
         return {
-            count: pending + preparing + ready,
-            pending,
+            count: approve + preparing + ready,
+            approve,
             preparing,
             ready
         };

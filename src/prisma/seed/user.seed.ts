@@ -259,12 +259,12 @@ export async function seedUsers(prisma: PrismaClient) {
     // 4. BARISTA SCOPE
     // Drink preparation & Kitchen Display scope:
     // - Live Order Queue / Kitchen Display & queue stats (Order Queue read/update)
-    // - Order status controls (Orders Management read/update)
+    // - Order status controls for preparation (Order Queue update)
     // - Station stock viewer (Inventory Management read-only)
     // - Digital menu & drink recipe reference (Menu read, Products read, Product Settings read)
     const baristaPerms = deduplicatePerms([
         ...(await getPermNodes(orderQueueMod, readUpdate)),
-        ...(await getPermNodes(ordersMod, readUpdate)),
+        ...(await getPermNodes(ordersMod, readOnly)),
         ...(await getPermNodes(menuMod, readOnly)),
         ...(await getPermNodes(productsMod, readOnly)),
         ...(await getPermNodes(productSettingsMod, readOnly)),

@@ -2,7 +2,7 @@ import { OrderRepository } from './order.repository';
 import { StoreSettingsService } from '@/feature/store-settings/store-settings.service';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { prisma } from '@/lib/prisma';
-import { NotFoundException, BadRequestException, ConflictException } from '@/exceptions';
+import { NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@/exceptions';
 import type { TCreateOrder, TGetOrderListQuery } from './order.types';
 import { OrderStatus, StoreSetting, Prisma } from '@prisma/client';
 import { generateHtmlReceipt, generateTextReceipt, generatePdfReceipt } from './receipt.template';
@@ -225,6 +225,63 @@ export class OrderService {
 
     async updateOrderStatus(orderId: string, status: OrderStatus, notes: string | null, actorId: string) {
         const order = await this.getOrderById(orderId);
+
+        // RBAC Workflow Validation:
+        // Barista (Order Queue: update) is responsible for: PREPARING, READY
+        // Cashier (Sales Management: create / Orders Management: update) is responsible for: COMPLETED, APPROVED, CANCELLED
+        if (actorId) {
+            const actor = await prisma.user.findFirst({
+                where: { id: actorId, deletedAt: null },
+                include: {
+                    role: {
+                        include: {
+                            rolePermissions: {
+                                where: { deletedAt: null },
+                                include: {
+                                    modulePermission: {
+                                        include: {
+                                            module: true,
+                                            permission: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (actor?.role) {
+                const roleName = actor.role.name;
+                const permissions = actor.role.rolePermissions.map((rp) => ({
+                    module: rp.modulePermission.module.name,
+                    permission: rp.modulePermission.permission.name
+                }));
+
+                const hasPerm = (moduleName: string, permName: string) =>
+                    permissions.some(
+                        (p) => p.module.toLowerCase() === moduleName.toLowerCase() && p.permission.toLowerCase() === permName.toLowerCase()
+                    );
+
+                const isSuperOrAdmin = roleName === 'Owner' || roleName === 'Administrator' || actor.role.isSystem;
+
+                if (!isSuperOrAdmin) {
+                    if (status === OrderStatus.PREPARING || status === OrderStatus.READY) {
+                        const canUpdateQueue = hasPerm('Order Queue', 'update');
+                        if (!canUpdateQueue) {
+                            throw new ForbiddenException(
+                                'Only kitchen/barista staff with Order Queue update permission can update orders to Preparing or Ready.'
+                            );
+                        }
+                    } else if (status === OrderStatus.COMPLETED) {
+                        const canComplete = hasPerm('Sales Management', 'create') || hasPerm('Orders Management', 'update');
+                        if (!canComplete) {
+                            throw new ForbiddenException('Only cashier staff with Sales Management permission can mark orders as Completed.');
+                        }
+                    }
+                }
+            }
+        }
 
         const updated = await this.repository.updateOrderStatus(orderId, status, notes, actorId);
 
