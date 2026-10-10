@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { UserRepository } from '@/feature/user/user.repository';
 import { appModules, appPermissions } from '@/constant';
+import { parseLocalStartDate, parseLocalEndDate } from '@/utils/date.utils';
 
 const userRepository = new UserRepository();
 
@@ -29,12 +30,9 @@ export class DashboardService {
             return permissions.some((p) => p.module === moduleName.toLowerCase() && p.permission === action.toLowerCase());
         };
 
-        // Date bounds for metrics (defaults to Today)
-        const startDate = dateFrom ? new Date(dateFrom) : new Date();
-        startDate.setHours(0, 0, 0, 0);
-
-        const endDate = dateTo ? new Date(dateTo) : new Date();
-        endDate.setHours(23, 59, 59, 999);
+        // Date bounds for metrics in Asia/Manila (UTC+8) timezone
+        const startDate = parseLocalStartDate(dateFrom);
+        const endDate = parseLocalEndDate(dateTo);
 
         // 3. Compile stats based on permissions
         const summary: Record<string, unknown> = {

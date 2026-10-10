@@ -218,6 +218,8 @@ export async function seedUsers(prisma: PrismaClient) {
     // - Excludes Executive Financial Reports and counter POS order processing
     const adminPerms = deduplicatePerms([
         ...(await getPermNodes(dashboardMod, readOnly)),
+        ...(await getPermNodes(reportsMod, crud)),
+        ...(await getPermNodes(salesMod, crud)),
         ...(await getPermNodes(usersMod, crud)),
         ...(await getPermNodes(rolesMod, crud)),
         ...(await getPermNodes(productsMod, crud)),

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { Prisma } from '@prisma/client';
 import { format } from 'date-fns';
+import { parseLocalStartDate, parseLocalEndDate } from '@/utils/date.utils';
 import type { TReportFilters, TReportModule, TReportRow } from './report.types';
 import { getOrderReference } from '../order/order.utils';
 
@@ -18,6 +19,14 @@ const formatDateTime = (value: Date | string | null | undefined): string => {
 const formatCurrency = (value: number | null | undefined): string => {
     if (value === null || value === undefined) return '';
     return `PHP ${value.toFixed(2)}`;
+};
+
+const resolveDateFilter = (dateFrom?: string, dateTo?: string): Prisma.DateTimeFilter | undefined => {
+    if (!dateFrom && !dateTo) return undefined;
+    const filter: Prisma.DateTimeFilter = {};
+    if (dateFrom) filter.gte = parseLocalStartDate(dateFrom);
+    if (dateTo) filter.lte = parseLocalEndDate(dateTo);
+    return filter;
 };
 
 export class ReportRepository extends BaseRepository {
@@ -73,13 +82,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         const [records, total] = await Promise.all([
@@ -122,13 +125,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         const [records, total] = await Promise.all([
@@ -205,13 +202,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.receivedAt = {};
-            if (filters.dateFrom) where.receivedAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.receivedAt.lte = end;
-            }
+            where.receivedAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         const [records, total] = await Promise.all([
@@ -254,13 +245,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         const [records, total] = await Promise.all([
@@ -307,13 +292,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         const [records, total] = await Promise.all([
@@ -356,13 +335,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         const [records, total] = await Promise.all([
@@ -401,13 +374,7 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         const [records, total] = await Promise.all([
@@ -460,12 +427,11 @@ export class ReportRepository extends BaseRepository {
                 const monthNum = parseInt(monthStr, 10) - 1;
                 const dayNum = parseInt(dayStr, 10);
 
-                const startOfDay = new Date(yearNum, monthNum, dayNum, 0, 0, 0, 0);
-                const endOfDay = new Date(yearNum, monthNum, dayNum, 23, 59, 59, 999);
+                const dateStr = `${yearNum}-${String(monthNum + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
 
                 where.createdAt = {
-                    gte: startOfDay,
-                    lte: endOfDay
+                    gte: parseLocalStartDate(dateStr),
+                    lte: parseLocalEndDate(dateStr)
                 };
                 where.queueNumber = `#${queuePart.padStart(3, '0')}`;
             } else {
@@ -481,13 +447,7 @@ export class ReportRepository extends BaseRepository {
 
         if (filters.dateFrom || filters.dateTo) {
             if (!where.createdAt) {
-                where.createdAt = {};
-                if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-                if (filters.dateTo) {
-                    const end = new Date(filters.dateTo);
-                    end.setHours(23, 59, 59, 999);
-                    where.createdAt.lte = end;
-                }
+                where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
             }
         }
 
@@ -543,13 +503,7 @@ export class ReportRepository extends BaseRepository {
         else if (filters.status === 'archive') where.deletedAt = { not: null };
 
         if (filters.dateFrom || filters.dateTo) {
-            where.createdAt = {};
-            if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            where.createdAt = resolveDateFilter(filters.dateFrom, filters.dateTo);
         }
 
         if (isTransactionView) {
@@ -745,17 +699,13 @@ export class ReportRepository extends BaseRepository {
         }
 
         if (filters.dateFrom || filters.dateTo) {
-            const dateFilter: Prisma.DateTimeFilter = {};
-            if (filters.dateFrom) dateFilter.gte = new Date(filters.dateFrom);
-            if (filters.dateTo) {
-                const end = new Date(filters.dateTo);
-                end.setHours(23, 59, 59, 999);
-                dateFilter.lte = end;
+            const dateFilter = resolveDateFilter(filters.dateFrom, filters.dateTo);
+            if (dateFilter) {
+                orderWhere.createdAt = dateFilter;
+                batchWhere.receivedAt = dateFilter;
+                rawWasteWhere.createdAt = dateFilter;
+                prepWasteWhere.createdAt = dateFilter;
             }
-            orderWhere.createdAt = dateFilter;
-            batchWhere.receivedAt = dateFilter;
-            rawWasteWhere.createdAt = dateFilter;
-            prepWasteWhere.createdAt = dateFilter;
         }
 
         const [orders, batches, rawWastes, prepWastes] = await Promise.all([

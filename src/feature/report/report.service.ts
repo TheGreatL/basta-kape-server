@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@/exceptions';
 import { prisma } from '@/lib/prisma';
 import { OrderStatus, OrderType, PaymentMethod, PaymentStatus, PreparedAdjustmentType, Prisma, TransactionType } from '@prisma/client';
 import { format } from 'date-fns';
+import { formatLocalDate, parseLocalEndDate, parseLocalStartDate } from '@/utils/date.utils';
 import { ReportGenerator } from './report.generator';
 import { ReportRepository } from './report.repository';
 import {
@@ -201,16 +202,11 @@ export class ReportService {
     }
 
     async getSalesAnalytics(dateFrom?: string, dateTo?: string, type?: string) {
-        const now = new Date();
         const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(now.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const start = dateFrom ? new Date(dateFrom) : thirtyDaysAgo;
-        const end = dateTo ? new Date(dateTo) : now;
-        if (dateTo) {
-            end.setHours(23, 59, 59, 999);
-        }
+        const start = dateFrom ? parseLocalStartDate(dateFrom) : parseLocalStartDate(formatLocalDate(thirtyDaysAgo));
+        const end = dateTo ? parseLocalEndDate(dateTo) : parseLocalEndDate();
 
         // @deprecated: Previously, only COMPLETED orders were counted towards sales:
         // const orderWhere: Prisma.OrderWhereInput = {
@@ -333,7 +329,7 @@ export class ReportService {
             const roundedCost = Math.round(cost * 100) / 100;
             totalExpenses += roundedCost;
 
-            const dateStr = batch.receivedAt.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(batch.receivedAt);
             dailyExpensesMap[dateStr] = (dailyExpensesMap[dateStr] || 0) + roundedCost;
 
             const suppName = batch.supplier?.name || 'Direct / Unknown Supplier';
@@ -390,7 +386,7 @@ export class ReportService {
             const cost = Math.round(qty * unitCost * 100) / 100;
             const unitName = row.batch?.ingredient?.defaultUnit?.abbreviation || row.batch?.ingredient?.defaultUnit?.name || 'units';
             const itemName = row.batch?.ingredient?.name || 'Raw Ingredient';
-            const dateStr = row.createdAt.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(row.createdAt);
 
             if (transactionsByType[row.type]) {
                 transactionsByType[row.type].count += 1;
@@ -472,7 +468,7 @@ export class ReportService {
             reasonBreakdown[row.type] = (reasonBreakdown[row.type] || 0) + qty;
             lossBreakdownByReason[row.type] = (lossBreakdownByReason[row.type] || 0) + costLoss;
 
-            const dateStr = row.createdAt.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(row.createdAt);
             dailyLossesMap[dateStr] = (dailyLossesMap[dateStr] || 0) + costLoss;
 
             const key = `PREP_${itemName}`;
@@ -609,7 +605,7 @@ export class ReportService {
             const dailyMap: Record<string, { date: string; sales: number; count: number; expenses: number; losses: number; netProfit: number }> = {};
             const temp = new Date(start);
             while (temp <= end) {
-                const dateStr = temp.toISOString().split('T')[0];
+                const dateStr = formatLocalDate(temp);
                 dailyMap[dateStr] = {
                     date: dateStr,
                     sales: 0,
@@ -618,11 +614,11 @@ export class ReportService {
                     losses: Math.round((dailyLossesMap[dateStr] || 0) * 100) / 100,
                     netProfit: 0
                 };
-                temp.setDate(temp.getDate() + 1);
+                temp.setUTCDate(temp.getUTCDate() + 1);
             }
 
             for (const order of dailyRows) {
-                const dateStr = order.createdAt.toISOString().split('T')[0];
+                const dateStr = formatLocalDate(order.createdAt);
                 if (dailyMap[dateStr]) {
                     dailyMap[dateStr].sales = Math.round((dailyMap[dateStr].sales + order.netTotal) * 100) / 100;
                     dailyMap[dateStr].count += 1;
@@ -880,7 +876,7 @@ export class ReportService {
         const dailyMap: Record<string, { date: string; sales: number; count: number; expenses: number; losses: number; netProfit: number }> = {};
         const temp = new Date(start);
         while (temp <= end) {
-            const dateStr = temp.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(temp);
             dailyMap[dateStr] = {
                 date: dateStr,
                 sales: 0,
@@ -889,11 +885,11 @@ export class ReportService {
                 losses: Math.round((dailyLossesMap[dateStr] || 0) * 100) / 100,
                 netProfit: 0
             };
-            temp.setDate(temp.getDate() + 1);
+            temp.setUTCDate(temp.getUTCDate() + 1);
         }
 
         for (const order of dailyRows) {
-            const dateStr = order.createdAt.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(order.createdAt);
             if (dailyMap[dateStr]) {
                 dailyMap[dateStr].sales = Math.round((dailyMap[dateStr].sales + order.netTotal) * 100) / 100;
                 dailyMap[dateStr].count += 1;

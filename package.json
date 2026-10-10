@@ -22,7 +22,8 @@
         "db:deploy:prod": "dotenv -e .env.production -- prisma migrate deploy",
         "db:seed:prod": "dotenv -e .env.production -- prisma db seed",
         "db:studio:prod": "dotenv -e .env.production -- prisma studio",
-        "seed:dashboard": "ts-node -r tsconfig-paths/register src/prisma/seed/20260926130000-add-dashboard-module.seed.ts"
+        "seed:dashboard": "ts-node -r tsconfig-paths/register src/prisma/seed/20260926130000-add-dashboard-module.seed.ts",
+        "seed:admin-sales": "ts-node -r tsconfig-paths/register src/prisma/seed/20261010100000-add-sales-reports-to-admin.seed.ts"
     },
     "keywords": [],
     "author": "",

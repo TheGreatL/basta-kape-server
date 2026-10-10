@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { BaseRepository } from '@/repository/base.repository';
 import { PaymentMethod, PaymentStatus, OrderStatus, Prisma } from '@prisma/client';
+import { parseLocalStartDate, parseLocalEndDate } from '@/utils/date.utils';
 
 export class PaymentRepository extends BaseRepository {
     async findOrderById(orderId: string) {
@@ -129,12 +130,8 @@ export class PaymentRepository extends BaseRepository {
 
         if (params.dateFrom || params.dateTo) {
             where.createdAt = {};
-            if (params.dateFrom) where.createdAt.gte = new Date(params.dateFrom);
-            if (params.dateTo) {
-                const end = new Date(params.dateTo);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
-            }
+            if (params.dateFrom) where.createdAt.gte = parseLocalStartDate(params.dateFrom);
+            if (params.dateTo) where.createdAt.lte = parseLocalEndDate(params.dateTo);
         }
 
         const [data, total] = await Promise.all([
