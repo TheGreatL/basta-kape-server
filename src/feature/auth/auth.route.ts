@@ -1,7 +1,15 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { registry } from '@/docs/swagger';
 import { AuthService } from './auth.service';
-import { LoginSchema, RegisterSchema, AuthTokenResponseSchema, ForgotPasswordSchema, ResetPasswordSchema, ChangePasswordSchema } from './auth.types';
+import {
+    LoginSchema,
+    RegisterSchema,
+    AuthTokenResponseSchema,
+    ForgotPasswordSchema,
+    ResetPasswordSchema,
+    ChangePasswordSchema,
+    SendOtpSchema
+} from './auth.types';
 import { authenticate } from '@/middleware/rbac.middleware';
 import { z } from 'zod';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
@@ -233,6 +241,50 @@ router.post('/logout', async (req: Request, res: Response, next: NextFunction) =
         }
         res.clearCookie('refreshToken', getClearCookieOptions());
         res.json({ success: true });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ==========================================
+// POST /auth/send-otp
+// ==========================================
+registry.registerPath({
+    method: 'post',
+    path: '/auth/send-otp',
+    tags: ['Auth'],
+    summary: 'Send 6-digit OTP verification code',
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: SendOtpSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'OTP code sent successfully',
+            content: {
+                'application/json': {
+                    schema: z.object({
+                        success: z.boolean(),
+                        message: z.string(),
+                        otpCode: z.string().optional()
+                    })
+                }
+            }
+        },
+        409: { description: 'Email or username already exists' }
+    }
+});
+
+router.post('/send-otp', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, firstName, username, type } = SendOtpSchema.parse(req.body);
+        const result = await authService.sendOtp(email, firstName, username, type);
+        res.json(result);
     } catch (error) {
         next(error);
     }

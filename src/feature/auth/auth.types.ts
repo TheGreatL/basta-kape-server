@@ -18,8 +18,18 @@ export const RegisterSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
     middleName: z.string().optional(),
     lastName: z.string().min(1, 'Last name is required'),
-    phoneNumber: z.string().optional()
+    phoneNumber: z.string().optional(),
+    otp: z.string().optional()
 });
+
+export const SendOtpSchema = z.object({
+    email: z.string().email('Invalid email address'),
+    firstName: z.string().optional(),
+    username: z.string().optional(),
+    type: z.enum(['register', 'general']).default('general')
+});
+
+export type TSendOtp = z.infer<typeof SendOtpSchema>;
 
 // ── JWT Payload (what we embed in the token) ──────────────────────────────────
 export interface IJwtPayload {

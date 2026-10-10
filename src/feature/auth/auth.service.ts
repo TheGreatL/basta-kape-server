@@ -8,6 +8,7 @@ import { UnauthorizedException, ConflictException, BadRequestException, NotFound
 import { randomUUID } from 'crypto';
 
 import { env } from '@/env';
+import { EmailService } from '@/feature/email/email.service';
 
 // In-memory store for password reset tokens: Maps token -> { userId, expiresAt }
 const resetTokens = new Map<string, { userId: string; expiresAt: Date }>();
@@ -99,6 +100,14 @@ export class AuthService {
      * Register a new user account.
      */
     async register(data: z.infer<typeof RegisterSchema>) {
+        // If an OTP code was generated for this email or submitted, verify it
+        const hasPendingOtp = AuthService.otpStore.has(data.email.toLowerCase());
+        if (data.otp || hasPendingOtp) {
+            if (!data.otp || !this.verifyOtp(data.email, data.otp)) {
+                throw new BadRequestException('Invalid or expired verification code.');
+            }
+        }
+
         // Check for duplicate email or username
         const conflict = await this.userRepository.findConflict(data.email, data.username);
         if (conflict) {
@@ -216,11 +225,90 @@ export class AuthService {
             expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour expiration
         });
 
+        const frontendBase = Array.isArray(env.FRONTEND_URL) ? env.FRONTEND_URL[0] : env.FRONTEND_URL;
+        const resetLink = `${frontendBase}/reset-password?token=${token}`;
+        const toName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username;
+
+        // Dispatch EmailJS password reset email asynchronously
+        EmailService.sendPasswordResetEmail({
+            toEmail: user.email,
+            toName,
+            resetLink,
+            resetToken: token,
+            expiryMinutes: 60
+        }).catch((err) => {
+            console.error('[AuthService] Error dispatching password reset email:', err);
+        });
+
         return {
             success: true,
             message: 'If an account with that email exists, a password reset token has been generated.',
             resetToken: process.env.NODE_ENV !== 'production' ? token : undefined
         };
+    }
+
+    /**
+     * In-memory store for OTPs: Maps email -> { code, expiresAt }
+     */
+    private static otpStore = new Map<string, { code: string; expiresAt: Date }>();
+
+    /**
+     * Generate and dispatch a 6-digit OTP code to user's email.
+     */
+    async sendOtp(email: string, firstName?: string, username?: string, type: 'register' | 'general' = 'general') {
+        if (type === 'register') {
+            const conflict = await this.userRepository.findConflict(email, username || '');
+            if (conflict) {
+                if (conflict.email === email) {
+                    throw new ConflictException('An account with this email already exists.');
+                }
+                if (username && conflict.username === username) {
+                    throw new ConflictException('An account with this username already exists.');
+                }
+            }
+        }
+
+        const user = await this.userRepository.findUserByIdentifier(email);
+        const toName = firstName || (user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username : 'Customer');
+
+        // Generate 6-digit random code
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        AuthService.otpStore.set(email.toLowerCase(), {
+            code: otpCode,
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+        });
+
+        EmailService.sendOtpEmail({
+            toEmail: email,
+            toName,
+            otpCode,
+            expiryMinutes: 10
+        }).catch((err) => {
+            console.error('[AuthService] Error dispatching OTP email:', err);
+        });
+
+        return {
+            success: true,
+            message: 'A 6-digit verification code has been sent to your email.',
+            otpCode: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+        };
+    }
+
+    /**
+     * Verifies an OTP code against the stored value.
+     */
+    verifyOtp(email: string, code: string): boolean {
+        const record = AuthService.otpStore.get(email.toLowerCase());
+        if (!record || record.expiresAt.getTime() < Date.now()) {
+            return false;
+        }
+
+        if (record.code === code.trim()) {
+            AuthService.otpStore.delete(email.toLowerCase());
+            return true;
+        }
+
+        return false;
     }
 
     /**

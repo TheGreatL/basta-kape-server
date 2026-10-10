@@ -23,7 +23,13 @@ const envSchema = z
         R2_ACCESS_KEY_ID: z.string().optional(),
         R2_SECRET_ACCESS_KEY: z.string().optional(),
         R2_BUCKET_NAME: z.string().optional(),
-        R2_PUBLIC_URL: z.string().optional()
+        R2_PUBLIC_URL: z.string().optional(),
+        // EmailJS config
+        EMAILJS_SERVICE_ID: z.string().optional(),
+        EMAILJS_PUBLIC_KEY: z.string().optional(),
+        EMAILJS_PRIVATE_KEY: z.string().optional(),
+        EMAILJS_OTP_TEMPLATE_ID: z.string().optional(),
+        EMAILJS_PASSWORD_RESET_TEMPLATE_ID: z.string().optional()
     })
     .superRefine((data, ctx) => {
         if (data.STORAGE_PROVIDER === 'r2') {
