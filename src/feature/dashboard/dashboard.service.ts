@@ -302,8 +302,8 @@ export class DashboardService {
         // 4. ORDERS MANAGEMENT
         const canReadOrders = hasPermission(appModules.ORDERS_MANAGEMENT, appPermissions.READ);
         if (canReadOrders) {
-            const [pendingCount, preparingCount, readyCount, recentOrders] = await Promise.all([
-                prisma.order.count({ where: { status: 'PENDING' } }),
+            const [approved, preparingCount, readyCount, recentOrders] = await Promise.all([
+                prisma.order.count({ where: { status: 'APPROVED' } }),
                 prisma.order.count({ where: { status: 'PREPARING' } }),
                 prisma.order.count({ where: { status: 'READY' } }),
                 prisma.order.findMany({
@@ -323,8 +323,8 @@ export class DashboardService {
 
             summary.ordersSummary = {
                 queueStats: {
-                    pending: pendingCount,
                     preparing: preparingCount,
+                    approved: approved,
                     ready: readyCount
                 },
                 recentOrders
