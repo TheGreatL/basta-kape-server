@@ -43,7 +43,7 @@ export const getClearCookieOptions = () => {
 
 const loginRateLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 30, // 5 attempts per windowMs
+    max: 30, // 30 attempts per windowMs
     skipSuccessfulRequests: true, // Only count failed login attempts
     skip: (req) => req.headers['x-skip-rate-limit'] === 'true',
     message: { message: 'Too many login attempts, please try again after 5 minutes' }

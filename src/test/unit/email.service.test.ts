@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import emailjs from '@emailjs/nodejs';
 import { EmailService } from '@/feature/email/email.service';
+import { env } from '@/env';
 
 vi.mock('@emailjs/nodejs', () => ({
     default: {
@@ -27,8 +28,8 @@ describe('EmailService', () => {
         expect(result.success).toBe(true);
         expect(emailjs.send).toHaveBeenCalledTimes(1);
         expect(emailjs.send).toHaveBeenCalledWith(
-            'service_d20371i',
-            'template_k4wb3er',
+            env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICE_ID,
+            env.EMAILJS_PASSWORD_RESET_TEMPLATE_ID || process.env.EMAILJS_PASSWORD_RESET_TEMPLATE_ID,
             expect.objectContaining({
                 to_email: 'customer@example.com',
                 to_name: 'Maria Santos',
@@ -38,8 +39,8 @@ describe('EmailService', () => {
                 expiry_minutes: '60'
             }),
             expect.objectContaining({
-                publicKey: 'oh1IZ--hlPRtd7rLz',
-                privateKey: '5HLyLrbu3-8GjVicZliEP'
+                publicKey: env.EMAILJS_PUBLIC_KEY || process.env.EMAILJS_PUBLIC_KEY,
+                privateKey: env.EMAILJS_PRIVATE_KEY || process.env.EMAILJS_PRIVATE_KEY
             })
         );
     });
@@ -57,8 +58,8 @@ describe('EmailService', () => {
         expect(result.success).toBe(true);
         expect(emailjs.send).toHaveBeenCalledTimes(1);
         expect(emailjs.send).toHaveBeenCalledWith(
-            'service_d20371i',
-            'template_cxf4g5f',
+            env.EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICE_ID,
+            env.EMAILJS_OTP_TEMPLATE_ID || process.env.EMAILJS_OTP_TEMPLATE_ID,
             expect.objectContaining({
                 to_email: 'customer@example.com',
                 to_name: 'Juan Dela Cruz',
@@ -66,8 +67,8 @@ describe('EmailService', () => {
                 expiry_minutes: '10'
             }),
             expect.objectContaining({
-                publicKey: 'oh1IZ--hlPRtd7rLz',
-                privateKey: '5HLyLrbu3-8GjVicZliEP'
+                publicKey: env.EMAILJS_PUBLIC_KEY || process.env.EMAILJS_PUBLIC_KEY,
+                privateKey: env.EMAILJS_PRIVATE_KEY || process.env.EMAILJS_PRIVATE_KEY
             })
         );
     });
