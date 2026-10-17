@@ -1048,7 +1048,7 @@ export class InventoryRepository extends BaseRepository {
             where: { deletedAt: null },
             include: {
                 product: {
-                    select: { id: true, name: true }
+                    select: { id: true, name: true, preparationType: true }
                 },
                 attributes: {
                     where: { deletedAt: null },

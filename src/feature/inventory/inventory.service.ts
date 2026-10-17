@@ -519,7 +519,8 @@ export class InventoryService {
                     hasRecipe: false,
                     maxProduceable: null,
                     bottleneck: null,
-                    ingredients: []
+                    ingredients: [],
+                    preparationType: variant.product.preparationType
                 };
             }
 
@@ -574,7 +575,8 @@ export class InventoryService {
                 hasRecipe: true,
                 maxProduceable: maxProduceable === Infinity ? 'Unlimited' : maxProduceable,
                 bottleneck,
-                ingredients: ingredientDetails
+                ingredients: ingredientDetails,
+                preparationType: variant.product.preparationType
             };
         });
 
@@ -651,13 +653,16 @@ export class InventoryService {
         });
 
         const allForecasts = [...variantForecasts, ...modifierForecasts];
+        const candidateForecasts = query?.preparationType
+            ? variantForecasts.filter((item) => item.preparationType === query.preparationType)
+            : allForecasts;
 
         let ready = 0;
         let low = 0;
         let out = 0;
         let noRecipe = 0;
 
-        allForecasts.forEach((item) => {
+        candidateForecasts.forEach((item) => {
             if (!item.hasRecipe) {
                 noRecipe++;
             } else if (item.maxProduceable === 0) {
@@ -670,7 +675,7 @@ export class InventoryService {
         });
 
         const stats = {
-            total: allForecasts.length,
+            total: candidateForecasts.length,
             ready,
             low,
             out,
@@ -682,7 +687,7 @@ export class InventoryService {
         const search = query?.search ? query.search.trim().toLowerCase() : '';
         const status = query?.status || 'all';
 
-        const filtered = allForecasts.filter((item) => {
+        const filtered = candidateForecasts.filter((item) => {
             if (search) {
                 const matchName = item.name.toLowerCase().includes(search);
                 const matchSku = item.sku ? item.sku.toLowerCase().includes(search) : false;

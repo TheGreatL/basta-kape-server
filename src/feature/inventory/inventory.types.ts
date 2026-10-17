@@ -342,14 +342,16 @@ export const ForecastVariantSchema = z.object({
             unit: z.string()
         })
         .nullable(),
-    ingredients: z.array(ForecastIngredientSchema)
+    ingredients: z.array(ForecastIngredientSchema),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).optional()
 });
 
 export const GetForecastQuerySchema = z.object({
     page: z.coerce.number().min(1).default(1).optional(),
     limit: z.coerce.number().min(1).max(500).default(12).optional(),
     search: z.string().optional(),
-    status: z.enum(['all', 'ready', 'low', 'out', 'no_recipe']).default('all').optional()
+    status: z.enum(['all', 'ready', 'low', 'out', 'no_recipe']).default('all').optional(),
+    preparationType: z.enum(['MADE_TO_ORDER', 'PREPARED_DISPLAY']).optional()
 });
 export type TGetForecastQuery = z.infer<typeof GetForecastQuerySchema>;
 

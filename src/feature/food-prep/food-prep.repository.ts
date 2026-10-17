@@ -53,6 +53,12 @@ export class FoodPrepRepository extends BaseRepository {
                 throw new NotFoundException(`Product variant with ID "${data.productVariantId}" not found`);
             }
 
+            if (variant.product.preparationType !== 'PREPARED_DISPLAY') {
+                throw new BadRequestException(
+                    `Cannot prepare batch for "${variant.product.name}": Product preparation mode is set to "${variant.product.preparationType}". Only "PREPARED_DISPLAY" products can be prepared into shelf batches.`
+                );
+            }
+
             if (!variant.recipe || variant.recipe.ingredients.length === 0) {
                 throw new BadRequestException(`Cannot prepare batch for "${variant.product.name}": No recipe configured for this variant.`);
             }
