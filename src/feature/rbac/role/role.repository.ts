@@ -161,4 +161,47 @@ export class RoleRepository extends BaseRepository {
             select: roleSelect
         });
     }
+
+    async findActiveRolesWithFullCrudOnModule(moduleName: string, excludeRoleId?: string): Promise<{ id: string; name: string }[]> {
+        const requiredPermissions = ['create', 'read', 'update', 'delete'];
+
+        const roles = await prisma.role.findMany({
+            where: {
+                deletedAt: null,
+                ...(excludeRoleId ? { id: { not: excludeRoleId } } : {})
+            },
+            select: {
+                id: true,
+                name: true,
+                rolePermissions: {
+                    where: {
+                        deletedAt: null,
+                        modulePermission: {
+                            module: {
+                                name: moduleName
+                            }
+                        }
+                    },
+                    select: {
+                        modulePermission: {
+                            select: {
+                                permission: {
+                                    select: {
+                                        name: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return roles
+            .filter((role) => {
+                const permissions = new Set(role.rolePermissions.map((rp) => rp.modulePermission.permission.name.toLowerCase()));
+                return requiredPermissions.every((perm) => permissions.has(perm));
+            })
+            .map((role) => ({ id: role.id, name: role.name }));
+    }
 }

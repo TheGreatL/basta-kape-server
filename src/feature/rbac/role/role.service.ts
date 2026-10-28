@@ -1,21 +1,26 @@
 import { RoleRepository, TRoleRow } from './role.repository';
 import { ModulePermissionRepository } from '../module-permission.repository';
+import { UserRepository } from '@/feature/user/user.repository';
 import type { IRoleFilterParams } from './role.types';
 import type { IPaginatedResult } from '@/types/base.types';
 import { NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@/exceptions';
+import { appModules } from '@/constant';
 
 type RoleServiceConstructor = {
     roleRepository?: RoleRepository;
     modulePermissionRepository?: ModulePermissionRepository;
+    userRepository?: UserRepository;
 };
 
 export class RoleService {
     private roleRepository: RoleRepository;
     private modulePermissionRepository: ModulePermissionRepository;
+    private userRepository: UserRepository;
 
     constructor(params?: RoleServiceConstructor) {
         this.roleRepository = params?.roleRepository || new RoleRepository();
         this.modulePermissionRepository = params?.modulePermissionRepository || new ModulePermissionRepository();
+        this.userRepository = params?.userRepository || new UserRepository();
     }
 
     /**
@@ -97,8 +102,29 @@ export class RoleService {
         return this.roleRepository.updateRole(id, data, modulePermissionIds);
     }
 
-    async deleteRole(id: string) {
+    async deleteRole(id: string, currentUserId?: string) {
         await this.ensureNotCustomerRole(id);
+
+        // 1. Prevent archiving the role assigned to the currently logged-in user
+        if (currentUserId) {
+            const currentUser = await this.userRepository.findUserByIdentifier(currentUserId);
+            if (currentUser && currentUser.role?.name) {
+                const targetRole = await this.roleRepository.getRoleById(id);
+                if (targetRole && currentUser.role.name === targetRole.name) {
+                    throw new ForbiddenException('You cannot archive your own active role.');
+                }
+            }
+        }
+
+        // 2. Ensure at least one other active role retains full CRUD permissions for Roles & Permissions
+        const remainingAdminRoles = await this.roleRepository.findActiveRolesWithFullCrudOnModule(appModules.ROLES_AND_PERMISSIONS, id);
+
+        if (remainingAdminRoles.length === 0) {
+            throw new BadRequestException(
+                'Cannot archive this role. At least one active role must retain full CRUD access to the Roles and Permissions module to prevent system lockout.'
+            );
+        }
+
         return this.roleRepository.deleteRole(id);
     }
 

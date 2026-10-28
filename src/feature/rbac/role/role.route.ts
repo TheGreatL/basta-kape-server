@@ -223,7 +223,7 @@ router.delete(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = z.string().parse(req.params.id);
-            const data = await roleService.deleteRole(id);
+            const data = await roleService.deleteRole(id, req.user?.sub);
 
             await activityLogService.logActivity({
                 actorId: req.user?.sub,
