@@ -4,6 +4,7 @@ import { NotFoundException, BadRequestException } from '@/exceptions';
 import { PurchaseOrderStatus } from '@prisma/client';
 import { TCreatePurchaseOrder, TUpdatePurchaseOrder, TUpdatePurchaseOrderStatus } from './purchase-order.types';
 import { prisma } from '@/lib/prisma';
+import { addMonths, isBefore, startOfDay } from 'date-fns';
 
 export class PurchaseOrderService {
     private repository: PurchaseOrderRepository;
@@ -103,6 +104,20 @@ export class PurchaseOrderService {
             current !== PurchaseOrderStatus.PARTIALLY_RECEIVED
         ) {
             throw new BadRequestException('Can only receive a purchase order that is in SENT or PARTIALLY_RECEIVED state');
+        }
+
+        // Validate items' expiration dates upon delivery
+        if (options?.items && (status === PurchaseOrderStatus.RECEIVED || status === PurchaseOrderStatus.PARTIALLY_RECEIVED)) {
+            const minExpiryDate = addMonths(startOfDay(new Date()), 1);
+
+            for (const item of options.items) {
+                if (item.expiryDate) {
+                    const parsedExpiry = startOfDay(new Date(item.expiryDate));
+                    if (isBefore(parsedExpiry, minExpiryDate)) {
+                        throw new BadRequestException('Item expiration date must be at least one month after the delivery date.');
+                    }
+                }
+            }
         }
 
         const updatedPo = await this.repository.updatePurchaseOrderStatus(id, status, actorId, options);
