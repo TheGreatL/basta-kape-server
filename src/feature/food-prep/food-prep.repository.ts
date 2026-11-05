@@ -540,6 +540,7 @@ export class FoodPrepRepository extends BaseRepository {
                 productVariantId: v.id,
                 productId: v.productId,
                 productName: v.product.name,
+                photo: v.product.photo,
                 sku: v.sku,
                 price: v.price,
                 variantLabel,
