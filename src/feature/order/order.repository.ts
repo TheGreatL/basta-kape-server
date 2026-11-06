@@ -20,6 +20,10 @@ type TCreateOrderRepoData = {
     netTotal: number;
     customerId?: string | null;
     customerName?: string | null;
+    riderName?: string | null;
+    riderPlate?: string | null;
+    riderVehicle?: string | null;
+    trackingLink?: string | null;
     actorId: string;
     items: {
         productVariantId: string;
@@ -119,6 +123,10 @@ export class OrderRepository extends BaseRepository {
                     netTotal: data.netTotal,
                     customerId: data.customerId ?? null,
                     customerName: data.customerName ?? null,
+                    riderName: data.riderName ?? null,
+                    riderPlate: data.riderPlate ?? null,
+                    riderVehicle: data.riderVehicle ?? null,
+                    trackingLink: data.trackingLink ?? null,
                     items: {
                         create: data.items.map((item) => ({
                             productVariantId: item.productVariantId,
@@ -283,6 +291,8 @@ export class OrderRepository extends BaseRepository {
                     { id: { startsWith: searchLower } },
                     { queueNumber: { contains: params.search } },
                     { customerName: { contains: params.search } },
+                    { riderName: { contains: params.search } },
+                    { riderPlate: { contains: params.search } },
                     { notes: { contains: params.search } }
                 ];
             }
@@ -321,6 +331,79 @@ export class OrderRepository extends BaseRepository {
 
         const formattedData = formatOrdersWithReference(data);
         return this.formatPaginatedResult(formattedData, totalRows, page, take);
+    }
+
+    async updateOrderCourier(
+        orderId: string,
+        data: {
+            riderName: string;
+            riderPlate: string;
+            riderVehicle: string;
+            trackingLink: string;
+        }
+    ) {
+        const order = await prisma.order.update({
+            where: { id: orderId },
+            data: {
+                riderName: data.riderName,
+                riderPlate: data.riderPlate,
+                riderVehicle: data.riderVehicle,
+                trackingLink: data.trackingLink
+            }
+        });
+        return this.getOrderById(order.id);
+    }
+
+    async findStaleDispatchedOrders(cutoffDate: Date) {
+        return prisma.order.findMany({
+            where: {
+                status: OrderStatus.DISPATCHED,
+                orderType: 'DELIVERY',
+                deletedAt: null,
+                OR: [
+                    {
+                        statusHistory: {
+                            some: {
+                                status: OrderStatus.DISPATCHED,
+                                createdAt: { lte: cutoffDate }
+                            }
+                        }
+                    },
+                    {
+                        statusHistory: {
+                            none: {
+                                status: OrderStatus.DISPATCHED
+                            }
+                        },
+                        updatedAt: { lte: cutoffDate }
+                    }
+                ]
+            },
+            select: {
+                id: true,
+                queueNumber: true
+            }
+        });
+    }
+
+    async autoCompleteDispatchedOrder(orderId: string, notes: string) {
+        return prisma.$transaction(async (tx) => {
+            const order = await tx.order.update({
+                where: { id: orderId },
+                data: { status: OrderStatus.COMPLETED }
+            });
+
+            await tx.orderStatusHistory.create({
+                data: {
+                    orderId,
+                    status: OrderStatus.COMPLETED,
+                    notes,
+                    changedById: null
+                }
+            });
+
+            return order;
+        });
     }
 
     async updateOrderStatus(orderId: string, status: OrderStatus, notes: string | null, actorId: string) {

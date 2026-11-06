@@ -3,7 +3,7 @@ import { StoreSettingsService } from '@/feature/store-settings/store-settings.se
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
 import { prisma } from '@/lib/prisma';
 import { NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@/exceptions';
-import type { TCreateOrder, TGetOrderListQuery } from './order.types';
+import type { TCreateOrder, TGetOrderListQuery, TUpdateOrderCourier } from './order.types';
 import { OrderStatus, StoreSetting, Prisma } from '@prisma/client';
 import { generateHtmlReceipt, generateTextReceipt, generatePdfReceipt } from './receipt.template';
 
@@ -201,6 +201,10 @@ export class OrderService {
                 netTotal,
                 customerId: data.customerId,
                 customerName: data.customerName,
+                riderName: data.riderName?.trim() || null,
+                riderPlate: data.riderPlate?.trim() || null,
+                riderVehicle: data.riderVehicle || null,
+                trackingLink: data.trackingLink?.trim() || null,
                 actorId,
                 items: itemDetails,
                 paymentDetails
@@ -226,9 +230,18 @@ export class OrderService {
     async updateOrderStatus(orderId: string, status: OrderStatus, notes: string | null, actorId: string) {
         const order = await this.getOrderById(orderId);
 
+        if (status === OrderStatus.DISPATCHED) {
+            if (order.orderType !== 'DELIVERY') {
+                throw new BadRequestException('Only delivery orders can be marked as Dispatched.');
+            }
+            if (!order.riderName || !order.riderPlate || !order.riderVehicle || !order.trackingLink) {
+                throw new BadRequestException('Cannot dispatch delivery order until courier details are submitted by the customer.');
+            }
+        }
+
         // RBAC Workflow Validation:
-        // Barista (Order Queue: update) is responsible for: PREPARING, READY
-        // Cashier (Sales Management: create / Orders Management: update) is responsible for: COMPLETED, APPROVED, CANCELLED
+        // Barista (Order Queue: update) is responsible for: PREPARING, READY, DISPATCHED
+        // Cashier (Sales Management: create / Orders Management: update) is responsible for: COMPLETED, APPROVED, CANCELLED, DISPATCHED
         if (actorId) {
             const actor = await prisma.user.findFirst({
                 where: { id: actorId, deletedAt: null },
@@ -273,6 +286,12 @@ export class OrderService {
                                 'Only kitchen/barista staff with Order Queue update permission can update orders to Preparing or Ready.'
                             );
                         }
+                    } else if (status === OrderStatus.DISPATCHED) {
+                        const canDispatch =
+                            hasPerm('Order Queue', 'update') || hasPerm('Orders Management', 'update') || hasPerm('Sales Management', 'create');
+                        if (!canDispatch) {
+                            throw new ForbiddenException('You do not have permission to mark delivery orders as Dispatched.');
+                        }
                     } else if (status === OrderStatus.COMPLETED) {
                         const canComplete = hasPerm('Sales Management', 'create') || hasPerm('Orders Management', 'update');
                         if (!canComplete) {
@@ -292,6 +311,96 @@ export class OrderService {
         });
 
         return updated;
+    }
+
+    async updateOrderCourier(orderId: string, data: TUpdateOrderCourier, actorId: string) {
+        const order = await this.getOrderById(orderId);
+
+        if (order.orderType !== 'DELIVERY') {
+            throw new BadRequestException('Courier details can only be submitted for delivery orders.');
+        }
+
+        const customer = await prisma.customer.findFirst({
+            where: { userId: actorId, deletedAt: null }
+        });
+
+        if (!customer || (order.customerId && order.customerId !== customer.id)) {
+            throw new ForbiddenException('Only the customer who placed this order can submit courier details.');
+        }
+
+        if (order.status !== OrderStatus.READY) {
+            throw new BadRequestException('Courier details can only be submitted when the order is Ready for Pickup.');
+        }
+
+        const updated = await this.repository.updateOrderCourier(orderId, {
+            riderName: data.riderName.trim(),
+            riderPlate: data.riderPlate.trim(),
+            riderVehicle: data.riderVehicle,
+            trackingLink: data.trackingLink.trim()
+        });
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Update Delivery Courier Details',
+            details: `Customer submitted courier details for ${order.queueNumber ?? orderId} (Rider: ${data.riderName.trim()}, Plate: ${data.riderPlate.trim()}, Vehicle: ${data.riderVehicle}).`
+        });
+
+        return updated;
+    }
+
+    async completeDeliveryOrderByCustomer(orderId: string, actorId: string) {
+        const order = await this.getOrderById(orderId);
+
+        if (order.orderType !== 'DELIVERY') {
+            throw new BadRequestException('Only delivery orders can be marked as completed by the customer.');
+        }
+
+        const customer = await prisma.customer.findFirst({
+            where: { userId: actorId, deletedAt: null }
+        });
+
+        if (!customer || (order.customerId && order.customerId !== customer.id)) {
+            throw new ForbiddenException('Only the customer who placed this order can mark it as completed.');
+        }
+
+        if (order.status !== OrderStatus.DISPATCHED) {
+            throw new BadRequestException('Order can only be marked as completed once it has been dispatched.');
+        }
+
+        await this.repository.updateOrderStatus(orderId, OrderStatus.COMPLETED, 'Order received and marked as completed by customer', actorId);
+
+        await this.activityLogService.logActivity({
+            actorId,
+            title: 'Customer Completed Delivery Order',
+            details: `Customer confirmed receipt and completed delivery order ${order.queueNumber ?? orderId}.`
+        });
+
+        return this.getOrderById(orderId);
+    }
+
+    async autoCompleteDispatchedOrders(now: Date = new Date()) {
+        const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+        const cutoffDate = new Date(now.getTime() - twoDaysInMs);
+
+        const staleOrders = await this.repository.findStaleDispatchedOrders(cutoffDate);
+        const completedOrderIds: string[] = [];
+
+        for (const staleOrder of staleOrders) {
+            await this.repository.autoCompleteDispatchedOrder(staleOrder.id, 'Automatically completed after 2 days in Dispatched status');
+
+            await this.activityLogService.logActivity({
+                actorId: null,
+                title: 'Auto-Complete Dispatched Order',
+                details: `System automatically marked dispatched delivery order ${staleOrder.queueNumber ?? staleOrder.id} as COMPLETED after 2 days.`
+            });
+
+            completedOrderIds.push(staleOrder.id);
+        }
+
+        return {
+            count: completedOrderIds.length,
+            orderIds: completedOrderIds
+        };
     }
 
     async generateOrderReceipt(orderId: string, format: 'html' | 'text' | 'pdf' | 'json') {

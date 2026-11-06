@@ -49,6 +49,8 @@ describe('Order Feature CRUD', () => {
     let testProductId: string;
     let testVariantId: string;
     let createdOrderId: string;
+    let deliveryOrderId: string;
+    let testCustomerId: string;
     let testModifierGroupId: string;
     let testModifierOptionId: string;
 
@@ -58,7 +60,9 @@ describe('Order Feature CRUD', () => {
         // Clean up any leftover payments with this test reference to avoid collisions
         await prisma.orderPayment.deleteMany({
             where: {
-                paymentReferenceNumber: '9001234567890'
+                paymentReferenceNumber: {
+                    in: ['9001234567890', '9001234567891']
+                }
             }
         });
 
@@ -97,6 +101,15 @@ describe('Order Feature CRUD', () => {
                 }
             }
         });
+
+        const customer = await prisma.customer.upsert({
+            where: { userId: 'test-order-user-id' },
+            update: {},
+            create: {
+                userId: 'test-order-user-id'
+            }
+        });
+        testCustomerId = customer.id;
 
         // 2. Create category & type
         const category = await prisma.productCategory.create({
@@ -239,6 +252,7 @@ describe('Order Feature CRUD', () => {
         await prisma.product.deleteMany({ where: { createdById: 'test-order-user-id' } });
         await prisma.productCategory.deleteMany({ where: { createdById: 'test-order-user-id' } });
         await prisma.productType.deleteMany({ where: { createdById: 'test-order-user-id' } });
+        await prisma.customer.deleteMany({ where: { userId: 'test-order-user-id' } });
         await prisma.user.deleteMany({ where: { id: 'test-order-user-id' } });
         await prisma.storeSetting.deleteMany({ where: { id: 'test-store-setting-seed-id' } });
 
@@ -505,6 +519,166 @@ describe('Order Feature CRUD', () => {
         it('should retrieve active order queue counts', async () => {
             const res = await request(app).get('/orders/queue-count');
             expect(res.status).toBe(200);
+        });
+    });
+
+    describe('Delivery Order Workflow & Courier Details', () => {
+        it('should reject DELIVERY order when orderSource is POS', async () => {
+            const payload = {
+                orderType: 'DELIVERY',
+                orderSource: 'POS',
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: '9001234567891',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1
+                    }
+                ]
+            };
+
+            const res = await request(app).post('/orders').send(payload);
+            expect(res.status).toBe(400);
+            expect(JSON.stringify(res.body)).toContain('Delivery order type is only available for customer orders');
+        });
+
+        it('should reject DELIVERY order when paymentMethod is CASH', async () => {
+            const payload = {
+                orderType: 'DELIVERY',
+                orderSource: 'WEBSITE',
+                paymentMethod: 'CASH',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1
+                    }
+                ]
+            };
+
+            const res = await request(app).post('/orders').send(payload);
+            expect(res.status).toBe(400);
+            expect(JSON.stringify(res.body)).toContain('Only GCash payment is available for delivery orders');
+        });
+
+        it('should successfully place aWEBSITE DELIVERY order with GCASH payment', async () => {
+            const payload = {
+                orderType: 'DELIVERY',
+                orderSource: 'WEBSITE',
+                customerId: testCustomerId,
+                customerName: 'Delivery Customer',
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: '9001234567891',
+                paymentProofPhoto: 'https://example.com/delivery-proof.jpg',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1
+                    }
+                ]
+            };
+
+            const res = await request(app).post('/orders').send(payload);
+            expect(res.status).toBe(201);
+            expect(res.body.orderType).toBe('DELIVERY');
+            expect(res.body.orderSource).toBe('WEBSITE');
+            expect(res.body.status).toBe('PENDING');
+            deliveryOrderId = res.body.id;
+        });
+
+        it('should reject marking a non-DELIVERY order as DISPATCHED', async () => {
+            const res = await request(app).patch(`/orders/${createdOrderId}/status`).send({ status: 'DISPATCHED', notes: 'Should fail for DINE_IN' });
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toContain('Only delivery orders can be marked as Dispatched.');
+        });
+
+        it('should reject courier details submission before order is READY', async () => {
+            const res = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
+                riderName: 'Juan Dela Cruz',
+                riderPlate: 'ABC 1234',
+                riderVehicle: 'Motorcycle',
+                trackingLink: 'https://track.example.com/12345'
+            });
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toContain('Courier details can only be submitted when the order is Ready for Pickup.');
+        });
+
+        it('should reject courier details submission with invalid vehicle or invalid trackingLink URL', async () => {
+            const invalidVehicleRes = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
+                riderName: 'Juan Dela Cruz',
+                riderPlate: 'ABC 1234',
+                riderVehicle: 'Helicopter',
+                trackingLink: 'https://track.example.com/12345'
+            });
+            expect(invalidVehicleRes.status).toBe(400);
+
+            const invalidUrlRes = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
+                riderName: 'Juan Dela Cruz',
+                riderPlate: 'ABC 1234',
+                riderVehicle: 'Motorcycle',
+                trackingLink: 'not-a-valid-url'
+            });
+            expect(invalidUrlRes.status).toBe(400);
+        });
+
+        it('should allow customer to submit courier details when order is READY and allow staff to transition to DISPATCHED and COMPLETED', async () => {
+            // Transition DELIVERY order to READY ("Ready for Pickup")
+            const readyRes = await request(app)
+                .patch(`/orders/${deliveryOrderId}/status`)
+                .send({ status: 'READY', notes: 'Order ready for courier pickup' });
+            expect(readyRes.status).toBe(200);
+            expect(readyRes.body.status).toBe('READY');
+
+            // Attempting to transition READY -> DISPATCHED before courier details are submitted should fail
+            const prematureDispatchRes = await request(app)
+                .patch(`/orders/${deliveryOrderId}/status`)
+                .send({ status: 'DISPATCHED', notes: 'Try dispatch without courier details' });
+            expect(prematureDispatchRes.status).toBe(400);
+
+            // Customer submits courier details
+            const courierRes = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
+                riderName: 'Juan Dela Cruz',
+                riderPlate: 'ABC 1234',
+                riderVehicle: 'Motorcycle',
+                trackingLink: 'https://track.example.com/12345'
+            });
+            expect(courierRes.status).toBe(200);
+            expect(courierRes.body.riderName).toBe('Juan Dela Cruz');
+            expect(courierRes.body.riderPlate).toBe('ABC 1234');
+            expect(courierRes.body.riderVehicle).toBe('Motorcycle');
+            expect(courierRes.body.trackingLink).toBe('https://track.example.com/12345');
+
+            // Search orders by rider plate
+            const searchRes = await request(app).get('/orders?search=ABC%201234');
+            expect(searchRes.status).toBe(200);
+            expect(searchRes.body.data.some((o: { id: string }) => o.id === deliveryOrderId)).toBe(true);
+
+            // Transition READY -> DISPATCHED
+            const dispatchRes = await request(app)
+                .patch(`/orders/${deliveryOrderId}/status`)
+                .send({ status: 'DISPATCHED', notes: 'Handed over to courier' });
+            expect(dispatchRes.status).toBe(200);
+            expect(dispatchRes.body.status).toBe('DISPATCHED');
+
+            // Filter by status=DISPATCHED
+            const filterRes = await request(app).get('/orders?status=DISPATCHED');
+            expect(filterRes.status).toBe(200);
+            expect(filterRes.body.data.some((o: { id: string }) => o.id === deliveryOrderId)).toBe(true);
+
+            // Verify receipt includes courier details
+            const receiptRes = await request(app).get(`/orders/${deliveryOrderId}/receipt?format=text`);
+            expect(receiptRes.status).toBe(200);
+            expect(receiptRes.text).toContain('Juan Dela Cruz');
+            expect(receiptRes.text).toContain('ABC 1234');
+            expect(receiptRes.text).toContain('Motorcycle');
+
+            // Transition DISPATCHED -> COMPLETED
+            const completeRes = await request(app)
+                .patch(`/orders/${deliveryOrderId}/status`)
+                .send({ status: 'COMPLETED', notes: 'Delivery completed' });
+            expect(completeRes.status).toBe(200);
+            expect(completeRes.body.status).toBe('COMPLETED');
         });
     });
 });

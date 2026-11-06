@@ -3,6 +3,7 @@ enum OrderStatus {
   APPROVED
   PREPARING
   READY
+  DISPATCHED
   COMPLETED
   CANCELLED
 }
@@ -50,6 +51,12 @@ model Order {
   customerId   String?
   customer     Customer? @relation(fields: [customerId], references: [id])
   customerName String? // Custom walk-in customer name
+
+  // Delivery / Courier details (Customer-booked 3rd-party courier)
+  riderName    String?
+  riderPlate   String?
+  riderVehicle String?
+  trackingLink String?   @db.VarChar(1000)
 
   paymentStatus PaymentStatus @default(PENDING)
   totalPaid     Float         @default(0)

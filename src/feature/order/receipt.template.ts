@@ -81,6 +81,11 @@ export function generateTextReceipt(
     lines.push(leftRight(`Queue No: ${order.queueNumber || 'N/A'}`, format(new Date(order.createdAt), 'hh:mm a')));
     lines.push(leftRight(`Receipt ID: ${order.id.slice(0, 8).toUpperCase()}`, `Type: ${order.orderType}`));
     lines.push(leftRight(`Src: ${order.orderSource}`, ''));
+    if (order.orderType === 'DELIVERY' && (order.riderName || order.riderPlate || order.riderVehicle)) {
+        if (order.riderName) lines.push(leftRight('Rider:', order.riderName));
+        if (order.riderPlate) lines.push(leftRight('Plate:', order.riderPlate));
+        if (order.riderVehicle) lines.push(leftRight('Vehicle:', order.riderVehicle));
+    }
 
     lines.push(divider);
 
@@ -122,7 +127,8 @@ export function generateTextReceipt(
     lines.push(divider);
 
     // Payments
-    const paidPayments = order.paymentStatus === PaymentStatus.PAID ? order.payments : [];
+    const isPaymentConfirmed = order.paymentStatus === PaymentStatus.PAID;
+    const paidPayments = isPaymentConfirmed ? order.payments : [];
     if (paidPayments.length > 0) {
         lines.push('PAYMENTS:');
         for (const payment of paidPayments) {
@@ -138,6 +144,9 @@ export function generateTextReceipt(
                 lines.push(`    Ref No: ${payment.paymentReferenceNumber}`);
             }
         }
+        lines.push(divider);
+    } else if (!isPaymentConfirmed) {
+        lines.push(center('Payment Not Confirmed'));
         lines.push(divider);
     }
 
@@ -269,7 +278,9 @@ export function generateHtmlReceipt(
         )
         .join('');
 
-    const paymentsHtml = (order.paymentStatus === PaymentStatus.PAID ? order.payments : [])
+    const isPaymentConfirmed = order.paymentStatus === PaymentStatus.PAID;
+    const paidPayments = isPaymentConfirmed ? order.payments : [];
+    const paymentsHtml = paidPayments
         .map((payment: OrderPayment) => {
             let details = '';
             if (payment.paymentMethod === PaymentMethod.CASH) {
@@ -487,6 +498,13 @@ export function generateHtmlReceipt(
         .text-muted {
             color: #4b5563;
         }
+
+        .receipt-unpaid-status {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #dc2626;
+        }
     </style>
 </head>
 <body>
@@ -514,6 +532,9 @@ export function generateHtmlReceipt(
             <div>${order.orderType}</div>
             <div>Server:</div>
             <div>${cashierName}</div>
+            ${order.orderType === 'DELIVERY' && order.riderName ? `<div>Rider:</div><div>${order.riderName}</div>` : ''}
+            ${order.orderType === 'DELIVERY' && order.riderPlate ? `<div>Plate No:</div><div>${order.riderPlate}</div>` : ''}
+            ${order.orderType === 'DELIVERY' && order.riderVehicle ? `<div>Vehicle:</div><div>${order.riderVehicle}</div>` : ''}
         </div>
 
         <div class="divider"></div>
@@ -540,14 +561,21 @@ export function generateHtmlReceipt(
         </div>
 
         ${
-            order.payments.length > 0
+            paidPayments.length > 0
                 ? `
             <div class="divider"></div>
             <div class="receipt-payments-table">
                 ${paymentsHtml}
             </div>
         `
-                : ''
+                : !isPaymentConfirmed
+                  ? `
+            <div class="divider"></div>
+            <div class="receipt-payments-table">
+                <div class="receipt-unpaid-status">Payment Not Confirmed</div>
+            </div>
+        `
+                  : ''
         }
 
         <div class="divider"></div>
@@ -616,7 +644,8 @@ export async function generatePdfReceipt(
             ) => acc + (item.modifiers?.length || 0),
             0
         );
-        const paymentsCount = order.paymentStatus === PaymentStatus.PAID ? order.payments.length : 0;
+        const isPaymentConfirmed = order.paymentStatus === PaymentStatus.PAID;
+        const paymentsCount = isPaymentConfirmed ? order.payments.length : 0;
         const discountsCount = order.discounts.length;
 
         // Custom point height computation for continuous thermal paper size mapping
@@ -624,7 +653,7 @@ export async function generatePdfReceipt(
         const metaHeight = 81;
         const itemsHeight = 20 + itemsCount * 28 + modifiersCount * 16;
         const totalsHeight = 70 + discountsCount * 14;
-        const paymentsHeight = paymentsCount > 0 ? 20 + paymentsCount * 25 : 0;
+        const paymentsHeight = paymentsCount > 0 ? 20 + paymentsCount * 25 : !isPaymentConfirmed ? 30 : 0;
         const footerHeight = 85;
         const totalHeight = headerHeight + metaHeight + itemsHeight + totalsHeight + paymentsHeight + footerHeight + 60;
 
@@ -686,6 +715,24 @@ export async function generatePdfReceipt(
         doc.text('Dining Type:', 15, y);
         doc.text(`${order.orderType} (${order.orderSource})`, 75, y, { align: 'right', width: 136 });
         y += 11;
+
+        if (order.orderType === 'DELIVERY' && (order.riderName || order.riderPlate || order.riderVehicle)) {
+            if (order.riderName) {
+                doc.text('Rider:', 15, y);
+                doc.text(order.riderName, 75, y, { align: 'right', width: 136 });
+                y += 11;
+            }
+            if (order.riderPlate) {
+                doc.text('Plate No:', 15, y);
+                doc.text(order.riderPlate, 75, y, { align: 'right', width: 136 });
+                y += 11;
+            }
+            if (order.riderVehicle) {
+                doc.text('Vehicle:', 15, y);
+                doc.text(order.riderVehicle, 75, y, { align: 'right', width: 136 });
+                y += 11;
+            }
+        }
 
         y += 4;
         drawDashedLine(y);
@@ -772,7 +819,7 @@ export async function generatePdfReceipt(
         doc.font('Helvetica-Bold').fontSize(10).text('NET TOTAL:', 15, y);
         doc.text(`PHP ${order.netTotal.toFixed(2)}`, 100, y, { align: 'right', width: 111 });
         y += 14;
-        const paidPayments = order.paymentStatus === PaymentStatus.PAID ? order.payments : [];
+        const paidPayments = isPaymentConfirmed ? order.payments : [];
         // Payments auditing
         if (paidPayments.length > 0) {
             y += 4;
@@ -805,6 +852,14 @@ export async function generatePdfReceipt(
                     doc.fillColor('#1f2937');
                 }
             }
+        } else if (!isPaymentConfirmed) {
+            y += 4;
+            drawDashedLine(y);
+            y += 8;
+
+            doc.font('Helvetica-Bold').fontSize(9).fillColor('#dc2626').text('Payment Not Confirmed', 15, y, { align: 'center', width });
+            doc.fillColor('#1f2937');
+            y += 12;
         }
 
         y += 4;

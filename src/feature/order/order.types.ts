@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { OrderPaymentResponseSchema, PaymentStatusEnum } from '@/feature/payment/payment.types';
 
-export const OrderStatusEnum = z.enum(['PENDING', 'APPROVED', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED']);
+export const OrderStatusEnum = z.enum(['PENDING', 'APPROVED', 'PREPARING', 'READY', 'DISPATCHED', 'COMPLETED', 'CANCELLED']);
 export type TOrderStatus = z.infer<typeof OrderStatusEnum>;
 
 export const OrderTypeEnum = z.enum(['DINE_IN', 'TAKE_OUT', 'DELIVERY']);
@@ -9,6 +9,9 @@ export type TOrderType = z.infer<typeof OrderTypeEnum>;
 
 export const OrderSourceEnum = z.enum(['POS', 'WEBSITE']);
 export type TOrderSource = z.infer<typeof OrderSourceEnum>;
+
+export const RiderVehicleEnum = z.enum(['Bike', 'Motorcycle', 'Car', 'Other Transportation Service']);
+export type TRiderVehicle = z.infer<typeof RiderVehicleEnum>;
 
 export const CreateOrderItemSchema = z.object({
     productVariantId: z.string().uuid(),
@@ -27,12 +30,33 @@ export const CreateOrderSchema = z
         customerId: z.string().uuid().optional().nullable(),
         customerName: z.string().max(100).optional().nullable(),
         buzzerId: z.string().max(50).optional().nullable(),
+        riderName: z.string().max(100).optional().nullable(),
+        riderPlate: z.string().max(50).optional().nullable(),
+        riderVehicle: RiderVehicleEnum.optional().nullable(),
+        trackingLink: z.string().max(1000).optional().nullable(),
         paymentMethod: z.enum(['CASH', 'GCASH']).optional().nullable(),
         paymentReferenceNumber: z.string().max(100).optional().nullable(),
         paymentProofPhoto: z.string().max(1000).optional().nullable(),
         items: z.array(CreateOrderItemSchema).min(1, 'Order must contain at least one item')
     })
     .superRefine((data, ctx) => {
+        if (data.orderType === 'DELIVERY') {
+            if (data.orderSource === 'POS') {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Delivery order type is only available for customer orders',
+                    path: ['orderType']
+                });
+            }
+            if (data.paymentMethod !== 'GCASH') {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Only GCash payment is available for delivery orders',
+                    path: ['paymentMethod']
+                });
+            }
+        }
+
         if (data.paymentMethod === 'GCASH') {
             if (!data.paymentReferenceNumber || !data.paymentReferenceNumber.trim()) {
                 ctx.addIssue({
@@ -60,6 +84,15 @@ export const CreateOrderSchema = z
     });
 
 export type TCreateOrder = z.infer<typeof CreateOrderSchema>;
+
+export const UpdateOrderCourierSchema = z.object({
+    riderName: z.string().trim().min(1, 'Rider name is required').max(100),
+    riderPlate: z.string().trim().min(1, 'Plate number is required').max(50),
+    riderVehicle: RiderVehicleEnum,
+    trackingLink: z.string().trim().url('Please enter a valid tracking link URL').max(1000)
+});
+
+export type TUpdateOrderCourier = z.infer<typeof UpdateOrderCourierSchema>;
 
 export const UpdateOrderStatusSchema = z.object({
     status: OrderStatusEnum,
@@ -115,6 +148,10 @@ export const OrderResponseSchema = z.object({
     netTotal: z.number(),
     customerId: z.string().nullable(),
     customerName: z.string().nullable(),
+    riderName: z.string().nullable().optional(),
+    riderPlate: z.string().nullable().optional(),
+    riderVehicle: z.string().nullable().optional(),
+    trackingLink: z.string().nullable().optional(),
     paymentStatus: PaymentStatusEnum,
     totalPaid: z.number(),
     createdAt: z.date().or(z.string()),

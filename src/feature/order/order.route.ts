@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { registry } from '@/docs/swagger';
 import { OrderService } from './order.service';
-import { requireAccess } from '@/middleware/rbac.middleware';
+import { requireAccess, authenticate } from '@/middleware/rbac.middleware';
 import { appModules, appPermissions } from '@/constant';
 import { OrderStatus } from '@prisma/client';
-import { CreateOrderSchema, UpdateOrderStatusSchema, GetOrderListQuerySchema, OrderResponseSchema } from './order.types';
+import { CreateOrderSchema, UpdateOrderStatusSchema, UpdateOrderCourierSchema, GetOrderListQuerySchema, OrderResponseSchema } from './order.types';
 import { z } from 'zod';
 
 const router = Router();
@@ -169,6 +169,64 @@ router.patch(
         }
     }
 );
+
+// PATCH /orders/:id/courier
+registry.registerPath({
+    method: 'patch',
+    path: '/orders/{id}/courier',
+    tags: ['Orders'],
+    summary: 'Submit or update courier details for a delivery order (Customer only)',
+    security: [{ bearerAuth: [] }],
+    request: {
+        body: {
+            content: {
+                'application/json': {
+                    schema: UpdateOrderCourierSchema
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            description: 'Order courier details updated successfully',
+            content: { 'application/json': { schema: OrderResponseSchema } }
+        }
+    }
+});
+
+router.patch('/:id/courier', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const body = UpdateOrderCourierSchema.parse(req.body);
+        const result = await service.updateOrderCourier(req.params.id as string, body, req.user!.sub);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// PATCH /orders/:id/complete
+registry.registerPath({
+    method: 'patch',
+    path: '/orders/{id}/complete',
+    tags: ['Orders'],
+    summary: 'Mark a dispatched delivery order as completed (Customer only)',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Dispatched delivery order marked as completed by customer',
+            content: { 'application/json': { schema: OrderResponseSchema } }
+        }
+    }
+});
+
+router.patch('/:id/complete', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await service.completeDeliveryOrderByCustomer(req.params.id as string, req.user!.sub);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
 
 // GET /orders/:id/receipt
 registry.registerPath({
