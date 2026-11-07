@@ -241,9 +241,78 @@ export const StockTransactionResponseSchema = z.object({
     batchId: z.string(),
     quantityChange: z.number(),
     type: z.enum(['DELIVERY', 'SALE', 'WASTE', 'SPOILED', 'EXPIRED', 'THEFT', 'PROMOTIONAL_USE', 'PHYSICAL_COUNT_CORRECTION']),
-    reason: z.string().nullable(),
-    createdAt: z.date().or(z.string())
+    reason: z.string().nullable().optional(),
+    createdById: z.string().nullable().optional(),
+    createdAt: z.date().or(z.string()),
+    batch: z
+        .object({
+            id: z.string(),
+            batchNumber: z.string().nullable().optional(),
+            expiryDate: z.date().nullable().or(z.string().nullable()).optional(),
+            unitCost: z.number().optional(),
+            totalCost: z.number().optional(),
+            ingredient: z.object({
+                id: z.string(),
+                name: z.string(),
+                type: z.string().optional(),
+                defaultUnit: z
+                    .object({
+                        id: z.string(),
+                        name: z.string(),
+                        abbreviation: z.string().nullable().optional()
+                    })
+                    .nullable()
+                    .optional()
+            }),
+            supplier: z
+                .object({
+                    id: z.string(),
+                    name: z.string()
+                })
+                .nullable()
+                .optional(),
+            purchaseOrder: z
+                .object({
+                    id: z.string(),
+                    poNumber: z.string(),
+                    status: z.string().optional()
+                })
+                .nullable()
+                .optional()
+        })
+        .optional(),
+    createdBy: z
+        .object({
+            id: z.string(),
+            firstName: z.string().nullable().optional(),
+            lastName: z.string().nullable().optional(),
+            username: z.string().nullable().optional()
+        })
+        .nullable()
+        .optional()
 });
+
+export const PaginatedStockTransactionResponseSchema = z.object({
+    data: z.array(StockTransactionResponseSchema),
+    meta: z.object({
+        total: z.number(),
+        pageCount: z.number(),
+        count: z.number(),
+        currentPage: z.number(),
+        hasMore: z.boolean()
+    })
+});
+
+export const GetStockTransactionListQuerySchema = z.object({
+    page: z.coerce.number().min(1).default(1).optional(),
+    limit: z.coerce.number().min(1).max(100).default(10).optional(),
+    search: z.string().optional(),
+    type: z.string().optional(),
+    ingredientId: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional()
+});
+export type TGetStockTransactionListQuery = z.infer<typeof GetStockTransactionListQuerySchema>;
 
 // ==========================================
 // 5. INVENTORY ADJUSTMENT SCHEMAS

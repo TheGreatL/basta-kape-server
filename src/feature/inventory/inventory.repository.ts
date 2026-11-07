@@ -13,7 +13,8 @@ import type {
     TUpdateAdjustment,
     TGetListQuery,
     TGetStockLevelListQuery,
-    TGetAdjustmentListQuery
+    TGetAdjustmentListQuery,
+    TGetStockTransactionListQuery
 } from './inventory.types';
 
 export class InventoryRepository extends BaseRepository {
@@ -918,6 +919,81 @@ export class InventoryRepository extends BaseRepository {
                 }
             }),
             prisma.ingredientBatch.count({ where })
+        ]);
+
+        return this.formatPaginatedResult(data, totalRows, page, take);
+    }
+
+    async getStockTransactionList(params: TGetStockTransactionListQuery): Promise<IPaginatedResult<unknown>> {
+        const { skip, take, page } = this.normalizePagination(params);
+        const where: Prisma.StockTransactionWhereInput = {};
+
+        if (params.type && params.type !== 'ALL') {
+            where.type = params.type as TransactionType;
+        }
+
+        if (params.ingredientId) {
+            where.batch = {
+                ingredientId: params.ingredientId
+            };
+        }
+
+        if (params.startDate || params.endDate) {
+            where.createdAt = {};
+            if (params.startDate) {
+                where.createdAt.gte = new Date(params.startDate);
+            }
+            if (params.endDate) {
+                const end = new Date(params.endDate);
+                if (params.endDate.length <= 10) {
+                    end.setHours(23, 59, 59, 999);
+                }
+                where.createdAt.lte = end;
+            }
+        }
+
+        if (params.search) {
+            where.OR = [
+                { reason: { contains: params.search } },
+                {
+                    batch: {
+                        OR: [
+                            { batchNumber: { contains: params.search } },
+                            { ingredient: { name: { contains: params.search } } },
+                            { supplier: { name: { contains: params.search } } },
+                            { purchaseOrder: { poNumber: { contains: params.search } } }
+                        ]
+                    }
+                }
+            ];
+        }
+
+        const [data, totalRows] = await Promise.all([
+            prisma.stockTransaction.findMany({
+                where,
+                skip,
+                take,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    batch: {
+                        include: {
+                            ingredient: {
+                                include: { defaultUnit: true }
+                            },
+                            supplier: {
+                                select: { id: true, name: true }
+                            },
+                            purchaseOrder: {
+                                select: { id: true, poNumber: true, status: true }
+                            }
+                        }
+                    },
+                    createdBy: {
+                        select: { id: true, firstName: true, lastName: true, username: true }
+                    }
+                }
+            }),
+            prisma.stockTransaction.count({ where })
         ]);
 
         return this.formatPaginatedResult(data, totalRows, page, take);

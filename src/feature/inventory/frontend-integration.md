@@ -87,6 +87,11 @@ Used to manage raw pantry materials (e.g. Espresso Beans, Fresh Milk).
 - **Description**: Retrieves a paginated list of ingredient delivery records. Supports `search` and `status` filters.
 - **RBAC**: `read`
 
+#### `GET /inventory/transactions`
+
+- **Description**: Retrieves a paginated audit ledger of all stock transactions (both positive additions and negative deductions: `DELIVERY`, `SALE`, `WASTE`, `SPOILED`, `EXPIRED`, `THEFT`, `PROMOTIONAL_USE`, `PHYSICAL_COUNT_CORRECTION`). Supports `search`, `type`, `ingredientId`, `startDate`, and `endDate` query parameters.
+- **RBAC**: `read`
+
 #### `POST /inventory/deliveries`
 
 - **Description**: Logs a new delivery from a supplier, atomically incrementing the current stock level and updating the alert status inside a transaction.

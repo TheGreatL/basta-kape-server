@@ -21,6 +21,8 @@ import {
     UpdateBatchSchema,
     BatchResponseSchema,
     PaginatedBatchResponseSchema,
+    GetStockTransactionListQuerySchema,
+    PaginatedStockTransactionResponseSchema,
     CreateAdjustmentSchema,
     UpdateAdjustmentSchema,
     GetAdjustmentListQuerySchema,
@@ -551,6 +553,35 @@ router.get(
         try {
             const query = GetListQuerySchema.parse(req.query);
             const result = await service.getBatchList(query);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// GET /inventory/transactions
+registry.registerPath({
+    method: 'get',
+    path: '/inventory/transactions',
+    tags: ['Inventory - Stock Transactions'],
+    summary: 'Get paginated audit ledger of all stock transactions (additions and deductions)',
+    security: [{ bearerAuth: [] }],
+    responses: {
+        200: {
+            description: 'Stock transactions retrieved successfully',
+            content: { 'application/json': { schema: PaginatedStockTransactionResponseSchema } }
+        }
+    }
+});
+
+router.get(
+    '/transactions',
+    requireAccess(appModules.INVENTORY_MANAGEMENT, appPermissions.READ),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const query = GetStockTransactionListQuerySchema.parse(req.query);
+            const result = await service.getStockTransactionList(query);
             res.json(result);
         } catch (error) {
             next(error);

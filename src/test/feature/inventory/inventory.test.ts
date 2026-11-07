@@ -456,6 +456,21 @@ describe('Inventory Feature CRUD & Synchronized Stocks', () => {
             expect(updateRes.body.inputQuantity).toBe(3);
         });
 
+        it('should retrieve paginated stock transactions including both deliveries and adjustments (additions and deductions)', async () => {
+            const res = await request(app).get('/inventory/transactions');
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('data');
+            expect(res.body).toHaveProperty('meta');
+            expect(Array.isArray(res.body.data)).toBe(true);
+            expect(res.body.data.length).toBeGreaterThan(0);
+
+            // Verify both positive (delivery) and negative (waste/deduction) transactions are present
+            const hasPositive = res.body.data.some((tx: { quantityChange: number }) => tx.quantityChange > 0);
+            const hasNegative = res.body.data.some((tx: { quantityChange: number }) => tx.quantityChange < 0);
+            expect(hasPositive).toBe(true);
+            expect(hasNegative).toBe(true);
+        });
+
         it('should overwrite current stock using a physical count and recalculate status to SAFE', async () => {
             const payload = {
                 currentQuantity: 20 // Physical count count set to 20 (20 > reorderPoint of 10)

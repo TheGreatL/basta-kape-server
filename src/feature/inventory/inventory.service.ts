@@ -16,7 +16,8 @@ import type {
     TGetListQuery,
     TGetStockLevelListQuery,
     TGetAdjustmentListQuery,
-    TGetForecastQuery
+    TGetForecastQuery,
+    TGetStockTransactionListQuery
 } from './inventory.types';
 
 export class InventoryService {
@@ -336,6 +337,10 @@ export class InventoryService {
 
     async getBatchList(params: TGetListQuery) {
         return this.repository.getBatchList(params);
+    }
+
+    async getStockTransactionList(params: TGetStockTransactionListQuery) {
+        return this.repository.getStockTransactionList(params);
     }
 
     async logBatch(data: TCreateBatch, actorId: string) {
