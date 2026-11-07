@@ -189,7 +189,7 @@ export class OrderRepository extends BaseRepository {
                     ingredientId,
                     quantity,
                     'SALE',
-                    `Order stock reservation for Order ${orderRef} (${order.id})`,
+                    `Order stock reservation for Order ${orderRef}`,
                     data.actorId
                 );
             }
@@ -484,7 +484,7 @@ export class OrderRepository extends BaseRepository {
                             ingredientId,
                             quantity,
                             'SALE',
-                            `Stock re-deducted for un-cancelled Order ${orderRef} (${order.id})`,
+                            `Stock re-deducted for un-cancelled Order ${orderRef}`,
                             actorId
                         );
                     }
@@ -626,7 +626,7 @@ export class OrderRepository extends BaseRepository {
                 ingredientId,
                 quantity,
                 'PHYSICAL_COUNT_CORRECTION',
-                `Stock returned for cancelled Order ${orderRef} (${order.id})`,
+                `Stock returned for cancelled Order ${orderRef}`,
                 actorId
             );
         }

@@ -1,0 +1,147 @@
+{
+    "timestamp": "2026-11-07T03:54:17.342Z",
+    "updates": [
+        {
+            "id": "4c55e937-c973-43d9-81c0-9062b9eb3cca",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261009-001 (e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845)",
+            "orderId": "e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845",
+            "orderRef": "261009-001"
+        },
+        {
+            "id": "80d961b9-2657-40bd-b481-e0fde0f993a5",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261009-001 (e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845)",
+            "orderId": "e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845",
+            "orderRef": "261009-001"
+        },
+        {
+            "id": "caf5febf-3ce8-4f43-bcf7-772b21ee37e1",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261009-001 (e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845)",
+            "orderId": "e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845",
+            "orderRef": "261009-001"
+        },
+        {
+            "id": "1679f60d-4a0c-4144-b5d7-cfac1a0b1452",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261009-001 (e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845)",
+            "orderId": "e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845",
+            "orderRef": "261009-001"
+        },
+        {
+            "id": "1b52471b-9b59-4299-b35e-a0e1d83fe961",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261009-001 (e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845)",
+            "orderId": "e64a8300-3e0f-4dd8-a2ed-b6b2f1adf845",
+            "orderRef": "261009-001"
+        },
+        {
+            "id": "866e3a06-5518-4c7b-ac97-75386c41aecd",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261010-001 (7327051b-3e73-447e-9994-d38ee691eef3)",
+            "orderId": "7327051b-3e73-447e-9994-d38ee691eef3",
+            "orderRef": "261010-001"
+        },
+        {
+            "id": "e3e41da6-cade-46f7-bed0-d6a38fa8569e",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261010-001 (7327051b-3e73-447e-9994-d38ee691eef3)",
+            "orderId": "7327051b-3e73-447e-9994-d38ee691eef3",
+            "orderRef": "261010-001"
+        },
+        {
+            "id": "93c7c03b-be60-49b0-942b-a01f49b97e0d",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261010-001 (7327051b-3e73-447e-9994-d38ee691eef3)",
+            "orderId": "7327051b-3e73-447e-9994-d38ee691eef3",
+            "orderRef": "261010-001"
+        },
+        {
+            "id": "d25968be-b1eb-4f75-a6e2-ceafd9975fdd",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261010-001 (7327051b-3e73-447e-9994-d38ee691eef3)",
+            "orderId": "7327051b-3e73-447e-9994-d38ee691eef3",
+            "orderRef": "261010-001"
+        },
+        {
+            "id": "71e745a6-4b3f-4890-8f5c-713114f3ad10",
+            "oldReason": "Order stock reservation for Order #001",
+            "newReason": "Order stock reservation for Order 261010-001 (7327051b-3e73-447e-9994-d38ee691eef3)",
+            "orderId": "7327051b-3e73-447e-9994-d38ee691eef3",
+            "orderRef": "261010-001"
+        },
+        {
+            "id": "ab1d5bf3-39c4-4ac6-95ec-094a5f5e4695",
+            "oldReason": "Order stock reservation for Order #005",
+            "newReason": "Order stock reservation for Order 261107-005 (ab82a260-b62c-4d72-a9e6-1310051c8d21)",
+            "orderId": "ab82a260-b62c-4d72-a9e6-1310051c8d21",
+            "orderRef": "261107-005"
+        },
+        {
+            "id": "ec608736-4ef3-4403-9553-2e6ee50be9f7",
+            "oldReason": "Order stock reservation for Order #005",
+            "newReason": "Order stock reservation for Order 261107-005 (ab82a260-b62c-4d72-a9e6-1310051c8d21)",
+            "orderId": "ab82a260-b62c-4d72-a9e6-1310051c8d21",
+            "orderRef": "261107-005"
+        },
+        {
+            "id": "ea60cfd2-a86a-4717-9836-3d036a5e21f7",
+            "oldReason": "Order stock reservation for Order #005",
+            "newReason": "Order stock reservation for Order 261107-005 (ab82a260-b62c-4d72-a9e6-1310051c8d21)",
+            "orderId": "ab82a260-b62c-4d72-a9e6-1310051c8d21",
+            "orderRef": "261107-005"
+        },
+        {
+            "id": "da9b1b2d-5208-4ee1-80d8-819b36a3d088",
+            "oldReason": "Order stock reservation for Order #005",
+            "newReason": "Order stock reservation for Order 261107-005 (ab82a260-b62c-4d72-a9e6-1310051c8d21)",
+            "orderId": "ab82a260-b62c-4d72-a9e6-1310051c8d21",
+            "orderRef": "261107-005"
+        },
+        {
+            "id": "556ef1fa-64d1-4b7c-8acd-44c798112787",
+            "oldReason": "Order stock reservation for Order #005",
+            "newReason": "Order stock reservation for Order 261107-005 (ab82a260-b62c-4d72-a9e6-1310051c8d21)",
+            "orderId": "ab82a260-b62c-4d72-a9e6-1310051c8d21",
+            "orderRef": "261107-005"
+        },
+        {
+            "id": "97aaaef4-833b-4d7e-948f-512269ca1896",
+            "oldReason": "Order stock reservation for Order #006",
+            "newReason": "Order stock reservation for Order 261107-006 (86f18480-a635-4e2d-8bf0-658ca1a8e379)",
+            "orderId": "86f18480-a635-4e2d-8bf0-658ca1a8e379",
+            "orderRef": "261107-006"
+        },
+        {
+            "id": "32ddea96-ac7e-4827-af5b-f393e38ba4da",
+            "oldReason": "Order stock reservation for Order #006",
+            "newReason": "Order stock reservation for Order 261107-006 (86f18480-a635-4e2d-8bf0-658ca1a8e379)",
+            "orderId": "86f18480-a635-4e2d-8bf0-658ca1a8e379",
+            "orderRef": "261107-006"
+        },
+        {
+            "id": "a2d5db58-16c8-469b-bb78-11c081199a64",
+            "oldReason": "Order stock reservation for Order #006",
+            "newReason": "Order stock reservation for Order 261107-006 (86f18480-a635-4e2d-8bf0-658ca1a8e379)",
+            "orderId": "86f18480-a635-4e2d-8bf0-658ca1a8e379",
+            "orderRef": "261107-006"
+        },
+        {
+            "id": "279be331-1818-415f-a1a5-5179dea91e8a",
+            "oldReason": "Order stock reservation for Order #006",
+            "newReason": "Order stock reservation for Order 261107-006 (86f18480-a635-4e2d-8bf0-658ca1a8e379)",
+            "orderId": "86f18480-a635-4e2d-8bf0-658ca1a8e379",
+            "orderRef": "261107-006"
+        },
+        {
+            "id": "6a49f1bc-62c1-4a12-ae28-4b6f2a7b8362",
+            "oldReason": "Order stock reservation for Order #006",
+            "newReason": "Order stock reservation for Order 261107-006 (86f18480-a635-4e2d-8bf0-658ca1a8e379)",
+            "orderId": "86f18480-a635-4e2d-8bf0-658ca1a8e379",
+            "orderRef": "261107-006"
+        }
+    ],
+    "preparedUpdates": [],
+    "skipped": []
+}

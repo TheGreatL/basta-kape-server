@@ -131,7 +131,7 @@ export async function backfillStockTransactionOrderRef(isDryRun = true) {
         const closestOrder = matchedOrder;
 
         const orderRef = getOrderReference(closestOrder.createdAt, closestOrder.queueNumber);
-        const newReason = tx.reason.replace(/Order\s+#\d+/i, `Order ${orderRef} (${closestOrder.id})`);
+        const newReason = tx.reason.replace(/Order\s+#\d+/i, `Order ${orderRef}`);
 
         updates.push({
             id: tx.id,
@@ -162,7 +162,7 @@ export async function backfillStockTransactionOrderRef(isDryRun = true) {
         if (!pTx.reason) continue;
         if (pTx.order) {
             const orderRef = getOrderReference(pTx.order.createdAt, pTx.order.queueNumber);
-            const newReason = pTx.reason.replace(/Order\s+#\d+/i, `Order ${orderRef} (${pTx.order.id})`);
+            const newReason = pTx.reason.replace(/Order\s+#\d+/i, `Order ${orderRef}`);
             preparedUpdates.push({
                 id: pTx.id,
                 oldReason: pTx.reason,
@@ -206,21 +206,38 @@ export async function backfillStockTransactionOrderRef(isDryRun = true) {
     fs.writeFileSync(backupFilePath, JSON.stringify({ timestamp: new Date().toISOString(), updates, preparedUpdates, skipped }, null, 2));
     console.log(`\nSafety backup written to: ${backupFilePath}`);
 
-    // 4. Execute updates atomically inside a transaction
-    await prisma.$transaction(async (tx) => {
-        for (const u of updates) {
-            await tx.stockTransaction.update({
-                where: { id: u.id },
-                data: { reason: u.newReason }
-            });
+    // 4. Execute updates atomically inside a transaction with extended timeout & chunking
+    const CHUNK_SIZE = 50;
+    await prisma.$transaction(
+        async (tx) => {
+            for (let i = 0; i < updates.length; i += CHUNK_SIZE) {
+                const chunk = updates.slice(i, i + CHUNK_SIZE);
+                await Promise.all(
+                    chunk.map((u) =>
+                        tx.stockTransaction.update({
+                            where: { id: u.id },
+                            data: { reason: u.newReason }
+                        })
+                    )
+                );
+            }
+            for (let i = 0; i < preparedUpdates.length; i += CHUNK_SIZE) {
+                const chunk = preparedUpdates.slice(i, i + CHUNK_SIZE);
+                await Promise.all(
+                    chunk.map((pu) =>
+                        tx.preparedItemTransaction.update({
+                            where: { id: pu.id },
+                            data: { reason: pu.newReason }
+                        })
+                    )
+                );
+            }
+        },
+        {
+            maxWait: 15000,
+            timeout: 60000
         }
-        for (const pu of preparedUpdates) {
-            await tx.preparedItemTransaction.update({
-                where: { id: pu.id },
-                data: { reason: pu.newReason }
-            });
-        }
-    });
+    );
 
     console.log(`\nSuccessfully updated ${updates.length + preparedUpdates.length} records in database.\n`);
 }
