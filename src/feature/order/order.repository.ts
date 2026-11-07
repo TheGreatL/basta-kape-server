@@ -3,7 +3,7 @@ import { BaseRepository } from '@/repository/base.repository';
 import { Prisma, OrderStatus, OrderType, OrderSource, PaymentMethod } from '@prisma/client';
 import type { TGetOrderListQuery } from './order.types';
 import type { IPaginatedResult } from '@/types/base.types';
-import { formatOrderWithReference, formatOrdersWithReference } from './order.utils';
+import { getOrderReference, formatOrderWithReference, formatOrdersWithReference } from './order.utils';
 import { InventoryRepository } from '@/feature/inventory/inventory.repository';
 import { FoodPrepRepository } from '@/feature/food-prep/food-prep.repository';
 import { BadRequestException } from '@/exceptions';
@@ -175,9 +175,11 @@ export class OrderRepository extends BaseRepository {
                 });
             }
 
+            const orderRef = getOrderReference(order.createdAt, order.queueNumber);
+
             // 4. Deduct prepared display stock for PREPARED_DISPLAY items
             for (const [variantId, qty] of preparedItemRequirements.entries()) {
-                await foodPrepRepo.deductPreparedStockFEFO(tx, variantId, qty, order.id, data.queueNumber, data.actorId);
+                await foodPrepRepo.deductPreparedStockFEFO(tx, variantId, qty, order.id, orderRef, data.actorId);
             }
 
             // 5. Deduct raw ingredient stock for MADE_TO_ORDER items & modifiers
@@ -187,7 +189,7 @@ export class OrderRepository extends BaseRepository {
                     ingredientId,
                     quantity,
                     'SALE',
-                    `Order stock reservation for Order ${data.queueNumber}`,
+                    `Order stock reservation for Order ${orderRef} (${order.id})`,
                     data.actorId
                 );
             }
@@ -459,8 +461,10 @@ export class OrderRepository extends BaseRepository {
                         throw new BadRequestException(`Cannot re-open order due to insufficient fresh display stock: ${details}`);
                     }
 
+                    const orderRef = getOrderReference(order.createdAt, order.queueNumber);
+
                     for (const [variantId, qty] of preparedItemRequirements.entries()) {
-                        await foodPrepRepo.deductPreparedStockFEFO(tx, variantId, qty, order.id, order.queueNumber, actorId);
+                        await foodPrepRepo.deductPreparedStockFEFO(tx, variantId, qty, order.id, orderRef, actorId);
                     }
                 }
 
@@ -473,13 +477,14 @@ export class OrderRepository extends BaseRepository {
                         throw new BadRequestException(`Cannot re-open order due to insufficient stock: ${details}`);
                     }
 
+                    const orderRef = getOrderReference(order.createdAt, order.queueNumber);
                     for (const [ingredientId, quantity] of ingredientRequirements.entries()) {
                         await inventoryRepo.deductIngredientStockFEFO(
                             tx,
                             ingredientId,
                             quantity,
                             'SALE',
-                            `Stock re-deducted for un-cancelled Order ${order.queueNumber}`,
+                            `Stock re-deducted for un-cancelled Order ${orderRef} (${order.id})`,
                             actorId
                         );
                     }
@@ -612,6 +617,8 @@ export class OrderRepository extends BaseRepository {
         // 1. Restore prepared display items
         await foodPrepRepo.restorePreparedStockForOrder(tx, order.id, actorId);
 
+        const orderRef = getOrderReference(order.createdAt, order.queueNumber);
+
         // 2. Restore made-to-order raw ingredients
         for (const [ingredientId, quantity] of ingredientRequirements.entries()) {
             await inventoryRepo.addIngredientStockLatest(
@@ -619,7 +626,7 @@ export class OrderRepository extends BaseRepository {
                 ingredientId,
                 quantity,
                 'PHYSICAL_COUNT_CORRECTION',
-                `Stock returned for cancelled Order ${order.queueNumber}`,
+                `Stock returned for cancelled Order ${orderRef} (${order.id})`,
                 actorId
             );
         }
