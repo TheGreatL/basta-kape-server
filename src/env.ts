@@ -1,7 +1,20 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { z } from 'zod';
 
 // Load environment variables
+// Load environment variables:
+// When NODE_ENV or APP_ENV is set to production, prioritize .env.production if it exists
+const appEnv = process.env.APP_ENV || process.env.NODE_ENV;
+if (appEnv === 'production' || appEnv === 'prod') {
+    const prodEnvPath = path.resolve(process.cwd(), '.env.production');
+    if (fs.existsSync(prodEnvPath)) {
+        dotenv.config({ path: prodEnvPath });
+    }
+}
+
+// Fallback / default to .env
 dotenv.config();
 
 const envSchema = z
