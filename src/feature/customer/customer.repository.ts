@@ -281,7 +281,40 @@ export class CustomerRepository extends BaseRepository {
             },
             include: {
                 productVariant: {
-                    include: productVariantInclude
+                    include: {
+                        ...productVariantInclude,
+                        recipe: {
+                            where: { deletedAt: null },
+                            include: {
+                                ingredients: {
+                                    where: { deletedAt: null },
+                                    include: {
+                                        ingredient: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                type: true,
+                                                ingredientUnitId: true,
+                                                inventories: {
+                                                    where: { deletedAt: null },
+                                                    select: { currentQuantity: true }
+                                                }
+                                            }
+                                        },
+                                        unit: { select: { id: true, name: true, abbreviation: true } }
+                                    }
+                                }
+                            }
+                        },
+                        preparedBatches: {
+                            where: {
+                                deletedAt: null,
+                                currentQuantity: { gt: 0 },
+                                expiresAt: { gt: new Date() }
+                            },
+                            select: { currentQuantity: true }
+                        }
+                    }
                 },
                 cartModifiers: {
                     include: {

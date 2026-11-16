@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { CustomerRepository } from './customer.repository';
 import { ActivityLogService } from '@/feature/activity-log/activity-log.service';
+import { calculateMaxProduceable, type IRepositoryProductVariant, type IRepositoryProduct } from '@/feature/menu/menu.service';
+import { UnitConversionService } from '@/feature/unit-conversion/unit-conversion.service';
 import { NotFoundException, ConflictException } from '@/exceptions';
 import type {
     TCreateCustomer,
@@ -20,10 +22,12 @@ type CustomerServiceConstructor = {
 export class CustomerService {
     private customerRepository: CustomerRepository;
     private activityLogService: ActivityLogService;
+    private unitConversionService: UnitConversionService;
 
     constructor(params?: CustomerServiceConstructor) {
         this.customerRepository = params?.customerRepository || new CustomerRepository();
         this.activityLogService = params?.activityLogService || new ActivityLogService();
+        this.unitConversionService = new UnitConversionService();
     }
 
     async getCustomerList(params: TGetCustomerListQuery) {
@@ -152,12 +156,26 @@ export class CustomerService {
         const customer = await this.getCustomerById(customerId);
 
         const items = await this.customerRepository.getCart(customer.id);
+        const converter = await this.unitConversionService.getConverter();
+
+        const enrichedItems = items.map((item) => {
+            const variant = item.productVariant as unknown as IRepositoryProductVariant;
+            const product = item.productVariant.product as unknown as IRepositoryProduct;
+            const maxProduceable = calculateMaxProduceable(variant, product, converter);
+            return {
+                ...item,
+                productVariant: {
+                    ...item.productVariant,
+                    maxProduceable
+                }
+            };
+        });
 
         // Compute total cart amount dynamically
-        const totalAmount = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+        const totalAmount = enrichedItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
         return {
-            items,
+            items: enrichedItems,
             totalAmount
         };
     }

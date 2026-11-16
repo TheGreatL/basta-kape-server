@@ -146,6 +146,10 @@ export const ProductVariantInfoSchema = z.object({
     id: z.string(),
     sku: z.string().nullable(),
     price: z.number(),
+    maxProduceable: z
+        .union([z.number(), z.literal('Unlimited')])
+        .nullable()
+        .optional(),
     product: ProductInfoSchema,
     attributes: z.array(ProductVariantAttributeInfoSchema)
 });

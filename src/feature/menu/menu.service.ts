@@ -3,11 +3,11 @@ import { NotFoundException } from '@/exceptions';
 import type { TGetMenuQuery, TGetBestSellersQuery } from './menu.types';
 import { UnitConversionService, type TUnitConverter } from '@/feature/unit-conversion/unit-conversion.service';
 
-interface IRepositoryIngredientInventory {
+export interface IRepositoryIngredientInventory {
     currentQuantity: number;
 }
 
-interface IRepositoryRecipeIngredient {
+export interface IRepositoryRecipeIngredient {
     id: string;
     ingredientId: string;
     quantity: number;
@@ -24,7 +24,7 @@ interface IRepositoryRecipeIngredient {
     };
 }
 
-interface IRepositoryProductVariant {
+export interface IRepositoryProductVariant {
     id: string;
     productId: string;
     sku: string | null;
@@ -39,7 +39,7 @@ interface IRepositoryProductVariant {
     } | null;
 }
 
-interface IRepositoryProduct {
+export interface IRepositoryProduct {
     id: string;
     name: string;
     photo: string | null;
@@ -53,7 +53,7 @@ interface IRepositoryProduct {
     variants: IRepositoryProductVariant[];
 }
 
-function calculateMaxProduceable(variant: IRepositoryProductVariant, product: IRepositoryProduct, converter?: TUnitConverter): number | null {
+export function calculateMaxProduceable(variant: IRepositoryProductVariant, product: IRepositoryProduct, converter?: TUnitConverter): number | null {
     // If product is prepared for display in advance, max produceable is the sum of fresh display units on hand
     if (product.preparationType === 'PREPARED_DISPLAY') {
         return (variant.preparedBatches || []).reduce((sum, b) => sum + b.currentQuantity, 0);
