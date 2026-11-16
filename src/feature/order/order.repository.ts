@@ -208,7 +208,22 @@ export class OrderRepository extends BaseRepository {
                     include: {
                         variant: {
                             include: {
-                                product: true
+                                product: true,
+                                attributes: {
+                                    where: { deletedAt: null },
+                                    include: {
+                                        attributeValue: {
+                                            include: {
+                                                attribute: {
+                                                    select: {
+                                                        id: true,
+                                                        name: true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         },
                         modifiers: {

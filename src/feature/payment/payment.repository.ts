@@ -150,7 +150,41 @@ export class PaymentRepository extends BaseRepository {
                             status: true,
                             orderType: true,
                             orderSource: true,
-                            paymentStatus: true
+                            paymentStatus: true,
+                            items: {
+                                include: {
+                                    variant: {
+                                        include: {
+                                            product: true,
+                                            attributes: {
+                                                where: { deletedAt: null },
+                                                include: {
+                                                    attributeValue: {
+                                                        include: {
+                                                            attribute: {
+                                                                select: {
+                                                                    id: true,
+                                                                    name: true
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifiers: {
+                                        include: {
+                                            modifierOption: {
+                                                select: {
+                                                    id: true,
+                                                    name: true
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
