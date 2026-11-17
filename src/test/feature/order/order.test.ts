@@ -697,5 +697,122 @@ describe('Order Feature CRUD', () => {
             expect(completeRes.status).toBe(200);
             expect(completeRes.body.status).toBe('COMPLETED');
         });
+
+        it('should execute comprehensive full lifecycle end-to-end delivery flow and reject out-of-scope delivery (>10km)', async () => {
+            // 1. Attempt delivery at 25 km (> 10 km limit) fails with 400 Bad Request
+            const outOfScopeRes = await request(app)
+                .post('/orders')
+                .send({
+                    orderType: 'DELIVERY',
+                    orderSource: 'WEBSITE',
+                    customerName: 'Too Far Customer',
+                    deliveryAddress: 'Bulacan Provincial Border, 25km away',
+                    deliveryLatitude: 14.85,
+                    deliveryLongitude: 120.95,
+                    deliveryDistanceKm: 25.0,
+                    paymentMethod: 'GCASH',
+                    paymentReferenceNumber: '9999888877771',
+                    paymentProofPhoto: 'https://example.com/out-of-scope-proof.jpg',
+                    items: [
+                        {
+                            productVariantId: testVariantId,
+                            quantity: 1,
+                            unitPrice: 120,
+                            totalPrice: 120
+                        }
+                    ]
+                });
+            expect(outOfScopeRes.status).toBe(400);
+            expect(outOfScopeRes.body.error).toContain('beyond our maximum delivery radius');
+
+            // 2. Customer pins address 4.5 km away; server calculates shipping fee based on DB store settings:
+            // Base fare: 49 for 2km + ceil(4.5 - 2.0)*10 = 49 + 3*10 = 79.
+            // Subtotal: 120, Fee: 79, NetTotal: 199.
+            const e2ePayload = {
+                orderType: 'DELIVERY',
+                orderSource: 'WEBSITE',
+                customerName: 'E2E Customer Maria',
+                deliveryAddress: '45 East Ave, Diliman, Quezon City',
+                deliveryLatitude: 14.643,
+                deliveryLongitude: 121.045,
+                deliveryDistanceKm: 4.5,
+                paymentMethod: 'GCASH',
+                paymentReferenceNumber: '1111222233334',
+                paymentProofPhoto: 'https://example.com/e2e-delivery-proof.jpg',
+                items: [
+                    {
+                        productVariantId: testVariantId,
+                        quantity: 1,
+                        unitPrice: 120,
+                        totalPrice: 120
+                    }
+                ]
+            };
+
+            const createRes = await request(app).post('/orders').send(e2ePayload);
+            expect(createRes.status).toBe(201);
+            expect(createRes.body.deliveryFee).toBe(79);
+            expect(createRes.body.subtotal).toBe(150);
+            expect(createRes.body.netTotal).toBe(229);
+            const e2eOrderId = createRes.body.id;
+
+            // 3. Cashier approves order (APPROVED)
+            const approveRes = await request(app).patch(`/orders/${e2eOrderId}/status`).send({ status: 'APPROVED', notes: 'Payment verified' });
+            expect(approveRes.status).toBe(200);
+            expect(approveRes.body.status).toBe('APPROVED');
+
+            // 4. Barista prepares drinks (PREPARING)
+            const prepRes = await request(app).patch(`/orders/${e2eOrderId}/status`).send({ status: 'PREPARING', notes: 'Brewing drinks' });
+            expect(prepRes.status).toBe(200);
+            expect(prepRes.body.status).toBe('PREPARING');
+
+            // 5. Staff opens modal and assigns courier (PATCH /orders/:id/courier)
+            const courierRes = await request(app).patch(`/orders/${e2eOrderId}/courier`).send({
+                riderName: 'Pedro Penduko',
+                riderPlate: 'NCR 4567',
+                riderVehicle: 'Motorcycle',
+                trackingLink: 'https://lalamove.com/track/e2e-4567'
+            });
+            expect(courierRes.status).toBe(200);
+            expect(courierRes.body.riderName).toBe('Pedro Penduko');
+            expect(courierRes.body.riderPlate).toBe('NCR 4567');
+
+            // 6. Barista finishes drinks (READY)
+            const readyRes = await request(app)
+                .patch(`/orders/${e2eOrderId}/status`)
+                .send({ status: 'READY', notes: 'Packed and waiting for rider' });
+            expect(readyRes.status).toBe(200);
+            expect(readyRes.body.status).toBe('READY');
+
+            // 7. Rider collects order: staff dispatches (DISPATCHED)
+            const dispatchRes = await request(app)
+                .patch(`/orders/${e2eOrderId}/status`)
+                .send({ status: 'DISPATCHED', notes: 'Handed over to Pedro Penduko' });
+            expect(dispatchRes.status).toBe(200);
+            expect(dispatchRes.body.status).toBe('DISPATCHED');
+
+            // 8. Verifies editing courier in DISPATCHED is blocked with 400
+            const blockedCourierRes = await request(app).patch(`/orders/${e2eOrderId}/courier`).send({
+                riderName: 'Late Rider',
+                riderPlate: 'XYZ 1111',
+                riderVehicle: 'Bike',
+                trackingLink: 'https://example.com/late'
+            });
+            expect(blockedCourierRes.status).toBe(400);
+
+            // 9. Customer confirms arrival (PATCH /orders/:id/complete -> COMPLETED)
+            const completeRes = await request(app).patch(`/orders/${e2eOrderId}/complete`).send({});
+            expect(completeRes.status).toBe(200);
+            expect(completeRes.body.status).toBe('COMPLETED');
+
+            // 10. Verifies receipt includes delivery address, distance, shipping fee, and rider details
+            const receiptRes = await request(app).get(`/orders/${e2eOrderId}/receipt?format=text`);
+            expect(receiptRes.status).toBe(200);
+            expect(receiptRes.text).toContain('45 East Ave');
+            expect(receiptRes.text).toContain('4.5 km');
+            expect(receiptRes.text).toContain('79.00');
+            expect(receiptRes.text).toContain('Pedro Penduko');
+            expect(receiptRes.text).toContain('NCR 4567');
+        });
     });
 });
