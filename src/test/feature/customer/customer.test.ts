@@ -280,6 +280,40 @@ describe('Customer Feature CRUD', () => {
             expect(res.body.user.firstName).toBe('Charlie Updated');
             expect(res.body.user.phoneNumber).toBe('+639171111111');
         });
+
+        it('should create a customer with deliveryAddress and return it', async () => {
+            const uniqueSuffix = Date.now();
+            const payload = {
+                email: `charlie_address_${uniqueSuffix}@example.com`,
+                username: `charlie_address_${uniqueSuffix}`,
+                firstName: 'Charlie',
+                lastName: 'Delivery',
+                phoneNumber: '+639170000001',
+                deliveryAddress: 'Unit 12B, Sun Residences, Espana Ave, Quezon City'
+            };
+
+            const res = await request(app).post('/customers').send(payload);
+            expect(res.status).toBe(201);
+            expect(res.body.deliveryAddress).toBe('Unit 12B, Sun Residences, Espana Ave, Quezon City');
+
+            const fetchRes = await request(app).get(`/customers/${res.body.id}`);
+            expect(fetchRes.status).toBe(200);
+            expect(fetchRes.body.deliveryAddress).toBe('Unit 12B, Sun Residences, Espana Ave, Quezon City');
+
+            // Clean up created record
+            await prisma.customer.delete({ where: { id: res.body.id } });
+            await prisma.user.delete({ where: { id: res.body.userId } });
+        });
+
+        it('should update customer deliveryAddress successfully', async () => {
+            const payload = {
+                deliveryAddress: 'Block 5 Lot 12, Katipunan St, Diliman, Quezon City'
+            };
+
+            const res = await request(app).put(`/customers/${testCustomerId}`).send(payload);
+            expect(res.status).toBe(200);
+            expect(res.body.deliveryAddress).toBe('Block 5 Lot 12, Katipunan St, Diliman, Quezon City');
+        });
     });
 
     describe('Customer Cart Sub-Resource Operations', () => {

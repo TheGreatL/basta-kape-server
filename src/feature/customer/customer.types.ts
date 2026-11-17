@@ -17,7 +17,8 @@ export const CreateCustomerSchema = z.object({
     firstName: z.string().min(2),
     lastName: z.string().min(2),
     middleName: z.string().nullable().optional(),
-    phoneNumber: z.string().nullable().optional()
+    phoneNumber: z.string().nullable().optional(),
+    deliveryAddress: z.string().max(1000).nullable().optional()
 });
 
 export type TCreateCustomer = z.infer<typeof CreateCustomerSchema>;
@@ -28,7 +29,8 @@ export const UpdateCustomerSchema = z.object({
     firstName: z.string().min(2).optional(),
     lastName: z.string().min(2).optional(),
     middleName: z.string().nullable().optional(),
-    phoneNumber: z.string().nullable().optional()
+    phoneNumber: z.string().nullable().optional(),
+    deliveryAddress: z.string().max(1000).nullable().optional()
 });
 
 export type TUpdateCustomer = z.infer<typeof UpdateCustomerSchema>;
@@ -59,6 +61,7 @@ export const CustomerUserSchema = z.object({
 export const CustomerResponseSchema = z.object({
     id: z.string(),
     userId: z.string(),
+    deliveryAddress: z.string().nullable().optional(),
     createdAt: z.date().or(z.string()),
     updatedAt: z.date().or(z.string()),
     deletedAt: z.date().nullable().or(z.string().nullable()),

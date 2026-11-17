@@ -78,7 +78,8 @@ export class CustomerRepository extends BaseRepository {
 
             const customer = await tx.customer.create({
                 data: {
-                    userId: user.id
+                    userId: user.id,
+                    deliveryAddress: data.deliveryAddress ? data.deliveryAddress.trim() : null
                 },
                 include: {
                     user: true
@@ -105,11 +106,25 @@ export class CustomerRepository extends BaseRepository {
         if (data.middleName !== undefined) userUpdateData.middleName = data.middleName;
         if (data.phoneNumber !== undefined) userUpdateData.phoneNumber = data.phoneNumber;
 
+        const customerUpdateData: Prisma.CustomerUpdateInput = {};
+        if (data.deliveryAddress !== undefined) {
+            customerUpdateData.deliveryAddress = data.deliveryAddress ? data.deliveryAddress.trim() : null;
+        }
+
         return prisma.$transaction(async (tx) => {
-            await tx.user.update({
-                where: { id: customer.userId },
-                data: userUpdateData
-            });
+            if (Object.keys(userUpdateData).length > 0) {
+                await tx.user.update({
+                    where: { id: customer.userId },
+                    data: userUpdateData
+                });
+            }
+
+            if (Object.keys(customerUpdateData).length > 0) {
+                await tx.customer.update({
+                    where: { id },
+                    data: customerUpdateData
+                });
+            }
 
             const updatedCustomer = await tx.customer.findUniqueOrThrow({
                 where: { id },
