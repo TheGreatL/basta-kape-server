@@ -569,6 +569,10 @@ describe('Order Feature CRUD', () => {
                 paymentMethod: 'GCASH',
                 paymentReferenceNumber: '9001234567891',
                 paymentProofPhoto: 'https://example.com/delivery-proof.jpg',
+                deliveryAddress: 'Unit 4B, 123 Katipunan Ave, Quezon City',
+                deliveryLatitude: 14.634,
+                deliveryLongitude: 121.055,
+                deliveryDistanceKm: 3.2,
                 items: [
                     {
                         productVariantId: testVariantId,
@@ -582,6 +586,9 @@ describe('Order Feature CRUD', () => {
             expect(res.body.orderType).toBe('DELIVERY');
             expect(res.body.orderSource).toBe('WEBSITE');
             expect(res.body.status).toBe('PENDING');
+            expect(res.body.deliveryAddress).toBe('Unit 4B, 123 Katipunan Ave, Quezon City');
+            expect(res.body.deliveryDistanceKm).toBe(3.2);
+            expect(res.body.deliveryFee).toBeGreaterThan(0);
             deliveryOrderId = res.body.id;
         });
 
@@ -592,7 +599,7 @@ describe('Order Feature CRUD', () => {
             expect(res.body.error).toContain('Only delivery orders can be marked as Dispatched.');
         });
 
-        it('should reject courier details submission before order is READY', async () => {
+        it('should reject courier details submission before order is PREPARING or READY', async () => {
             const res = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
                 riderName: 'Juan Dela Cruz',
                 riderPlate: 'ABC 1234',
@@ -601,10 +608,13 @@ describe('Order Feature CRUD', () => {
             });
 
             expect(res.status).toBe(400);
-            expect(res.body.error).toContain('Courier details can only be submitted when the order is Ready for Pickup.');
+            expect(res.body.error).toContain('Courier details can only be assigned or updated when the order is Preparing or Ready for Pickup.');
         });
 
         it('should reject courier details submission with invalid vehicle or invalid trackingLink URL', async () => {
+            // First transition to PREPARING so status check passes
+            await request(app).patch(`/orders/${deliveryOrderId}/status`).send({ status: 'PREPARING', notes: 'Preparing drinks' });
+
             const invalidVehicleRes = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
                 riderName: 'Juan Dela Cruz',
                 riderPlate: 'ABC 1234',
@@ -622,21 +632,8 @@ describe('Order Feature CRUD', () => {
             expect(invalidUrlRes.status).toBe(400);
         });
 
-        it('should allow customer to submit courier details when order is READY and allow staff to transition to DISPATCHED and COMPLETED', async () => {
-            // Transition DELIVERY order to READY ("Ready for Pickup")
-            const readyRes = await request(app)
-                .patch(`/orders/${deliveryOrderId}/status`)
-                .send({ status: 'READY', notes: 'Order ready for courier pickup' });
-            expect(readyRes.status).toBe(200);
-            expect(readyRes.body.status).toBe('READY');
-
-            // Attempting to transition READY -> DISPATCHED before courier details are submitted should fail
-            const prematureDispatchRes = await request(app)
-                .patch(`/orders/${deliveryOrderId}/status`)
-                .send({ status: 'DISPATCHED', notes: 'Try dispatch without courier details' });
-            expect(prematureDispatchRes.status).toBe(400);
-
-            // Customer submits courier details
+        it('should allow staff to submit courier details when order is PREPARING or READY and allow staff to transition to DISPATCHED and COMPLETED', async () => {
+            // Staff submits courier details during PREPARING
             const courierRes = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
                 riderName: 'Juan Dela Cruz',
                 riderPlate: 'ABC 1234',
@@ -648,6 +645,13 @@ describe('Order Feature CRUD', () => {
             expect(courierRes.body.riderPlate).toBe('ABC 1234');
             expect(courierRes.body.riderVehicle).toBe('Motorcycle');
             expect(courierRes.body.trackingLink).toBe('https://track.example.com/12345');
+
+            // Transition DELIVERY order to READY ("Ready for Pickup")
+            const readyRes = await request(app)
+                .patch(`/orders/${deliveryOrderId}/status`)
+                .send({ status: 'READY', notes: 'Order ready for courier pickup' });
+            expect(readyRes.status).toBe(200);
+            expect(readyRes.body.status).toBe('READY');
 
             // Search orders by rider plate
             const searchRes = await request(app).get('/orders?search=ABC%201234');
@@ -661,17 +665,30 @@ describe('Order Feature CRUD', () => {
             expect(dispatchRes.status).toBe(200);
             expect(dispatchRes.body.status).toBe('DISPATCHED');
 
+            // Attempting to edit courier after DISPATCHED should fail
+            const postDispatchEditRes = await request(app).patch(`/orders/${deliveryOrderId}/courier`).send({
+                riderName: 'Another Rider',
+                riderPlate: 'XYZ 9999',
+                riderVehicle: 'Car',
+                trackingLink: 'https://track.example.com/9999'
+            });
+            expect(postDispatchEditRes.status).toBe(400);
+            expect(postDispatchEditRes.body.error).toContain(
+                'Courier details can only be assigned or updated when the order is Preparing or Ready for Pickup.'
+            );
+
             // Filter by status=DISPATCHED
             const filterRes = await request(app).get('/orders?status=DISPATCHED');
             expect(filterRes.status).toBe(200);
             expect(filterRes.body.data.some((o: { id: string }) => o.id === deliveryOrderId)).toBe(true);
 
-            // Verify receipt includes courier details
+            // Verify receipt includes courier details and address
             const receiptRes = await request(app).get(`/orders/${deliveryOrderId}/receipt?format=text`);
             expect(receiptRes.status).toBe(200);
             expect(receiptRes.text).toContain('Juan Dela Cruz');
             expect(receiptRes.text).toContain('ABC 1234');
             expect(receiptRes.text).toContain('Motorcycle');
+            expect(receiptRes.text).toContain('Unit 4B, 123 Katipunan Ave');
 
             // Transition DISPATCHED -> COMPLETED
             const completeRes = await request(app)

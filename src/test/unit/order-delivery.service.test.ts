@@ -133,14 +133,14 @@ describe('OrderService Delivery Workflow & Courier Unit Tests', () => {
         ).rejects.toThrow('Courier details can only be submitted for delivery orders.');
     });
 
-    it('rejects updateOrderCourier when actor is not the customer who placed the order (e.g. staff)', async () => {
+    it('rejects updateOrderCourier when actor is a customer or unauthorized', async () => {
         mockRepo.getOrderById.mockResolvedValue({
             id: 'order-deliv-1',
             orderType: 'DELIVERY',
             status: 'READY',
             customerId: 'cust-1'
         });
-        vi.mocked(prisma.customer.findFirst).mockResolvedValue(null);
+        vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
 
         await expect(
             service.updateOrderCourier(
@@ -151,38 +151,90 @@ describe('OrderService Delivery Workflow & Courier Unit Tests', () => {
                     riderVehicle: 'Motorcycle',
                     trackingLink: 'https://track.example.com/1'
                 },
-                'staff-user-id'
+                'customer-user-id'
             )
-        ).rejects.toThrow('Only the customer who placed this order can submit courier details.');
+        ).rejects.toThrow('Only authorized staff can assign or update courier details.');
     });
 
-    it('rejects updateOrderCourier when order status is not READY (Ready for Pickup)', async () => {
+    it('rejects updateOrderCourier when order status is not PREPARING or READY (e.g. DISPATCHED)', async () => {
         mockRepo.getOrderById.mockResolvedValue({
             id: 'order-deliv-1',
+            orderType: 'DELIVERY',
+            status: 'DISPATCHED',
+            customerId: 'cust-1'
+        });
+        vi.mocked(prisma.user.findFirst).mockResolvedValue({
+            id: 'staff-1',
+            role: {
+                name: 'Administrator',
+                isSystem: true,
+                rolePermissions: []
+            }
+        } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
+
+        await expect(
+            service.updateOrderCourier(
+                'order-deliv-1',
+                {
+                    riderName: 'Juan Dela Cruz',
+                    riderPlate: 'ABC 1234',
+                    riderVehicle: 'Motorcycle',
+                    trackingLink: 'https://track.example.com/1'
+                },
+                'staff-1'
+            )
+        ).rejects.toThrow('Courier details can only be assigned or updated when the order is Preparing or Ready for Pickup.');
+    });
+
+    it('saves courier details when staff submits them while order is PREPARING', async () => {
+        mockRepo.getOrderById.mockResolvedValue({
+            id: 'order-deliv-1',
+            queueNumber: '#005',
             orderType: 'DELIVERY',
             status: 'PREPARING',
             customerId: 'cust-1'
         });
-        vi.mocked(prisma.customer.findFirst).mockResolvedValue({
-            id: 'cust-1',
-            userId: 'user-1'
-        } as unknown as Awaited<ReturnType<typeof prisma.customer.findFirst>>);
+        vi.mocked(prisma.user.findFirst).mockResolvedValue({
+            id: 'staff-1',
+            role: {
+                name: 'Administrator',
+                isSystem: true,
+                rolePermissions: []
+            }
+        } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
+        mockRepo.updateOrderCourier.mockResolvedValue({
+            id: 'order-deliv-1',
+            queueNumber: '#005',
+            orderType: 'DELIVERY',
+            status: 'PREPARING',
+            customerId: 'cust-1',
+            riderName: 'Juan Dela Cruz',
+            riderPlate: 'ABC 1234',
+            riderVehicle: 'Motorcycle',
+            trackingLink: 'https://track.example.com/1'
+        });
 
-        await expect(
-            service.updateOrderCourier(
-                'order-deliv-1',
-                {
-                    riderName: 'Juan Dela Cruz',
-                    riderPlate: 'ABC 1234',
-                    riderVehicle: 'Motorcycle',
-                    trackingLink: 'https://track.example.com/1'
-                },
-                'user-1'
-            )
-        ).rejects.toThrow('Courier details can only be submitted when the order is Ready for Pickup.');
+        const res = await service.updateOrderCourier(
+            'order-deliv-1',
+            {
+                riderName: 'Juan Dela Cruz',
+                riderPlate: 'ABC 1234',
+                riderVehicle: 'Motorcycle',
+                trackingLink: 'https://track.example.com/1'
+            },
+            'staff-1'
+        );
+
+        expect(mockRepo.updateOrderCourier).toHaveBeenCalledWith('order-deliv-1', {
+            riderName: 'Juan Dela Cruz',
+            riderPlate: 'ABC 1234',
+            riderVehicle: 'Motorcycle',
+            trackingLink: 'https://track.example.com/1'
+        });
+        expect(res.riderName).toBe('Juan Dela Cruz');
     });
 
-    it('saves courier details when customer submits them while order is READY', async () => {
+    it('saves courier details when staff submits them while order is READY', async () => {
         mockRepo.getOrderById.mockResolvedValue({
             id: 'order-deliv-1',
             queueNumber: '#005',
@@ -190,10 +242,14 @@ describe('OrderService Delivery Workflow & Courier Unit Tests', () => {
             status: 'READY',
             customerId: 'cust-1'
         });
-        vi.mocked(prisma.customer.findFirst).mockResolvedValue({
-            id: 'cust-1',
-            userId: 'user-1'
-        } as unknown as Awaited<ReturnType<typeof prisma.customer.findFirst>>);
+        vi.mocked(prisma.user.findFirst).mockResolvedValue({
+            id: 'staff-1',
+            role: {
+                name: 'Administrator',
+                isSystem: true,
+                rolePermissions: []
+            }
+        } as unknown as Awaited<ReturnType<typeof prisma.user.findFirst>>);
         mockRepo.updateOrderCourier.mockResolvedValue({
             id: 'order-deliv-1',
             queueNumber: '#005',
@@ -214,7 +270,7 @@ describe('OrderService Delivery Workflow & Courier Unit Tests', () => {
                 riderVehicle: 'Motorcycle',
                 trackingLink: 'https://track.example.com/1'
             },
-            'user-1'
+            'staff-1'
         );
 
         expect(mockRepo.updateOrderCourier).toHaveBeenCalledWith('order-deliv-1', {
@@ -223,7 +279,7 @@ describe('OrderService Delivery Workflow & Courier Unit Tests', () => {
             riderVehicle: 'Motorcycle',
             trackingLink: 'https://track.example.com/1'
         });
-        expect(res?.riderName).toBe('Juan Dela Cruz');
+        expect(res.riderName).toBe('Juan Dela Cruz');
     });
 
     it('includes courier details in text and HTML receipts for DELIVERY orders', () => {

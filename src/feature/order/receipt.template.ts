@@ -81,7 +81,9 @@ export function generateTextReceipt(
     lines.push(leftRight(`Queue No: ${order.queueNumber || 'N/A'}`, format(new Date(order.createdAt), 'hh:mm a')));
     lines.push(leftRight(`Receipt ID: ${order.id.slice(0, 8).toUpperCase()}`, `Type: ${order.orderType}`));
     lines.push(leftRight(`Src: ${order.orderSource}`, ''));
-    if (order.orderType === 'DELIVERY' && (order.riderName || order.riderPlate || order.riderVehicle)) {
+    if (order.orderType === 'DELIVERY') {
+        if (order.deliveryAddress) lines.push(leftRight('Address:', order.deliveryAddress.slice(0, 28)));
+        if (order.deliveryDistanceKm) lines.push(leftRight('Distance:', `${order.deliveryDistanceKm.toFixed(1)} km`));
         if (order.riderName) lines.push(leftRight('Rider:', order.riderName));
         if (order.riderPlate) lines.push(leftRight('Plate:', order.riderPlate));
         if (order.riderVehicle) lines.push(leftRight('Vehicle:', order.riderVehicle));
@@ -114,6 +116,9 @@ export function generateTextReceipt(
 
     // Totals
     lines.push(leftRight('Subtotal:', `PHP ${order.subtotal.toFixed(2)}`));
+    if (order.orderType === 'DELIVERY' && order.deliveryFee) {
+        lines.push(leftRight('Delivery Fee:', `PHP ${order.deliveryFee.toFixed(2)}`));
+    }
     for (const od of order.discounts) {
         lines.push(leftRight(`Discount (${od.discount.name}):`, `-PHP ${od.amount.toFixed(2)}`));
         if (od.referenceId) {
@@ -532,6 +537,8 @@ export function generateHtmlReceipt(
             <div>${order.orderType}</div>
             <div>Server:</div>
             <div>${cashierName}</div>
+            ${order.orderType === 'DELIVERY' && order.deliveryAddress ? `<div>Address:</div><div>${order.deliveryAddress}</div>` : ''}
+            ${order.orderType === 'DELIVERY' && order.deliveryDistanceKm ? `<div>Distance:</div><div>${order.deliveryDistanceKm.toFixed(1)} km</div>` : ''}
             ${order.orderType === 'DELIVERY' && order.riderName ? `<div>Rider:</div><div>${order.riderName}</div>` : ''}
             ${order.orderType === 'DELIVERY' && order.riderPlate ? `<div>Plate No:</div><div>${order.riderPlate}</div>` : ''}
             ${order.orderType === 'DELIVERY' && order.riderVehicle ? `<div>Vehicle:</div><div>${order.riderVehicle}</div>` : ''}
@@ -550,6 +557,15 @@ export function generateHtmlReceipt(
                 <span>Subtotal</span>
                 <span>PHP ${order.subtotal.toFixed(2)}</span>
             </div>
+            ${
+                order.orderType === 'DELIVERY' && order.deliveryFee
+                    ? `
+            <div class="receipt-total-row">
+                <span>Delivery Fee</span>
+                <span>PHP ${order.deliveryFee.toFixed(2)}</span>
+            </div>`
+                    : ''
+            }
             ${discountRowsHtml}
             
             <div class="divider"></div>
@@ -799,6 +815,11 @@ export async function generatePdfReceipt(
         doc.font('Helvetica').fontSize(8).text('Subtotal:', 15, y);
         doc.text(`PHP ${order.subtotal.toFixed(2)}`, 100, y, { align: 'right', width: 111 });
         y += 11;
+        if (order.orderType === 'DELIVERY' && order.deliveryFee) {
+            doc.text('Delivery Fee:', 15, y);
+            doc.text(`PHP ${order.deliveryFee.toFixed(2)}`, 100, y, { align: 'right', width: 111 });
+            y += 11;
+        }
         for (const od of order.discounts) {
             doc.text(`Discount (${od.discount.name}):`, 15, y);
             doc.text(`-PHP ${od.amount.toFixed(2)}`, 100, y, { align: 'right', width: 111 });

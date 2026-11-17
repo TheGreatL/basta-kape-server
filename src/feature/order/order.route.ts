@@ -194,15 +194,22 @@ registry.registerPath({
     }
 });
 
-router.patch('/:id/courier', authenticate, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const body = UpdateOrderCourierSchema.parse(req.body);
-        const result = await service.updateOrderCourier(req.params.id as string, body, req.user!.sub);
-        res.json(result);
-    } catch (error) {
-        next(error);
+router.patch(
+    '/:id/courier',
+    requireAccess([
+        { module: appModules.ORDER_QUEUE, permission: appPermissions.UPDATE },
+        { module: appModules.ORDERS_MANAGEMENT, permission: appPermissions.UPDATE }
+    ]),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = UpdateOrderCourierSchema.parse(req.body);
+            const result = await service.updateOrderCourier(req.params.id as string, body, req.user!.sub);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
     }
-});
+);
 
 // PATCH /orders/:id/complete
 registry.registerPath({

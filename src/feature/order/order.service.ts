@@ -154,8 +154,24 @@ export class OrderService {
             });
         }
 
+        // Calculate delivery fee if DELIVERY
+        let deliveryFee = 0;
+        if (data.orderType === 'DELIVERY') {
+            const storeSetting = await this.storeSettingsService.getActiveSettings();
+            if (storeSetting) {
+                if (data.deliveryDistanceKm && data.deliveryDistanceKm > storeSetting.deliveryMaxDistanceKm) {
+                    throw new BadRequestException(
+                        `Delivery address is beyond our maximum delivery radius of ${storeSetting.deliveryMaxDistanceKm} km.`
+                    );
+                }
+                const distance = data.deliveryDistanceKm ?? 0;
+                const extraKm = Math.max(0, Math.ceil(distance - storeSetting.deliveryBaseDistanceKm));
+                deliveryFee = storeSetting.deliveryBaseFare + extraKm * storeSetting.deliveryRatePerKm;
+            }
+        }
+
         // Apply calculations
-        const netTotal = calculatedSubtotal;
+        const netTotal = calculatedSubtotal + deliveryFee;
         const taxAmount = Math.round(netTotal * (vatRate / (100 + vatRate)) * 100) / 100;
 
         // Generate Daily Queue Number
@@ -198,9 +214,14 @@ export class OrderService {
                 notes: data.notes,
                 subtotal: calculatedSubtotal,
                 taxAmount,
+                deliveryFee,
                 netTotal,
                 customerId: data.customerId,
                 customerName: data.customerName,
+                deliveryAddress: data.deliveryAddress?.trim() || null,
+                deliveryLatitude: data.deliveryLatitude ?? null,
+                deliveryLongitude: data.deliveryLongitude ?? null,
+                deliveryDistanceKm: data.deliveryDistanceKm ?? null,
                 riderName: data.riderName?.trim() || null,
                 riderPlate: data.riderPlate?.trim() || null,
                 riderVehicle: data.riderVehicle || null,
@@ -216,6 +237,18 @@ export class OrderService {
                 );
             }
             throw error;
+        }
+
+        // Save delivery address to customer profile if available
+        if (data.customerId && data.deliveryAddress) {
+            await prisma.customer
+                .update({
+                    where: { id: data.customerId },
+                    data: { deliveryAddress: data.deliveryAddress.trim() }
+                })
+                .catch(() => {
+                    // Ignore non-blocking customer update errors
+                });
         }
 
         await this.activityLogService.logActivity({
@@ -320,16 +353,47 @@ export class OrderService {
             throw new BadRequestException('Courier details can only be submitted for delivery orders.');
         }
 
-        const customer = await prisma.customer.findFirst({
-            where: { userId: actorId, deletedAt: null }
-        });
-
-        if (!customer || (order.customerId && order.customerId !== customer.id)) {
-            throw new ForbiddenException('Only the customer who placed this order can submit courier details.');
+        if (order.status !== OrderStatus.PREPARING && order.status !== OrderStatus.READY) {
+            throw new BadRequestException('Courier details can only be assigned or updated when the order is Preparing or Ready for Pickup.');
         }
 
-        if (order.status !== OrderStatus.READY) {
-            throw new BadRequestException('Courier details can only be submitted when the order is Ready for Pickup.');
+        const actor = await prisma.user.findFirst({
+            where: { id: actorId, deletedAt: null },
+            include: {
+                role: {
+                    include: {
+                        rolePermissions: {
+                            where: { deletedAt: null },
+                            include: {
+                                modulePermission: {
+                                    include: {
+                                        module: true,
+                                        permission: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!actor) {
+            throw new ForbiddenException('Only authorized staff can assign or update courier details.');
+        }
+
+        const isSuperOrAdmin = actor.role.name === 'Owner' || actor.role.name === 'Administrator' || actor.role.isSystem;
+        if (!isSuperOrAdmin) {
+            const permissions = actor.role.rolePermissions.map((rp) => ({
+                module: rp.modulePermission.module.name.toLowerCase(),
+                permission: rp.modulePermission.permission.name.toLowerCase()
+            }));
+            const canUpdateCourier = permissions.some(
+                (p) => (p.module === 'order queue' || p.module === 'orders management') && p.permission === 'update'
+            );
+            if (!canUpdateCourier) {
+                throw new ForbiddenException('Only authorized staff can assign or update courier details.');
+            }
         }
 
         const updated = await this.repository.updateOrderCourier(orderId, {
@@ -341,8 +405,8 @@ export class OrderService {
 
         await this.activityLogService.logActivity({
             actorId,
-            title: 'Update Delivery Courier Details',
-            details: `Customer submitted courier details for ${order.queueNumber ?? orderId} (Rider: ${data.riderName.trim()}, Plate: ${data.riderPlate.trim()}, Vehicle: ${data.riderVehicle}).`
+            title: 'Staff Assigned Courier Details',
+            details: `Staff assigned courier details for ${order.queueNumber ?? orderId} (Rider: ${data.riderName.trim()}, Plate: ${data.riderPlate.trim()}, Vehicle: ${data.riderVehicle}).`
         });
 
         return updated;
