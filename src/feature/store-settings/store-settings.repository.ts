@@ -16,7 +16,13 @@ export class StoreSettingsRepository extends BaseRepository {
                 openingTime: data.openingTime,
                 closingTime: data.closingTime,
                 vatRate: data.vatRate,
-                serviceCharge: data.serviceCharge
+                serviceCharge: data.serviceCharge,
+                deliveryBaseFare: data.deliveryBaseFare,
+                deliveryBaseDistanceKm: data.deliveryBaseDistanceKm,
+                deliveryRatePerKm: data.deliveryRatePerKm,
+                deliveryMaxDistanceKm: data.deliveryMaxDistanceKm,
+                storeLatitude: data.storeLatitude,
+                storeLongitude: data.storeLongitude
             }
         });
     }
@@ -31,7 +37,13 @@ export class StoreSettingsRepository extends BaseRepository {
                 openingTime: data.openingTime,
                 closingTime: data.closingTime,
                 vatRate: data.vatRate,
-                serviceCharge: data.serviceCharge
+                serviceCharge: data.serviceCharge,
+                deliveryBaseFare: data.deliveryBaseFare,
+                deliveryBaseDistanceKm: data.deliveryBaseDistanceKm,
+                deliveryRatePerKm: data.deliveryRatePerKm,
+                deliveryMaxDistanceKm: data.deliveryMaxDistanceKm,
+                storeLatitude: data.storeLatitude,
+                storeLongitude: data.storeLongitude
             }
         });
     }

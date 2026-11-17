@@ -109,6 +109,12 @@ describe('Store Settings Feature CRUD', () => {
             expect(res.body.closingTime).toBe('21:00');
             expect(res.body.vatRate).toBe(12.0);
             expect(res.body.serviceCharge).toBe(0.0);
+            expect(res.body.deliveryBaseFare).toBe(49.0);
+            expect(res.body.deliveryBaseDistanceKm).toBe(2.0);
+            expect(res.body.deliveryRatePerKm).toBe(10.0);
+            expect(res.body.deliveryMaxDistanceKm).toBe(10.0);
+            expect(res.body.storeLatitude).toBe(14.6288);
+            expect(res.body.storeLongitude).toBe(121.0422);
 
             createdSettingId = res.body.id;
         });
@@ -135,7 +141,13 @@ describe('Store Settings Feature CRUD', () => {
                 openingTime: '06:30',
                 closingTime: '22:30',
                 vatRate: 10.0,
-                serviceCharge: 1.5
+                serviceCharge: 1.5,
+                deliveryBaseFare: 55.0,
+                deliveryBaseDistanceKm: 2.5,
+                deliveryRatePerKm: 12.0,
+                deliveryMaxDistanceKm: 15.0,
+                storeLatitude: 14.63,
+                storeLongitude: 121.045
             };
 
             const res = await request(app).put(`/store-settings/${createdSettingId}`).send(payload);
@@ -146,6 +158,12 @@ describe('Store Settings Feature CRUD', () => {
             expect(res.body.closingTime).toBe('22:30');
             expect(res.body.vatRate).toBe(10.0);
             expect(res.body.serviceCharge).toBe(1.5);
+            expect(res.body.deliveryBaseFare).toBe(55.0);
+            expect(res.body.deliveryBaseDistanceKm).toBe(2.5);
+            expect(res.body.deliveryRatePerKm).toBe(12.0);
+            expect(res.body.deliveryMaxDistanceKm).toBe(15.0);
+            expect(res.body.storeLatitude).toBe(14.63);
+            expect(res.body.storeLongitude).toBe(121.045);
         });
 
         it('should return 400 when PUT payload is invalid', async () => {

@@ -27,7 +27,13 @@ export class StoreSettingsService {
                 openingTime: '07:00',
                 closingTime: '21:00',
                 vatRate: 12.0,
-                serviceCharge: 0.0
+                serviceCharge: 0.0,
+                deliveryBaseFare: 49.0,
+                deliveryBaseDistanceKm: 2.0,
+                deliveryRatePerKm: 10.0,
+                deliveryMaxDistanceKm: 10.0,
+                storeLatitude: 14.6288,
+                storeLongitude: 121.0422
             });
         }
         return settings;
