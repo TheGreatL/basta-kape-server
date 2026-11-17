@@ -85,6 +85,32 @@ describe('Auth Feature Integration Tests', () => {
             expect(createdUser?.email).toBe(testUser.email);
         });
 
+        it('should successfully register a customer with deliveryAddress and persist it', async () => {
+            const timestamp = Date.now();
+            const customerWithAddress = {
+                email: `auth_addr_${timestamp}@example.com`,
+                username: `auth_addr_${timestamp}`,
+                password: 'Password123!',
+                firstName: 'Delivery',
+                lastName: 'Customer',
+                deliveryAddress: 'Unit 502, High Street South, BGC, Taguig'
+            };
+
+            const res = await request(app).post('/auth/register').send(customerWithAddress);
+            expect(res.status).toBe(201);
+
+            const createdCustomer = await prisma.customer.findFirst({
+                where: { userId: res.body.userId }
+            });
+            expect(createdCustomer).toBeDefined();
+            expect(createdCustomer?.deliveryAddress).toBe('Unit 502, High Street South, BGC, Taguig');
+
+            // Clean up
+            await prisma.refreshToken.deleteMany({ where: { userId: res.body.userId } });
+            await prisma.customer.deleteMany({ where: { userId: res.body.userId } });
+            await prisma.user.delete({ where: { id: res.body.userId } });
+        });
+
         it('should fail with 400 when registration fields are invalid', async () => {
             const invalidUser = {
                 email: 'invalid-email',

@@ -91,7 +91,9 @@ export class UserRepository extends BaseRepository {
                 connect: { id: customerRole.id }
             },
             customer: {
-                create: {}
+                create: {
+                    deliveryAddress: data.deliveryAddress ? data.deliveryAddress.trim() : null
+                }
             }
         };
 

@@ -19,6 +19,7 @@ export const RegisterSchema = z.object({
     middleName: z.string().optional(),
     lastName: z.string().min(1, 'Last name is required'),
     phoneNumber: z.string().optional(),
+    deliveryAddress: z.string().max(1000).optional().nullable(),
     otp: z.string().optional()
 });
 
