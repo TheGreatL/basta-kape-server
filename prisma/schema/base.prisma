@@ -17,5 +17,13 @@ model StoreSetting {
   vatRate       Float   @default(12.0) // Standard PH VAT (12%)
   serviceCharge Float   @default(0.0)
 
+  // Delivery & shipping configuration
+  deliveryBaseFare       Float   @default(49.0)
+  deliveryBaseDistanceKm Float   @default(2.0)
+  deliveryRatePerKm      Float   @default(10.0)
+  deliveryMaxDistanceKm  Float   @default(10.0)
+  storeLatitude          Float   @default(14.6288)
+  storeLongitude         Float   @default(121.0422)
+
   updatedAt DateTime @updatedAt
 }

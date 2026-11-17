@@ -17,9 +17,14 @@ type TCreateOrderRepoData = {
     notes?: string | null;
     subtotal: number;
     taxAmount: number;
+    deliveryFee?: number;
     netTotal: number;
     customerId?: string | null;
     customerName?: string | null;
+    deliveryAddress?: string | null;
+    deliveryLatitude?: number | null;
+    deliveryLongitude?: number | null;
+    deliveryDistanceKm?: number | null;
     riderName?: string | null;
     riderPlate?: string | null;
     riderVehicle?: string | null;
@@ -120,9 +125,14 @@ export class OrderRepository extends BaseRepository {
                     notes: data.notes ?? null,
                     subtotal: data.subtotal,
                     taxAmount: data.taxAmount,
+                    deliveryFee: data.deliveryFee ?? 0,
                     netTotal: data.netTotal,
                     customerId: data.customerId ?? null,
                     customerName: data.customerName ?? null,
+                    deliveryAddress: data.deliveryAddress ?? null,
+                    deliveryLatitude: data.deliveryLatitude ?? null,
+                    deliveryLongitude: data.deliveryLongitude ?? null,
+                    deliveryDistanceKm: data.deliveryDistanceKm ?? null,
                     riderName: data.riderName ?? null,
                     riderPlate: data.riderPlate ?? null,
                     riderVehicle: data.riderVehicle ?? null,

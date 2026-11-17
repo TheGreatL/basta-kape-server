@@ -30,6 +30,11 @@ export const CreateOrderSchema = z
         customerId: z.string().uuid().optional().nullable(),
         customerName: z.string().max(100).optional().nullable(),
         buzzerId: z.string().max(50).optional().nullable(),
+        deliveryAddress: z.string().max(1000).optional().nullable(),
+        deliveryLatitude: z.number().optional().nullable(),
+        deliveryLongitude: z.number().optional().nullable(),
+        deliveryDistanceKm: z.number().optional().nullable(),
+        deliveryFee: z.number().min(0).optional().default(0),
         riderName: z.string().max(100).optional().nullable(),
         riderPlate: z.string().max(50).optional().nullable(),
         riderVehicle: RiderVehicleEnum.optional().nullable(),
@@ -53,6 +58,34 @@ export const CreateOrderSchema = z
                     code: z.ZodIssueCode.custom,
                     message: 'Only GCash payment is available for delivery orders',
                     path: ['paymentMethod']
+                });
+            }
+            if (!data.deliveryAddress || !data.deliveryAddress.trim()) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Delivery address is required for delivery orders',
+                    path: ['deliveryAddress']
+                });
+            } else if (data.deliveryAddress.trim().length < 5) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Delivery address must be at least 5 characters',
+                    path: ['deliveryAddress']
+                });
+            }
+            if (
+                data.deliveryLatitude === undefined ||
+                data.deliveryLatitude === null ||
+                data.deliveryLongitude === undefined ||
+                data.deliveryLongitude === null ||
+                data.deliveryDistanceKm === undefined ||
+                data.deliveryDistanceKm === null ||
+                data.deliveryDistanceKm <= 0
+            ) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Delivery coordinates and distance are required',
+                    path: ['deliveryDistanceKm']
                 });
             }
         }
@@ -145,9 +178,14 @@ export const OrderResponseSchema = z.object({
     subtotal: z.number(),
     taxAmount: z.number(),
     discountAmount: z.number(),
+    deliveryFee: z.number().default(0),
     netTotal: z.number(),
     customerId: z.string().nullable(),
     customerName: z.string().nullable(),
+    deliveryAddress: z.string().nullable().optional(),
+    deliveryLatitude: z.number().nullable().optional(),
+    deliveryLongitude: z.number().nullable().optional(),
+    deliveryDistanceKm: z.number().nullable().optional(),
     riderName: z.string().nullable().optional(),
     riderPlate: z.string().nullable().optional(),
     riderVehicle: z.string().nullable().optional(),

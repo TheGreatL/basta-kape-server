@@ -122,14 +122,15 @@ model User {
 }
 
 model Customer {
-  id        String         @id @default(uuid())
-  userId    String         @unique
-  user      User           @relation(fields: [userId], references: [id])
-  carts     CustomerCart[]
-  orders    Order[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  deletedAt DateTime?
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id])
+  deliveryAddress String?        @db.Text
+  carts           CustomerCart[]
+  orders          Order[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
 }
 
 model CustomerCart {

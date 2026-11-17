@@ -45,6 +45,7 @@ model Order {
   subtotal       Float @default(0)
   taxAmount      Float @default(0)
   discountAmount Float @default(0)
+  deliveryFee    Float @default(0)
   netTotal       Float @default(0)
 
   // Customer details (Registered or walk-in name for sticker)
@@ -52,11 +53,15 @@ model Order {
   customer     Customer? @relation(fields: [customerId], references: [id])
   customerName String? // Custom walk-in customer name
 
-  // Delivery / Courier details (Customer-booked 3rd-party courier)
-  riderName    String?
-  riderPlate   String?
-  riderVehicle String?
-  trackingLink String?   @db.VarChar(1000)
+  // Delivery / Courier details
+  deliveryAddress    String?   @db.Text
+  deliveryLatitude   Float?
+  deliveryLongitude  Float?
+  deliveryDistanceKm Float?
+  riderName          String?
+  riderPlate         String?
+  riderVehicle       String?
+  trackingLink       String?   @db.VarChar(1000)
 
   paymentStatus PaymentStatus @default(PENDING)
   totalPaid     Float         @default(0)
