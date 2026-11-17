@@ -231,7 +231,7 @@ describe('OrderService Delivery Workflow & Courier Unit Tests', () => {
             riderVehicle: 'Motorcycle',
             trackingLink: 'https://track.example.com/1'
         });
-        expect(res.riderName).toBe('Juan Dela Cruz');
+        expect(res?.riderName).toBe('Juan Dela Cruz');
     });
 
     it('saves courier details when staff submits them while order is READY', async () => {
@@ -279,7 +279,7 @@ describe('OrderService Delivery Workflow & Courier Unit Tests', () => {
             riderVehicle: 'Motorcycle',
             trackingLink: 'https://track.example.com/1'
         });
-        expect(res.riderName).toBe('Juan Dela Cruz');
+        expect(res?.riderName).toBe('Juan Dela Cruz');
     });
 
     it('includes courier details in text and HTML receipts for DELIVERY orders', () => {
