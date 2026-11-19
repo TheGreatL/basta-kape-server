@@ -34,7 +34,7 @@ export const CreateOrderSchema = z
         deliveryLatitude: z.number().optional().nullable(),
         deliveryLongitude: z.number().optional().nullable(),
         deliveryDistanceKm: z.number().optional().nullable(),
-        deliveryFee: z.number().min(0).optional().default(0),
+        deliveryFee: z.number().min(0).optional().nullable().default(0),
         riderName: z.string().max(100).optional().nullable(),
         riderPlate: z.string().max(50).optional().nullable(),
         riderVehicle: RiderVehicleEnum.optional().nullable(),

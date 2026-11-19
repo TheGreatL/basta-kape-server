@@ -147,4 +147,20 @@ describe('Order Delivery Schema & Enum Unit Tests', () => {
         });
         expect(invalidUrl.success).toBe(false);
     });
+
+    it('accepts DINE_IN / TAKE_OUT orders when nullable delivery fields including deliveryFee are null', () => {
+        const result = CreateOrderSchema.safeParse({
+            orderType: 'DINE_IN',
+            orderSource: 'WEBSITE',
+            paymentMethod: 'CASH',
+            deliveryAddress: null,
+            deliveryLatitude: null,
+            deliveryLongitude: null,
+            deliveryDistanceKm: null,
+            deliveryFee: null,
+            items: [validItem]
+        });
+
+        expect(result.success).toBe(true);
+    });
 });
